@@ -28,7 +28,7 @@
 </main>
 <nav class="bottom"><div class="nav"><button class="active"><span>⌂</span>Ana Sayfa</button><button><span>⚽</span>Maçlar</button><button><span>▥</span>Tahminler</button><button><span>☆</span>Favoriler</button></div></nav>
 <script>
-const API="https://macanaliz-api.tokcan700.workers.dev";
+const API="https://macanaliz-api.tokcan700.workers.dev/api/fixtures";
 let matches=[],activeFilter="all";
 const fmtTime=iso=>new Intl.DateTimeFormat("tr-TR",{timeZone:"Europe/Istanbul",hour:"2-digit",minute:"2-digit"}).format(new Date(iso));
 const group=s=>["1H","HT","2H","ET","BT","P","LIVE","INT"].includes(s)?"LIVE":s;
