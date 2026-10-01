@@ -32,14 +32,15 @@ export default {
 
     const data = await response.json();
 
-    return Response.json(
-      {
-        success: response.ok,
-        date: today,
-        count: data.results || 0,
-        matches: data.response || []
-      },
-      { headers }
-    );
-  }
-};
+  return Response.json(
+  {
+    success: response.ok,
+    status: response.status,
+    date: today,
+    count: data.results || 0,
+    errors: data.errors || {},
+    message: data.message || null,
+    matches: data.response || []
+  },
+  { headers }
+);
