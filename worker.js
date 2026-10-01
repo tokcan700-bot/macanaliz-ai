@@ -234,7 +234,6 @@ function completedMatches(list) {
     .sort((a, b) => b.fixture.timestamp - a.fixture.timestamp)
     .slice(0, 5);
 }
-  );
 
 
 function teamStats(matches) {
