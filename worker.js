@@ -224,12 +224,18 @@ async function prediction(env, ctx, cors, url) {
 
 function completedMatches(list) {
   const completed = new Set(["FT", "AET", "PEN"]);
-  return (list || []).filter(m =>
-    completed.has(m.fixture?.status?.short) &&
-    Number.isFinite(m.goals?.home) &&
-    Number.isFinite(m.goals?.away)
-  );
+
+  return (list || [])
+    .filter(m =>
+      completed.has(m.fixture?.status?.short) &&
+      Number.isFinite(m.goals?.home) &&
+      Number.isFinite(m.goals?.away)
+    )
+    .sort((a, b) => b.fixture.timestamp - a.fixture.timestamp)
+    .slice(0, 5);
 }
+  );
+
 
 function teamStats(matches) {
   if (!matches.length) {
@@ -280,7 +286,20 @@ function confidence(score, sample) {
   if (score >= 62 || score <= 38) return "Orta";
   return "Düşük";
 }
+function istanbulDate(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+}
 
+function daysAgo(n) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - n);
+  return istanbulDate(d);
+}
 async function model(env, ctx, cors, url) {
   const home = url.searchParams.get("home");
   const away = url.searchParams.get("away");
