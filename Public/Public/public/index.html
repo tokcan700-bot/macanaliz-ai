@@ -40,11 +40,62 @@ const fmtTime=iso=>new Intl.DateTimeFormat("tr-TR",{timeZone:"Europe/Istanbul",h
 const group=s=>["1H","HT","2H","ET","BT","P","LIVE","INT"].includes(s)?"LIVE":s;
 
 function trAdvice(text){
-  if(!text) return "API tahmini";
+  if(!text) return "API Tahmini";
+
   return text
-    .replace(/^Double chance\s*:\s*/i,"Çifte Şans: ")
-    .replace(/\bor draw\b/gi,"veya Beraberlik")
-    .replace(/\bor\b/gi,"veya");
+    .replace(
+      /^Combo Double chance\s*:\s*/i,
+      "Kombine Tahmin: "
+    )
+    .replace(
+      /^Double chance\s*:\s*/i,
+      "Çifte Şans: "
+    )
+    .replace(
+      /\bor draw\b/gi,
+      "veya Beraberlik"
+    )
+    .replace(
+      /\band\s*\+1\.5 goals\b/gi,
+      " + 1.5 Üst"
+    )
+    .replace(
+      /\band\s*\+2\.5 goals\b/gi,
+      " + 2.5 Üst"
+    )
+    .replace(
+      /\band\s*-1\.5 goals\b/gi,
+      " + 1.5 Alt"
+    )
+    .replace(
+      /\band\s*-2\.5 goals\b/gi,
+      " + 2.5 Alt"
+    )
+    .replace(
+      /\bhome\b/gi,
+      "Ev Sahibi"
+    )
+    .replace(
+      /\baway\b/gi,
+      "Deplasman"
+    )
+    .replace(
+      /\bdraw\b/gi,
+      "Beraberlik"
+    )
+    .replace(
+      /\bor\b/gi,
+      "veya"
+    )
+    .replace(
+      /\band\b/gi,
+      "+"
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
 }
 
 function render(){
