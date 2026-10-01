@@ -13,14 +13,8 @@ export default {
 
     if (!env.API_FOOTBALL_KEY) {
       return Response.json(
-        {
-          success: false,
-          error: "API_FOOTBALL_KEY bulunamadı."
-        },
-        {
-          status: 500,
-          headers: cors
-        }
+        { success: false, error: "API_FOOTBALL_KEY bulunamadı." },
+        { status: 500, headers: cors }
       );
     }
 
@@ -39,14 +33,8 @@ export default {
     }
 
     return Response.json(
-      {
-        success: false,
-        error: "Endpoint bulunamadı."
-      },
-      {
-        status: 404,
-        headers: cors
-      }
+      { success: false, error: "Endpoint bulunamadı." },
+      { status: 404, headers: cors }
     );
   }
 };
@@ -66,15 +54,11 @@ async function apiFetch(path, params, env) {
     }
   }
 
-  const r = await fetch(
-    u.toString(),
-    {
-      headers: {
-        "x-apisports-key":
-          env.API_FOOTBALL_KEY
-      }
+  const r = await fetch(u.toString(), {
+    headers: {
+      "x-apisports-key": env.API_FOOTBALL_KEY
     }
-  );
+  });
 
   const data = await r.json();
 
@@ -85,10 +69,9 @@ async function apiFetch(path, params, env) {
       : [];
 
   if (!r.ok || errors.length) {
-    const e =
-      new Error(
-        "API Football isteği başarısız."
-      );
+    const e = new Error(
+      "API Football isteği başarısız."
+    );
 
     e.status = r.status;
     e.apiErrors = data.errors || {};
@@ -123,10 +106,9 @@ async function fixtures(
 
   const cache = caches.default;
 
-  const cacheKey =
-    new Request(
-      `${url.origin}/api/fixtures-v3?date=${encodeURIComponent(date)}`
-    );
+  const cacheKey = new Request(
+    `${url.origin}/api/fixtures-v4?date=${encodeURIComponent(date)}`
+  );
 
   const hit =
     await cache.match(cacheKey);
@@ -136,90 +118,61 @@ async function fixtures(
   }
 
   try {
-    const data =
-      await apiFetch(
-        "/fixtures",
-        {
-          date,
-          timezone:
-            "Europe/Istanbul"
-        },
-        env
-      );
+    const data = await apiFetch(
+      "/fixtures",
+      {
+        date,
+        timezone: "Europe/Istanbul"
+      },
+      env
+    );
 
     const matches =
-      (data.response || [])
-      .map(m => ({
+      (data.response || []).map(m => ({
         id: m.fixture.id,
-
-        kickoff:
-          m.fixture.date,
-
-        status:
-          m.fixture.status.short,
+        kickoff: m.fixture.date,
+        status: m.fixture.status.short,
 
         league: {
-          id:
-            m.league.id,
-
-          name:
-            m.league.name,
-
-          country:
-            m.league.country,
-
-          logo:
-            m.league.logo
+          id: m.league.id,
+          name: m.league.name,
+          country: m.league.country,
+          logo: m.league.logo
         },
 
         home: {
-          id:
-            m.teams.home.id,
-
-          name:
-            m.teams.home.name,
-
-          logo:
-            m.teams.home.logo
+          id: m.teams.home.id,
+          name: m.teams.home.name,
+          logo: m.teams.home.logo
         },
 
         away: {
-          id:
-            m.teams.away.id,
-
-          name:
-            m.teams.away.name,
-
-          logo:
-            m.teams.away.logo
+          id: m.teams.away.id,
+          name: m.teams.away.name,
+          logo: m.teams.away.logo
         },
 
         score: {
-          home:
-            m.goals.home,
-
-          away:
-            m.goals.away
+          home: m.goals.home,
+          away: m.goals.away
         }
       }));
 
-    const result =
-      Response.json(
-        {
-          success: true,
-          date,
-          count:
-            matches.length,
-          matches
-        },
-        {
-          headers: {
-            ...cors,
-            "Cache-Control":
-              "public, max-age=600"
-          }
+    const result = Response.json(
+      {
+        success: true,
+        date,
+        count: matches.length,
+        matches
+      },
+      {
+        headers: {
+          ...cors,
+          "Cache-Control":
+            "public, max-age=600"
         }
-      );
+      }
+    );
 
     ctx.waitUntil(
       cache.put(
@@ -234,12 +187,9 @@ async function fixtures(
     return Response.json(
       {
         success: false,
-        status:
-          e.status || 500,
-        errors:
-          e.apiErrors || {},
-        error:
-          e.message
+        status: e.status || 500,
+        errors: e.apiErrors || {},
+        error: e.message
       },
       {
         status: 502,
@@ -249,218 +199,403 @@ async function fixtures(
   }
 }
 
-function parseGoalRange(value) {
+function numberValue(value) {
+  const n = Number(value);
+
+  return Number.isFinite(n)
+    ? n
+    : null;
+}
+
+function percentValue(value) {
   if (
-    typeof value !== "string"
+    value === null ||
+    value === undefined
   ) {
     return null;
   }
 
-  const nums =
-    value.match(
-      /\d+(?:\.\d+)?/g
+  const n = Number(
+    String(value).replace("%", "")
+  );
+
+  return Number.isFinite(n)
+    ? n
+    : null;
+}
+
+function average(values) {
+  const valid =
+    values.filter(
+      v => Number.isFinite(v)
     );
 
-  if (
-    !nums ||
-    nums.length === 0
-  ) {
+  if (!valid.length) {
     return null;
-  }
-
-  if (nums.length === 1) {
-    return Number(nums[0]);
   }
 
   return (
-    Number(nums[0]) +
-    Number(nums[1])
-  ) / 2;
-}
-
-function clamp(
-  n,
-  min = 5,
-  max = 95
-) {
-  return Math.max(
-    min,
-    Math.min(
-      max,
-      Math.round(n)
-    )
+    valid.reduce(
+      (a, b) => a + b,
+      0
+    ) / valid.length
   );
 }
 
-function heuristicModel(
-  predictions
+function clamp(
+  value,
+  min,
+  max
 ) {
-  const goalsHome =
-    parseGoalRange(
-      predictions.goals?.home
+  return Math.max(
+    min,
+    Math.min(max, value)
+  );
+}
+
+function poissonOver15(lambda) {
+  const p0 =
+    Math.exp(-lambda);
+
+  const p1 =
+    Math.exp(-lambda) *
+    lambda;
+
+  return 1 - p0 - p1;
+}
+
+function poissonOver25(lambda) {
+  const p0 =
+    Math.exp(-lambda);
+
+  const p1 =
+    p0 * lambda;
+
+  const p2 =
+    p0 *
+    Math.pow(lambda, 2) /
+    2;
+
+  return 1 - p0 - p1 - p2;
+}
+
+function bttsProbability(
+  lambdaHome,
+  lambdaAway
+) {
+  return (
+    1 -
+    Math.exp(-lambdaHome)
+  ) * (
+    1 -
+    Math.exp(-lambdaAway)
+  );
+}
+
+function buildModel(item) {
+  const home =
+    item.teams?.home || {};
+
+  const away =
+    item.teams?.away || {};
+
+  const comparison =
+    item.comparison || {};
+
+  const hLast =
+    home.last_5 || {};
+
+  const aLast =
+    away.last_5 || {};
+
+  const hScored =
+    numberValue(
+      hLast.goals?.for?.average
     );
 
-  const goalsAway =
-    parseGoalRange(
-      predictions.goals?.away
+  const hConceded =
+    numberValue(
+      hLast.goals?.against?.average
     );
 
-  const expectedTotal =
-    goalsHome !== null &&
-    goalsAway !== null
-      ? goalsHome + goalsAway
-      : null;
+  const aScored =
+    numberValue(
+      aLast.goals?.for?.average
+    );
 
-  let over15 = 58;
-  let over25 = 48;
-  let btts = 47;
+  const aConceded =
+    numberValue(
+      aLast.goals?.against?.average
+    );
+
+  const hLeagueScored =
+    numberValue(
+      home.league?.goals?.for
+        ?.average?.home
+    );
+
+  const hLeagueConceded =
+    numberValue(
+      home.league?.goals?.against
+        ?.average?.home
+    );
+
+  const aLeagueScored =
+    numberValue(
+      away.league?.goals?.for
+        ?.average?.away
+    );
+
+  const aLeagueConceded =
+    numberValue(
+      away.league?.goals?.against
+        ?.average?.away
+    );
+
+  const homeAttack =
+    average([
+      hScored,
+      hLeagueScored
+    ]) ?? 1.2;
+
+  const homeOpponentDef =
+    average([
+      aConceded,
+      aLeagueConceded
+    ]) ?? 1.2;
+
+  const awayAttack =
+    average([
+      aScored,
+      aLeagueScored
+    ]) ?? 1.0;
+
+  const awayOpponentDef =
+    average([
+      hConceded,
+      hLeagueConceded
+    ]) ?? 1.0;
+
+  let lambdaHome =
+    average([
+      homeAttack,
+      homeOpponentDef
+    ]) ?? 1.2;
+
+  let lambdaAway =
+    average([
+      awayAttack,
+      awayOpponentDef
+    ]) ?? 1.0;
+
+  const attHome =
+    percentValue(
+      comparison.att?.home
+    );
+
+  const attAway =
+    percentValue(
+      comparison.att?.away
+    );
+
+  const defHome =
+    percentValue(
+      comparison.def?.home
+    );
+
+  const defAway =
+    percentValue(
+      comparison.def?.away
+    );
 
   if (
-    expectedTotal !== null
+    attHome !== null &&
+    attAway !== null
   ) {
-    over15 =
-      42 +
-      expectedTotal * 16;
+    const diff =
+      (attHome - attAway) / 100;
 
-    over25 =
-      26 +
-      expectedTotal * 15;
+    lambdaHome *=
+      1 + diff * 0.12;
 
-    if (
-      goalsHome > 0.7 &&
-      goalsAway > 0.7
-    ) {
-      btts =
-        45 +
-        Math.min(
-          goalsHome,
-          goalsAway
-        ) * 22;
-    } else {
-      btts =
-        32 +
-        Math.min(
-          goalsHome || 0,
-          goalsAway || 0
-        ) * 18;
-    }
+    lambdaAway *=
+      1 - diff * 0.12;
   }
 
-  const uo =
+  if (
+    defHome !== null &&
+    defAway !== null
+  ) {
+    const diff =
+      (defHome - defAway) / 100;
+
+    lambdaHome *=
+      1 - diff * 0.08;
+
+    lambdaAway *=
+      1 + diff * 0.08;
+  }
+
+  lambdaHome =
+    clamp(
+      lambdaHome,
+      0.25,
+      3.2
+    );
+
+  lambdaAway =
+    clamp(
+      lambdaAway,
+      0.25,
+      3.2
+    );
+
+  const totalLambda =
+    lambdaHome +
+    lambdaAway;
+
+  let over15 =
+    poissonOver15(
+      totalLambda
+    );
+
+  let over25 =
+    poissonOver25(
+      totalLambda
+    );
+
+  let btts =
+    bttsProbability(
+      lambdaHome,
+      lambdaAway
+    );
+
+  const underOver =
     String(
-      predictions.under_over || ""
+      item.predictions
+        ?.under_over || ""
     ).toLowerCase();
 
   if (
-    uo.includes("+1.5") ||
-    uo.includes("over 1.5")
+    underOver.includes("+1.5") ||
+    underOver.includes("over 1.5")
   ) {
-    over15 += 12;
+    over15 += 0.04;
   }
 
   if (
-    uo.includes("+2.5") ||
-    uo.includes("over 2.5")
+    underOver.includes("+2.5") ||
+    underOver.includes("over 2.5")
   ) {
-    over25 += 14;
-    over15 += 5;
+    over25 += 0.04;
   }
 
   if (
-    uo.includes("-2.5") ||
-    uo.includes("under 2.5")
+    underOver.includes("-1.5") ||
+    underOver.includes("under 1.5")
   ) {
-    over25 -= 18;
+    over15 -= 0.04;
   }
 
   if (
-    uo.includes("-1.5") ||
-    uo.includes("under 1.5")
+    underOver.includes("-2.5") ||
+    underOver.includes("under 2.5")
   ) {
-    over15 -= 18;
-  }
-
-  const advice =
-    String(
-      predictions.advice || ""
-    ).toLowerCase();
-
-  if (
-    advice.includes("+1.5") ||
-    advice.includes("over 1.5")
-  ) {
-    over15 += 8;
-  }
-
-  if (
-    advice.includes("+2.5") ||
-    advice.includes("over 2.5")
-  ) {
-    over25 += 10;
-  }
-
-  const homePct =
-    Number(
-      String(
-        predictions.percent?.home || ""
-      ).replace("%", "")
-    ) || 0;
-
-  const drawPct =
-    Number(
-      String(
-        predictions.percent?.draw || ""
-      ).replace("%", "")
-    ) || 0;
-
-  const awayPct =
-    Number(
-      String(
-        predictions.percent?.away || ""
-      ).replace("%", "")
-    ) || 0;
-
-  const dominance =
-    Math.abs(
-      homePct - awayPct
-    );
-
-  if (dominance >= 45) {
-    btts -= 8;
-  }
-
-  if (drawPct >= 35) {
-    btts += 5;
+    over25 -= 0.04;
   }
 
   over15 =
-    clamp(over15);
+    clamp(
+      over15,
+      0.10,
+      0.90
+    );
 
   over25 =
-    clamp(over25);
+    clamp(
+      over25,
+      0.08,
+      0.85
+    );
 
   btts =
-    clamp(btts);
+    clamp(
+      btts,
+      0.10,
+      0.85
+    );
+
+  const recentDataCount =
+    [
+      hScored,
+      hConceded,
+      aScored,
+      aConceded
+    ].filter(
+      v => v !== null
+    ).length;
+
+  let confidence = "Düşük";
+
+  if (recentDataCount >= 4) {
+    confidence = "Orta";
+  }
 
   return {
-    over15,
-    over25,
-    btts,
+    over15:
+      Math.round(
+        over15 * 100
+      ),
 
-    confidence:
-      expectedTotal !== null
-        ? "Orta"
-        : "Düşük",
+    over25:
+      Math.round(
+        over25 * 100
+      ),
+
+    btts:
+      Math.round(
+        btts * 100
+      ),
+
+    confidence,
+
+    expectedGoals: {
+      home:
+        Number(
+          lambdaHome.toFixed(2)
+        ),
+
+      away:
+        Number(
+          lambdaAway.toFixed(2)
+        ),
+
+      total:
+        Number(
+          totalLambda.toFixed(2)
+        )
+    },
+
+    recent: {
+      home: {
+        scored:
+          hScored,
+
+        conceded:
+          hConceded
+      },
+
+      away: {
+        scored:
+          aScored,
+
+        conceded:
+          aConceded
+      }
+    },
 
     basis:
-      "API-Football tahmin verisinden türetilen heuristik skor. Ek takım geçmişi API isteği yapmaz.",
-
-    expectedTotalGoals:
-      expectedTotal !== null
-        ? Number(
-            expectedTotal.toFixed(2)
-          )
-        : null
+      "Son 5 maç gol ortalamaları, lig iç saha/deplasman gol değerleri ve API karşılaştırma verileri kullanılarak Poisson modeliyle oluşturulmuştur."
   };
 }
 
@@ -497,7 +632,7 @@ async function prediction(
 
   const cacheKey =
     new Request(
-      `${url.origin}/api/prediction-v3?fixture=${fixture}`
+      `${url.origin}/api/prediction-v4?fixture=${fixture}`
     );
 
   const hit =
@@ -513,9 +648,7 @@ async function prediction(
     const data =
       await apiFetch(
         "/predictions",
-        {
-          fixture
-        },
+        { fixture },
         env
       );
 
@@ -561,14 +694,6 @@ async function prediction(
         advice:
           p.advice || null,
 
-        goals: {
-          home:
-            p.goals?.home ?? null,
-
-          away:
-            p.goals?.away ?? null
-        },
-
         percent: {
           home:
             p.percent?.home || null,
@@ -582,7 +707,7 @@ async function prediction(
       },
 
       model:
-        heuristicModel(p)
+        buildModel(item)
     };
 
     const result =
@@ -591,6 +716,7 @@ async function prediction(
         {
           headers: {
             ...cors,
+
             "Cache-Control":
               "public, max-age=21600"
           }
@@ -610,6 +736,7 @@ async function prediction(
     return Response.json(
       {
         success: false,
+
         status:
           e.status || 500,
 
