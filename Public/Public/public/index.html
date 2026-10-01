@@ -34,10 +34,30 @@
 <nav class="bottom"><div class="nav"><button class="active"><span>⌂</span>Ana Sayfa</button><button><span>⚽</span>Maçlar</button><button><span>▥</span>Tahminler</button><button><span>☆</span>Favoriler</button></div></nav>
 
 <script>
-let matches=[],activeFilter="all";
+let matches = [];
+let activeFilter = "all";
+let currentView = "home";
 
-const fmtTime=iso=>new Intl.DateTimeFormat("tr-TR",{timeZone:"Europe/Istanbul",hour:"2-digit",minute:"2-digit"}).format(new Date(iso));
-const group=s=>["1H","HT","2H","ET","BT","P","LIVE","INT"].includes(s)?"LIVE":s;
+const fmtTime = iso =>
+  new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(iso));
+
+const group = s =>
+  ["1H","HT","2H","ET","BT","P","LIVE","INT"].includes(s)
+    ? "LIVE"
+    : s;
+
+function todayKey(){
+  return new Intl.DateTimeFormat("en-CA",{
+    timeZone:"Europe/Istanbul",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit"
+  }).format(new Date());
+}
 
 function trAdvice(text){
   if(!text) return "API Tahmini";
@@ -98,40 +118,406 @@ function trAdvice(text){
     .trim();
 }
 
-function render(){
- const root=document.getElementById("list");
- const filtered=matches.filter(m=>activeFilter==="all"||group(m.status)===activeFilter);
- document.getElementById("count").textContent=filtered.length+" maç";
-
- if(!filtered.length){
-   root.innerHTML='<div class="empty">Bu filtrede maç bulunamadı.</div>';
-   return;
- }
-
- root.innerHTML=filtered.map(m=>`<article class="card">
- <div class="meta"><div class="league">${m.league?.logo?`<img src="${m.league.logo}" alt="">`:""}<span>${m.league?.country||""} · ${m.league?.name||""}</span></div><span>${fmtTime(m.kickoff)}</span></div>
- <div class="teams"><div class="team"><img src="${m.home?.logo||""}" alt="">${m.home?.name||""}</div><div class="score">${m.status==="NS"?"VS":`${m.score?.home ?? "-"} - ${m.score?.away ?? "-"}`}</div><div class="team"><img src="${m.away?.logo||""}" alt="">${m.away?.name||""}</div></div>
- <div class="actions"><div class="status">Durum: ${m.status}</div>${m.status==="NS"?`<button class="pred-btn" onclick="loadPrediction(${m.id},${m.home.id},${m.away.id},this)">Analizi Gör</button>`:""}</div>
- <div class="pred" id="pred-${m.id}"></div>
- </article>`).join("");
+function strongStorageKey(){
+  return "macanaliz-strong-" + todayKey();
 }
-  async function loadPrediction(fixture,home,away,btn){
-  const box = document.getElementById("pred-" + fixture);
+
+function getStrongPicks(){
+  try{
+    return JSON.parse(
+      localStorage.getItem(strongStorageKey()) || "[]"
+    );
+  }catch(e){
+    return [];
+  }
+}
+
+function saveStrongPick(match, prediction, model){
+  if(!match || !model) return;
+
+  const strong =
+    model.over15 >= 80 ||
+    model.over25 >= 70 ||
+    model.btts >= 70;
+
+  if(!strong) return;
+
+  const picks = getStrongPicks();
+
+  const item = {
+    id: match.id,
+    kickoff: match.kickoff,
+
+    league: {
+      name: match.league?.name || "",
+      country: match.league?.country || "",
+      logo: match.league?.logo || ""
+    },
+
+    home: {
+      name: match.home?.name || "",
+      logo: match.home?.logo || ""
+    },
+
+    away: {
+      name: match.away?.name || "",
+      logo: match.away?.logo || ""
+    },
+
+    advice: trAdvice(prediction?.advice),
+
+    model: {
+      over15: model.over15,
+      over25: model.over25,
+      btts: model.btts,
+
+      confidence: model.confidence,
+
+      expectedGoals: model.expectedGoals
+    }
+  };
+
+  const oldIndex =
+    picks.findIndex(x => x.id === match.id);
+
+  if(oldIndex >= 0){
+    picks[oldIndex] = item;
+  }else{
+    picks.push(item);
+  }
+
+  picks.sort((a,b)=>{
+    const aBest = Math.max(
+      a.model.over15,
+      a.model.over25,
+      a.model.btts
+    );
+
+    const bBest = Math.max(
+      b.model.over15,
+      b.model.over25,
+      b.model.btts
+    );
+
+    return bBest - aBest;
+  });
+
+  localStorage.setItem(
+    strongStorageKey(),
+    JSON.stringify(picks)
+  );
+}
+
+function render(){
+  currentView = "home";
+
+  const root =
+    document.getElementById("list");
+
+  const title =
+    document.querySelector(".section-title h2");
+
+  title.textContent =
+    "Bugünün Maçları";
+
+  const filtered =
+    matches.filter(
+      m =>
+        activeFilter === "all" ||
+        group(m.status) === activeFilter
+    );
+
+  document.getElementById("count")
+    .textContent =
+      filtered.length + " maç";
+
+  if(!filtered.length){
+    root.innerHTML =
+      '<div class="empty">Bu filtrede maç bulunamadı.</div>';
+
+    return;
+  }
+
+  root.innerHTML =
+    filtered.map(m => `
+      <article class="card">
+
+        <div class="meta">
+
+          <div class="league">
+
+            ${
+              m.league?.logo
+                ? `<img src="${m.league.logo}" alt="">`
+                : ""
+            }
+
+            <span>
+              ${m.league?.country || ""}
+              ·
+              ${m.league?.name || ""}
+            </span>
+
+          </div>
+
+          <span>
+            ${fmtTime(m.kickoff)}
+          </span>
+
+        </div>
+
+        <div class="teams">
+
+          <div class="team">
+            <img
+              src="${m.home?.logo || ""}"
+              alt=""
+            >
+            ${m.home?.name || ""}
+          </div>
+
+          <div class="score">
+            ${
+              m.status === "NS"
+                ? "VS"
+                : `${m.score?.home ?? "-"} - ${m.score?.away ?? "-"}`
+            }
+          </div>
+
+          <div class="team">
+            <img
+              src="${m.away?.logo || ""}"
+              alt=""
+            >
+            ${m.away?.name || ""}
+          </div>
+
+        </div>
+
+        <div class="actions">
+
+          <div class="status">
+            Durum: ${m.status}
+          </div>
+
+          ${
+            m.status === "NS"
+              ? `
+                <button
+                  class="pred-btn"
+                  onclick="loadPrediction(${m.id},this)"
+                >
+                  Analizi Gör
+                </button>
+              `
+              : ""
+          }
+
+        </div>
+
+        <div
+          class="pred"
+          id="pred-${m.id}"
+        ></div>
+
+      </article>
+    `).join("");
+}
+
+function strongBadges(model){
+  let html = "";
+
+  if(model.over15 >= 80){
+    html += `
+      <div class="model-card">
+        1.5 Üst
+        <strong>${model.over15}%</strong>
+        <span class="conf">
+          ${model.confidence?.over15 || ""}
+        </span>
+      </div>
+    `;
+  }
+
+  if(model.over25 >= 70){
+    html += `
+      <div class="model-card">
+        2.5 Üst
+        <strong>${model.over25}%</strong>
+        <span class="conf">
+          ${model.confidence?.over25 || ""}
+        </span>
+      </div>
+    `;
+  }
+
+  if(model.btts >= 70){
+    html += `
+      <div class="model-card">
+        KG Var
+        <strong>${model.btts}%</strong>
+        <span class="conf">
+          ${model.confidence?.btts || ""}
+        </span>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function renderStrongPicks(){
+  currentView = "predictions";
+
+  const root =
+    document.getElementById("list");
+
+  const title =
+    document.querySelector(".section-title h2");
+
+  title.textContent =
+    "En Güçlü Tahminler";
+
+  const picks =
+    getStrongPicks();
+
+  document.getElementById("count")
+    .textContent =
+      picks.length + " maç";
+
+  if(!picks.length){
+    root.innerHTML = `
+      <div class="empty">
+        Henüz güçlü tahmin bulunmadı.
+        <br><br>
+        Bugünün maçlarında
+        <b>Analizi Gör</b>
+        butonuna bastıkça güçlü çıkan
+        tahminler burada otomatik toplanacak.
+      </div>
+    `;
+
+    return;
+  }
+
+  root.innerHTML =
+    picks.map(p => `
+      <article class="card">
+
+        <div class="meta">
+
+          <div class="league">
+
+            ${
+              p.league?.logo
+                ? `<img src="${p.league.logo}" alt="">`
+                : ""
+            }
+
+            <span>
+              ${p.league?.country || ""}
+              ·
+              ${p.league?.name || ""}
+            </span>
+
+          </div>
+
+          <span>
+            ${fmtTime(p.kickoff)}
+          </span>
+
+        </div>
+
+        <div class="teams">
+
+          <div class="team">
+            <img
+              src="${p.home?.logo || ""}"
+              alt=""
+            >
+            ${p.home?.name || ""}
+          </div>
+
+          <div class="score">
+            VS
+          </div>
+
+          <div class="team">
+            <img
+              src="${p.away?.logo || ""}"
+              alt=""
+            >
+            ${p.away?.name || ""}
+          </div>
+
+        </div>
+
+        <div class="pred show">
+
+          <div class="pred-title">
+            ${p.advice}
+          </div>
+
+          <div class="model">
+
+            <h4>
+              Güçlü Model Tahminleri
+            </h4>
+
+            <div class="model-grid">
+              ${strongBadges(p.model)}
+            </div>
+
+            <div class="note">
+              Model Gol Beklentisi:
+              Ev ${p.model.expectedGoals?.home ?? "-"}
+              -
+              Deplasman ${p.model.expectedGoals?.away ?? "-"}
+              <br>
+
+              Toplam:
+              ${p.model.expectedGoals?.total ?? "-"}
+            </div>
+
+          </div>
+
+        </div>
+
+      </article>
+    `).join("");
+}
+
+async function loadPrediction(fixture,btn){
+  const box =
+    document.getElementById(
+      "pred-" + fixture
+    );
 
   box.classList.add("show");
-  box.textContent = "Analiz hazırlanıyor...";
+
+  box.textContent =
+    "Analiz hazırlanıyor...";
+
   btn.disabled = true;
 
   try{
-    const r = await fetch(`/api/prediction?fixture=${fixture}`);
-    const d = await r.json();
+    const r =
+      await fetch(
+        `/api/prediction?fixture=${fixture}`
+      );
+
+    const d =
+      await r.json();
 
     if(!d.success){
       throw new Error();
     }
 
-    const p = d.prediction;
-    const m = d.model;
+    const p =
+      d.prediction;
+
+    const m =
+      d.model;
 
     let html = `
       <div class="pred-title">
@@ -139,20 +525,28 @@ function render(){
       </div>
 
       <div class="pred-grid">
+
         <div class="pill">
           Ev Sahibi
-          <b>${p.percent.home || "-"}</b>
+          <b>
+            ${p.percent.home || "-"}
+          </b>
         </div>
 
         <div class="pill">
           Beraberlik
-          <b>${p.percent.draw || "-"}</b>
+          <b>
+            ${p.percent.draw || "-"}
+          </b>
         </div>
 
         <div class="pill">
           Deplasman
-          <b>${p.percent.away || "-"}</b>
+          <b>
+            ${p.percent.away || "-"}
+          </b>
         </div>
+
       </div>
     `;
 
@@ -160,40 +554,63 @@ function render(){
       html += `
         <div class="model">
 
-          <h4>MaçAnaliz İstatistik Skoru</h4>
+          <h4>
+            MaçAnaliz İstatistik Skoru
+          </h4>
 
           <div class="model-grid">
 
             <div class="model-card">
               1.5 Üst
-              <strong>${m.over15}%</strong>
-              <span class="conf">${m.confidence.over15}</span>
+              <strong>
+                ${m.over15}%
+              </strong>
+              <span class="conf">
+                ${m.confidence.over15}
+              </span>
             </div>
 
             <div class="model-card">
               2.5 Üst
-              <strong>${m.over25}%</strong>
-              <span class="conf">${m.confidence.over25}</span>
+              <strong>
+                ${m.over25}%
+              </strong>
+              <span class="conf">
+                ${m.confidence.over25}
+              </span>
             </div>
 
             <div class="model-card">
               KG Var
-              <strong>${m.btts}%</strong>
-              <span class="conf">${m.confidence.btts}</span>
+              <strong>
+                ${m.btts}%
+              </strong>
+              <span class="conf">
+                ${m.confidence.btts}
+              </span>
             </div>
 
           </div>
 
           <div class="note">
+
             Model Gol Beklentisi:
-            Ev ${m.expectedGoals.home} -
+            Ev ${m.expectedGoals.home}
+            -
             Deplasman ${m.expectedGoals.away}
+
             <br>
-            Toplam: ${m.expectedGoals.total}
+
+            Toplam:
+            ${m.expectedGoals.total}
+
             <br><br>
-            Son maç ve lig gol verileri kullanılarak
-            Poisson modeliyle hesaplanmıştır.
+
+            Son maç ve lig gol verileri
+            kullanılarak Poisson modeliyle
+            hesaplanmıştır.
             Garanti değildir.
+
           </div>
 
         </div>
@@ -201,6 +618,17 @@ function render(){
     }
 
     box.innerHTML = html;
+
+    const match =
+      matches.find(
+        x => x.id === fixture
+      );
+
+    saveStrongPick(
+      match,
+      p,
+      m
+    );
 
   }catch(e){
 
@@ -211,33 +639,125 @@ function render(){
   }
 }
 
-  
-  
-document.querySelectorAll(".bar button").forEach(btn=>{
- btn.onclick=()=>{
-   document.querySelectorAll(".bar button").forEach(x=>x.classList.remove("active"));
-   btn.classList.add("active");
-   activeFilter=btn.dataset.filter;
-   render();
- };
-});
+document
+  .querySelectorAll(".bar button")
+  .forEach(btn => {
+
+    btn.onclick = () => {
+
+      document
+        .querySelectorAll(".bar button")
+        .forEach(
+          x => x.classList.remove("active")
+        );
+
+      btn.classList.add("active");
+
+      activeFilter =
+        btn.dataset.filter;
+
+      render();
+    };
+
+  });
+
+const navButtons =
+  document.querySelectorAll(
+    ".nav button"
+  );
+
+navButtons.forEach(
+  btn =>
+    btn.classList.remove("active")
+);
+
+navButtons[0]
+  .classList.add("active");
+
+navButtons[0].onclick = () => {
+
+  navButtons.forEach(
+    x => x.classList.remove("active")
+  );
+
+  navButtons[0]
+    .classList.add("active");
+
+  document.querySelector(".bar")
+    .style.display = "flex";
+
+  render();
+};
+
+navButtons[1].onclick = () => {
+
+  navButtons.forEach(
+    x => x.classList.remove("active")
+  );
+
+  navButtons[1]
+    .classList.add("active");
+
+  document.querySelector(".bar")
+    .style.display = "flex";
+
+  render();
+};
+
+navButtons[2].onclick = () => {
+
+  navButtons.forEach(
+    x => x.classList.remove("active")
+  );
+
+  navButtons[2]
+    .classList.add("active");
+
+  document.querySelector(".bar")
+    .style.display = "none";
+
+  renderStrongPicks();
+};
 
 (async()=>{
- const root=document.getElementById("list");
- root.innerHTML='<div class="loading">Gerçek maç verileri yükleniyor...</div>';
 
- try{
-   const r=await fetch("/api/fixtures",{cache:"no-store"});
-   const d=await r.json();
+  const root =
+    document.getElementById("list");
 
-   if(!d.success) throw new Error();
+  root.innerHTML =
+    '<div class="loading">Gerçek maç verileri yükleniyor...</div>';
 
-   matches=d.matches||[];
-   render();
- }catch(e){
-   document.getElementById("count").textContent="hata";
-   root.innerHTML='<div class="error">Maç verileri yüklenemedi.</div>';
- }
+  try{
+
+    const r =
+      await fetch(
+        "/api/fixtures",
+        {cache:"no-store"}
+      );
+
+    const d =
+      await r.json();
+
+    if(!d.success){
+      throw new Error();
+    }
+
+    matches =
+      d.matches || [];
+
+    render();
+
+  }catch(e){
+
+    document
+      .getElementById("count")
+      .textContent =
+        "hata";
+
+    root.innerHTML =
+      '<div class="error">Maç verileri yüklenemedi.</div>';
+  }
+
 })();
 </script>
 </body>
