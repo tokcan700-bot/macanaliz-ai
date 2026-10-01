@@ -88,7 +88,6 @@ function render(){
       </div>
 
       <div class="pred-grid">
-
         <div class="pill">
           Ev Sahibi
           <b>${p.percent.home || "-"}</b>
@@ -103,7 +102,6 @@ function render(){
           Deplasman
           <b>${p.percent.away || "-"}</b>
         </div>
-
       </div>
     `;
 
@@ -117,37 +115,50 @@ function render(){
 
             <div class="model-card">
               1.5 Üst
-              <strong>%${m.over15}</strong>
+              <strong>${m.over15}%</strong>
               <span class="conf">${m.confidence}</span>
             </div>
 
             <div class="model-card">
               2.5 Üst
-              <strong>%${m.over25}</strong>
+              <strong>${m.over25}%</strong>
               <span class="conf">${m.confidence}</span>
             </div>
 
             <div class="model-card">
               KG Var
-              <strong>%${m.btts}</strong>
+              <strong>${m.btts}%</strong>
               <span class="conf">${m.confidence}</span>
             </div>
 
           </div>
 
           <div class="note">
-            ${
-              m.expectedTotalGoals !== null
-                ? `Tahmini toplam gol: ${m.expectedTotalGoals}. `
-                : ""
-            }
-            Bu değerler API tahmin verilerinden türetilen heuristik skorlardır.
+            Model Gol Beklentisi:
+            Ev ${m.expectedGoals.home} -
+            Deplasman ${m.expectedGoals.away}
+            <br>
+            Toplam: ${m.expectedGoals.total}
+            <br><br>
+            Son maç ve lig gol verileri kullanılarak
+            Poisson modeliyle hesaplanmıştır.
             Garanti değildir.
           </div>
 
         </div>
       `;
     }
+
+    box.innerHTML = html;
+
+  }catch(e){
+
+    box.textContent =
+      "Bu maç için analiz verisi alınamadı veya API kotası doldu.";
+
+    btn.disabled = false;
+  }
+}
 
     box.innerHTML = html;
 
