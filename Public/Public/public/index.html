@@ -64,57 +64,102 @@ function render(){
  <div class="pred" id="pred-${m.id}"></div>
  </article>`).join("");
 }
+  async function loadPrediction(fixture,home,away,btn){
+  const box = document.getElementById("pred-" + fixture);
 
-async function loadPrediction(fixture,home,away,btn){
- const box=document.getElementById("pred-"+fixture);
- box.classList.add("show");
- box.textContent="Analiz hazırlanıyor...";
- btn.disabled=true;
+  box.classList.add("show");
+  box.textContent = "Analiz hazırlanıyor...";
+  btn.disabled = true;
 
- try{
-   const [pr,mr]=await Promise.allSettled([
-     fetch(`/api/prediction?fixture=${fixture}`).then(r=>r.json()),
-     fetch(`/api/model?home=${home}&away=${away}`).then(r=>r.json())
-   ]);
+  try{
+    const r = await fetch(`/api/prediction?fixture=${fixture}`);
+    const d = await r.json();
 
-   let html="";
+    if(!d.success){
+      throw new Error();
+    }
 
-   if(pr.status==="fulfilled" && pr.value.success){
-     const p=pr.value.prediction;
-     html+=`
-       <div class="pred-title">${trAdvice(p.advice)}</div>
-       <div class="pred-grid">
-         <div class="pill">Ev Sahibi<b>${p.percent.home||"-"}</b></div>
-         <div class="pill">Beraberlik<b>${p.percent.draw||"-"}</b></div>
-         <div class="pill">Deplasman<b>${p.percent.away||"-"}</b></div>
-       </div>`;
-   }
+    const p = d.prediction;
+    const m = d.model;
 
-   if(mr.status==="fulfilled" && mr.value.success){
-     const m=mr.value;
-     html+=`
-       <div class="model">
-         <h4>MaçAnaliz İstatistik Modeli</h4>
-         <div class="model-grid">
-           <div class="model-card">1.5 Üst<strong>%${m.scores.over15}</strong><span class="conf">${m.confidence.over15}</span></div>
-           <div class="model-card">2.5 Üst<strong>%${m.scores.over25}</strong><span class="conf">${m.confidence.over25}</span></div>
-           <div class="model-card">KG Var<strong>%${m.scores.btts}</strong><span class="conf">${m.confidence.btts}</span></div>
-         </div>
-         <div class="note">Son ${m.sample} tamamlanmış maç üzerinden hesaplandı. Ortalama toplam gol: ${m.averageTotalGoals}. Bu değerler istatistiksel eğilimdir, garanti değildir.</div>
-       </div>`;
-   }
+    let html = `
+      <div class="pred-title">
+        ${trAdvice(p.advice)}
+      </div>
 
-   if(!html){
-     throw new Error("Tahmin verisi alınamadı");
-   }
+      <div class="pred-grid">
 
-   box.innerHTML=html;
- }catch(e){
-   box.textContent="Bu maç için analiz verisi alınamadı veya API kotası doldu.";
-   btn.disabled=false;
- }
+        <div class="pill">
+          Ev Sahibi
+          <b>${p.percent.home || "-"}</b>
+        </div>
+
+        <div class="pill">
+          Beraberlik
+          <b>${p.percent.draw || "-"}</b>
+        </div>
+
+        <div class="pill">
+          Deplasman
+          <b>${p.percent.away || "-"}</b>
+        </div>
+
+      </div>
+    `;
+
+    if(m){
+      html += `
+        <div class="model">
+
+          <h4>MaçAnaliz İstatistik Skoru</h4>
+
+          <div class="model-grid">
+
+            <div class="model-card">
+              1.5 Üst
+              <strong>%${m.over15}</strong>
+              <span class="conf">${m.confidence}</span>
+            </div>
+
+            <div class="model-card">
+              2.5 Üst
+              <strong>%${m.over25}</strong>
+              <span class="conf">${m.confidence}</span>
+            </div>
+
+            <div class="model-card">
+              KG Var
+              <strong>%${m.btts}</strong>
+              <span class="conf">${m.confidence}</span>
+            </div>
+
+          </div>
+
+          <div class="note">
+            ${
+              m.expectedTotalGoals !== null
+                ? `Tahmini toplam gol: ${m.expectedTotalGoals}. `
+                : ""
+            }
+            Bu değerler API tahmin verilerinden türetilen heuristik skorlardır.
+            Garanti değildir.
+          </div>
+
+        </div>
+      `;
+    }
+
+    box.innerHTML = html;
+
+  }catch(e){
+
+    box.textContent =
+      "Bu maç için analiz verisi alınamadı veya API kotası doldu.";
+
+    btn.disabled = false;
+  }
 }
-
+  
 document.querySelectorAll(".bar button").forEach(btn=>{
  btn.onclick=()=>{
    document.querySelectorAll(".bar button").forEach(x=>x.classList.remove("active"));
