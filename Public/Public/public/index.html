@@ -160,16 +160,7 @@ function render(){
   }
 }
 
-    box.innerHTML = html;
-
-  }catch(e){
-
-    box.textContent =
-      "Bu maç için analiz verisi alınamadı veya API kotası doldu.";
-
-    btn.disabled = false;
-  }
-}
+  
   
 document.querySelectorAll(".bar button").forEach(btn=>{
  btn.onclick=()=>{
