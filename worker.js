@@ -309,8 +309,17 @@ async function model(env, ctx, cors, url) {
 
   try {
     const [homeData, awayData] = await Promise.all([
-      apiFetch("/fixtures", { team: home, last: 5 }, env),
-      apiFetch("/fixtures", { team: away, last: 5 }, env)
+    apiFetch("/fixtures", {
+  team: home,
+  from: daysAgo(90),
+  to: istanbulDate()
+}, env),
+
+apiFetch("/fixtures", {
+  team: away,
+  from: daysAgo(90),
+  to: istanbulDate()
+}, env)
     ]);
 
     const homeMatches = completedMatches(homeData.response);
