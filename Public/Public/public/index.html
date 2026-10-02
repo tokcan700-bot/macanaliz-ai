@@ -4584,6 +4584,433 @@ async function loadFixtures(){
 loadFixtures();
 
 </script>
+<script id="macanaliz-hotfix-v1">
+(() => {
 
+  /* =========================
+     1) BAŞLAMADI DURUMU DÜZELT
+     ========================= */
+
+  function kickoffPassed(match){
+
+    if(
+      !match ||
+      !match.kickoff
+    ){
+      return false;
+    }
+
+    const time =
+      new Date(
+        match.kickoff
+      ).getTime();
+
+    if(
+      !Number.isFinite(time)
+    ){
+      return false;
+    }
+
+    /*
+      Maç başlangıç saatinden
+      5 dakika geçtiyse artık
+      "Başlamadı" listesinde tutma.
+    */
+    return (
+      Date.now() >
+      time +
+      (5 * 60 * 1000)
+    );
+  }
+
+
+  /*
+    Eski renderMatches fonksiyonunu
+    daha doğru filtreleyen sürümle
+    değiştiriyoruz.
+  */
+
+  renderMatches =
+    function(){
+
+      activePage =
+        "home";
+
+      showHero(true);
+      showFilters(true);
+      showPickFilters(false);
+
+
+      const filtered =
+        matches.filter(
+          match => {
+
+            if(
+              activeFilter ===
+              "all"
+            ){
+              return true;
+            }
+
+
+            if(
+              activeFilter ===
+              "NS"
+            ){
+
+              return (
+                match.status === "NS" &&
+                !kickoffPassed(match)
+              );
+            }
+
+
+            return (
+              group(
+                match.status
+              ) ===
+              activeFilter
+            );
+          }
+        );
+
+
+      document
+        .querySelector(
+          ".section-title h2"
+        )
+        .textContent =
+          "Bugünün Maçları";
+
+
+      document
+        .getElementById(
+          "count"
+        )
+        .textContent =
+          filtered.length +
+          " maç";
+
+
+      const root =
+        document.getElementById(
+          "list"
+        );
+
+
+      if(
+        !filtered.length
+      ){
+
+        root.innerHTML = `
+          <div class="empty">
+            Bu filtrede maç bulunamadı.
+          </div>
+        `;
+
+        return;
+      }
+
+
+      root.innerHTML =
+        filtered
+          .map(
+            matchCard
+          )
+          .join("");
+    };
+
+
+  /* =========================
+     2) MAÇ DURUMLARINI OTOMATİK
+        GÜNCELLE
+     ========================= */
+
+  let refreshingStatuses =
+    false;
+
+
+  async function refreshMatchStatuses(){
+
+    if(
+      refreshingStatuses
+    ){
+      return;
+    }
+
+
+    refreshingStatuses =
+      true;
+
+
+    try{
+
+      const response =
+        await fetch(
+          `/api/fixtures?t=${Date.now()}`,
+          {
+            cache:
+              "no-store"
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if(
+        !response.ok ||
+        !data.success
+      ){
+        return;
+      }
+
+
+      matches =
+        data.matches ||
+        [];
+
+
+      /*
+        Kullanıcı maç listesindeyse
+        ekranı yeni durumlarla yenile.
+      */
+
+      if(
+        activePage ===
+        "home"
+      ){
+        renderMatches();
+      }
+
+
+    }catch(error){
+
+      /*
+        Arka plandaki güncelleme
+        hata verirse mevcut ekranı
+        bozma.
+      */
+
+    }finally{
+
+      refreshingStatuses =
+        false;
+    }
+  }
+
+
+  /*
+    Sayfa açıkken her 60 saniyede
+    maç durumlarını kontrol et.
+  */
+
+  setInterval(
+    () => {
+
+      if(
+        !document.hidden &&
+        activePage === "home"
+      ){
+        refreshMatchStatuses();
+      }
+
+    },
+    60000
+  );
+
+
+  /*
+    Kullanıcı Safari'ye geri
+    döndüğünde hemen güncelle.
+  */
+
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+
+      if(
+        !document.hidden
+      ){
+        refreshMatchStatuses();
+      }
+
+    }
+  );
+
+
+  /*
+    Başlamadı / Canlı / Biten
+    filtrelerinden birine basıldığında
+    da güncel veriyi iste.
+  */
+
+  document
+    .querySelectorAll(
+      "#filterBar button"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            setTimeout(
+              refreshMatchStatuses,
+              150
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  /* =========================
+     3) [object Object]
+        BEKLENEN GOL HATASI
+     ========================= */
+
+  const oldOpenPredictionDetail =
+    openPredictionDetail;
+
+
+  openPredictionDetail =
+    async function(fixture){
+
+      await oldOpenPredictionDetail(
+        fixture
+      );
+
+
+      const pick =
+        getStrongPicks()
+          .find(
+            item =>
+              Number(item.id) ===
+              Number(fixture)
+          );
+
+
+      const expected =
+        pick
+          ?.model
+          ?.expectedGoals;
+
+
+      if(
+        !expected ||
+        typeof expected !==
+        "object"
+      ){
+        return;
+      }
+
+
+      const lines =
+        Array.from(
+          document.querySelectorAll(
+            "#predictionContent .detail-line"
+          )
+        );
+
+
+      const oldLine =
+        lines.find(
+          line => {
+
+            const label =
+              line.querySelector(
+                "span"
+              );
+
+            return (
+              label &&
+              label.textContent
+                .trim() ===
+              "Beklenen Toplam Gol"
+            );
+          }
+        );
+
+
+      if(!oldLine){
+        return;
+      }
+
+
+      const home =
+        expected.home ??
+        "-";
+
+
+      const away =
+        expected.away ??
+        "-";
+
+
+      const total =
+        expected.total ??
+        "-";
+
+
+      oldLine.insertAdjacentHTML(
+        "beforebegin",
+        `
+        <div class="detail-line">
+
+          <span>
+            Ev Sahibi Beklenen Gol
+          </span>
+
+          <b>
+            ${esc(home)}
+          </b>
+
+        </div>
+
+
+        <div class="detail-line">
+
+          <span>
+            Deplasman Beklenen Gol
+          </span>
+
+          <b>
+            ${esc(away)}
+          </b>
+
+        </div>
+        `
+      );
+
+
+      oldLine.innerHTML = `
+
+        <span>
+          Beklenen Toplam Gol
+        </span>
+
+        <b>
+          ${esc(total)}
+        </b>
+
+      `;
+    };
+
+
+  /* Sayfa açıldığında da bir kez kontrol et */
+
+  setTimeout(
+    refreshMatchStatuses,
+    1500
+  );
+
+})();
+</script>
+  
 </body>
 </html>
