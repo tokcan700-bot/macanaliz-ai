@@ -2881,7 +2881,7 @@ async function apiStatus(
           response.ok &&
           !(
             data?.errors &&
-            object.keys(data.errors).length > 0
+            Object.keys(data.errors).length > 0
             ),
 
         httpStatus:
