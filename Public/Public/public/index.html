@@ -150,8 +150,8 @@ button{font-family:inherit}
 
 .match-date{
   flex:none;
-  color:#c8d4e0;
-  font-weight:700;
+  color:#e3eaf2;
+  font-weight:800;
   white-space:nowrap;
 }
 
@@ -176,7 +176,7 @@ button{font-family:inherit}
 
 .teams{
   display:grid;
-  grid-template-columns:1fr 60px 1fr;
+  grid-template-columns:1fr 68px 1fr;
   gap:7px;
   align-items:center;
   margin:13px 0;
@@ -205,8 +205,15 @@ button{font-family:inherit}
 .kickoff-time{
   margin-top:4px;
   color:var(--green);
-  font-size:11px;
+  font-size:13px;
   font-weight:900;
+}
+
+.kickoff-date{
+  margin-top:2px;
+  color:var(--muted);
+  font-size:8px;
+  font-weight:700;
 }
 
 .minute{
@@ -398,7 +405,6 @@ button{font-family:inherit}
 }
 
 .analysis-row:last-child{border-bottom:0}
-
 .analysis-row span{color:var(--muted)}
 
 .analysis-row b{
@@ -488,7 +494,7 @@ button{font-family:inherit}
 .nav button.active{color:var(--green)}
 
 
-/* MAÇ DETAY */
+/* DETAY */
 
 .modal{
   display:none;
@@ -600,7 +606,20 @@ button{font-family:inherit}
   text-align:center;
   color:var(--muted);
   font-size:8px;
-  line-height:1.5;
+  line-height:1.6;
+}
+
+.detail-kickoff{
+  margin:10px auto 0;
+  max-width:260px;
+  padding:8px;
+  border:1px solid #176844;
+  border-radius:10px;
+  background:#0b211b;
+  color:var(--green);
+  text-align:center;
+  font-size:10px;
+  font-weight:900;
 }
 
 .availability{
@@ -642,6 +661,42 @@ button{font-family:inherit}
   margin:0 0 8px;
   color:var(--gold);
   font-size:11px;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+
+.summary-card{
+  padding:9px 5px;
+  border:1px solid #263b55;
+  border-radius:10px;
+  background:#102033;
+  text-align:center;
+  font-size:8px;
+  color:var(--muted);
+}
+
+.summary-card b{
+  display:block;
+  margin-top:3px;
+  color:var(--green);
+  font-size:15px;
+}
+
+.summary-row{
+  margin-top:7px;
+  padding:7px;
+  border-radius:9px;
+  background:#102033;
+  font-size:9px;
+  line-height:1.5;
+}
+
+.summary-row span{
+  color:var(--muted);
 }
 
 .stat-row{
@@ -714,7 +769,7 @@ button{font-family:inherit}
   <h1>Bugünün <span>gerçek maçları</span></h1>
   <p>
     Türkiye tarih ve saatiyle maç programı,
-    canlı skor, maç olayları ve MaçAnaliz AI tahminleri.
+    canlı skor, olaylar ve MaçAnaliz AI tahminleri.
   </p>
 </section>
 
@@ -796,8 +851,6 @@ let activeFilter = "all";
 let activeLiveFixture = null;
 
 
-/* GÜVENLİ HTML */
-
 function esc(value){
   return String(value ?? "")
     .replaceAll("&","&amp;")
@@ -807,8 +860,6 @@ function esc(value){
     .replaceAll("'","&#039;");
 }
 
-
-/* TÜRKİYE TARİH + SAAT */
 
 function fmtDateTime(iso){
 
@@ -848,10 +899,7 @@ function fmtDateTime(iso){
       }
     ).format(dateObject);
 
-  return {
-    date,
-    time
-  };
+  return {date,time};
 }
 
 
@@ -866,15 +914,11 @@ function group(status){
     "FT","AET","PEN"
   ];
 
-  if(
-    liveStatuses.includes(status)
-  ){
+  if(liveStatuses.includes(status)){
     return "LIVE";
   }
 
-  if(
-    finishedStatuses.includes(status)
-  ){
+  if(finishedStatuses.includes(status)){
     return "FT";
   }
 
@@ -908,42 +952,13 @@ function trAdvice(text){
   }
 
   return String(text)
-
-    .replace(
-      /^Combo Double chance\s*:\s*/i,
-      "Kombine Tahmin: "
-    )
-
-    .replace(
-      /^Double chance\s*:\s*/i,
-      "Çifte Şans: "
-    )
-
-    .replace(
-      /\bor draw\b/gi,
-      "veya Beraberlik"
-    )
-
-    .replace(
-      /\band\s*\+1\.5 goals\b/gi,
-      " + 1.5 Üst"
-    )
-
-    .replace(
-      /\band\s*\+2\.5 goals\b/gi,
-      " + 2.5 Üst"
-    )
-
-    .replace(
-      /\band\s*-1\.5 goals\b/gi,
-      " + 1.5 Alt"
-    )
-
-    .replace(
-      /\band\s*-2\.5 goals\b/gi,
-      " + 2.5 Alt"
-    )
-
+    .replace(/^Combo Double chance\s*:\s*/i,"Kombine Tahmin: ")
+    .replace(/^Double chance\s*:\s*/i,"Çifte Şans: ")
+    .replace(/\bor draw\b/gi,"veya Beraberlik")
+    .replace(/\band\s*\+1\.5 goals\b/gi," + 1.5 Üst")
+    .replace(/\band\s*\+2\.5 goals\b/gi," + 2.5 Üst")
+    .replace(/\band\s*-1\.5 goals\b/gi," + 1.5 Alt")
+    .replace(/\band\s*-2\.5 goals\b/gi," + 2.5 Alt")
     .replace(/\bhome\b/gi,"Ev Sahibi")
     .replace(/\baway\b/gi,"Deplasman")
     .replace(/\bdraw\b/gi,"Beraberlik")
@@ -975,10 +990,7 @@ function getStrongPicks(){
 
 function saveStrongPick(match,prediction,model){
 
-  if(
-    !match ||
-    !model
-  ){
+  if(!match || !model){
     return;
   }
 
@@ -1144,8 +1156,13 @@ function render(){
                 match.status === "NS"
                   ? `
                     VS
+
                     <div class="kickoff-time">
                       ${esc(dt.time)}
+                    </div>
+
+                    <div class="kickoff-date">
+                      ${esc(dt.date)}
                     </div>
                   `
                   : `
@@ -1251,7 +1268,6 @@ async function loadPrediction(
     );
 
   box.classList.add("show");
-
   box.textContent =
     "Analiz hazırlanıyor...";
 
@@ -1616,7 +1632,265 @@ function eventIcon(type,detail){
     return "🔄";
   }
 
+  if(t.includes("var")){
+    return "📺";
+  }
+
   return "•";
+}
+
+
+function trEventDetail(value){
+
+  const text =
+    String(value || "");
+
+  const map = {
+    "Normal Goal":"Gol",
+    "Own Goal":"Kendi Kalesine Gol",
+    "Penalty":"Penaltı Golü",
+    "Missed Penalty":"Kaçan Penaltı",
+    "Yellow Card":"Sarı Kart",
+    "Red Card":"Kırmızı Kart",
+    "Second Yellow card":"İkinci Sarıdan Kırmızı",
+    "Goal cancelled":"Gol İptal",
+    "Penalty confirmed":"Penaltı Onaylandı"
+  };
+
+  return map[text] || text;
+}
+
+
+function buildEventSummary(events){
+
+  const list =
+    Array.isArray(events)
+      ? events
+      : [];
+
+  const goals =
+    list.filter(
+      event =>
+        String(
+          event.type || ""
+        )
+        .toLowerCase()
+        .includes("goal") &&
+        !String(
+          event.detail || ""
+        )
+        .toLowerCase()
+        .includes("missed")
+    );
+
+  const yellowCards =
+    list.filter(
+      event => {
+
+        const type =
+          String(
+            event.type || ""
+          ).toLowerCase();
+
+        const detail =
+          String(
+            event.detail || ""
+          ).toLowerCase();
+
+        return (
+          type.includes("card") &&
+          detail.includes("yellow") &&
+          !detail.includes("second")
+        );
+      }
+    );
+
+  const redCards =
+    list.filter(
+      event => {
+
+        const type =
+          String(
+            event.type || ""
+          ).toLowerCase();
+
+        const detail =
+          String(
+            event.detail || ""
+          ).toLowerCase();
+
+        return (
+          type.includes("card") &&
+          (
+            detail.includes("red") ||
+            detail.includes("second yellow")
+          )
+        );
+      }
+    );
+
+  const substitutions =
+    list.filter(
+      event =>
+        String(
+          event.type || ""
+        )
+        .toLowerCase()
+        .includes("subst")
+    );
+
+  const firstGoal =
+    goals.length
+      ? goals[0]
+      : null;
+
+  const lastGoal =
+    goals.length
+      ? goals[goals.length - 1]
+      : null;
+
+  const lastEvent =
+    list.length
+      ? list[list.length - 1]
+      : null;
+
+  return {
+    goals:goals.length,
+    yellowCards:yellowCards.length,
+    redCards:redCards.length,
+    substitutions:substitutions.length,
+    firstGoal,
+    lastGoal,
+    lastEvent
+  };
+}
+
+
+function eventMinute(event){
+
+  if(
+    !event ||
+    event.elapsed == null
+  ){
+    return "-";
+  }
+
+  return `${event.elapsed}${
+    event.extra
+      ? "+" + event.extra
+      : ""
+  }'`;
+}
+
+
+function renderEventSummary(events){
+
+  const summary =
+    buildEventSummary(events);
+
+  if(!events.length){
+
+    return `
+      <div class="no-data">
+        Henüz maç olayı bulunmuyor.
+      </div>
+    `;
+  }
+
+  return `
+    <div class="summary-grid">
+
+      <div class="summary-card">
+        Gol
+        <b>${summary.goals}</b>
+      </div>
+
+      <div class="summary-card">
+        Sarı Kart
+        <b>${summary.yellowCards}</b>
+      </div>
+
+      <div class="summary-card">
+        Kırmızı Kart
+        <b>${summary.redCards}</b>
+      </div>
+
+      <div class="summary-card">
+        Değişiklik
+        <b>${summary.substitutions}</b>
+      </div>
+
+      <div class="summary-card">
+        İlk Gol
+        <b>
+          ${
+            summary.firstGoal
+              ? esc(
+                  eventMinute(
+                    summary.firstGoal
+                  )
+                )
+              : "-"
+          }
+        </b>
+      </div>
+
+      <div class="summary-card">
+        Son Gol
+        <b>
+          ${
+            summary.lastGoal
+              ? esc(
+                  eventMinute(
+                    summary.lastGoal
+                  )
+                )
+              : "-"
+          }
+        </b>
+      </div>
+
+    </div>
+
+    ${
+      summary.lastEvent
+        ? `
+          <div class="summary-row">
+
+            <span>
+              Son olay:
+            </span>
+
+            <b>
+              ${esc(
+                eventMinute(
+                  summary.lastEvent
+                )
+              )}
+              ·
+              ${eventIcon(
+                summary.lastEvent.type,
+                summary.lastEvent.detail
+              )}
+              ${esc(
+                summary.lastEvent.team?.name ||
+                ""
+              )}
+              ${
+                summary.lastEvent.player
+                  ? " · " +
+                    esc(
+                      summary.lastEvent.player
+                    )
+                  : ""
+              }
+            </b>
+
+          </div>
+        `
+        : ""
+    }
+  `;
 }
 
 
@@ -1679,6 +1953,12 @@ function renderLiveDetail(data){
       ),
 
       statRow(
+        "Bloklanan Şut",
+        homeStats.blockedShots,
+        awayStats.blockedShots
+      ),
+
+      statRow(
         "Korner",
         homeStats.corners,
         awayStats.corners
@@ -1727,6 +2007,12 @@ function renderLiveDetail(data){
       ),
 
       statRow(
+        "Başarılı Pas",
+        homeStats.accuratePasses,
+        awayStats.accuratePasses
+      ),
+
+      statRow(
         "Pas İsabeti",
         homeStats.passAccuracy,
         awayStats.passAccuracy
@@ -1748,13 +2034,7 @@ function renderLiveDetail(data){
             event => {
 
               const time =
-                event.elapsed != null
-                  ? `${event.elapsed}${
-                      event.extra
-                        ? "+" + event.extra
-                        : ""
-                    }'`
-                  : "-";
+                eventMinute(event);
 
               return `
               <div class="event">
@@ -1770,7 +2050,10 @@ function renderLiveDetail(data){
                       event.type,
                       event.detail
                     )}
-                    ${esc(event.team?.name || "")}
+                    ${esc(
+                      event.team?.name ||
+                      ""
+                    )}
                   </b>
 
                   ${
@@ -1783,8 +2066,25 @@ function renderLiveDetail(data){
                       : ""
                   }
 
+                  ${
+                    event.assist
+                      ? `
+                        <div class="event-detail">
+                          Asist:
+                          ${esc(event.assist)}
+                        </div>
+                      `
+                      : ""
+                  }
+
                   <div class="event-detail">
-                    ${esc(event.detail || event.type || "")}
+                    ${esc(
+                      trEventDetail(
+                        event.detail ||
+                        event.type ||
+                        ""
+                      )
+                    )}
                   </div>
 
                 </div>
@@ -1826,6 +2126,7 @@ function renderLiveDetail(data){
 
         </div>
 
+
         <div class="live-score-main">
 
           ${data.goals?.home ?? "-"}
@@ -1848,6 +2149,7 @@ function renderLiveDetail(data){
 
         </div>
 
+
         <div class="live-team">
 
           <img
@@ -1862,13 +2164,20 @@ function renderLiveDetail(data){
       </div>
 
 
+      <div class="detail-kickoff">
+        📅 ${esc(detailDate.date)}
+        &nbsp; · &nbsp;
+        🕒 ${esc(detailDate.time)}
+      </div>
+
+
       <div class="live-meta">
 
-        Tarih:
-        ${esc(detailDate.date)}
-        ·
-        Saat:
-        ${esc(detailDate.time)}
+        ${
+          league.round
+            ? esc(league.round)
+            : ""
+        }
 
         ${
           fixture.venue?.name
@@ -1877,9 +2186,22 @@ function renderLiveDetail(data){
               ${esc(fixture.venue.name)}
               ${
                 fixture.venue.city
-                  ? " · " + esc(fixture.venue.city)
+                  ? " · " +
+                    esc(
+                      fixture.venue.city
+                    )
                   : ""
               }
+            `
+            : ""
+        }
+
+        ${
+          fixture.referee
+            ? `
+              <br>
+              Hakem:
+              ${esc(fixture.referee)}
             `
             : ""
         }
@@ -1931,6 +2253,17 @@ function renderLiveDetail(data){
     <div class="live-section">
 
       <h3>
+        Canlı Olay Özeti
+      </h3>
+
+      ${renderEventSummary(events)}
+
+    </div>
+
+
+    <div class="live-section">
+
+      <h3>
         Maç İstatistikleri
       </h3>
 
@@ -1939,7 +2272,17 @@ function renderLiveDetail(data){
           ? statsHtml
           : `
             <div class="no-data">
-              Bu maç için istatistik verisi bulunamadı.
+
+              Bu maç için ayrıntılı istatistik
+              verisi sağlanmıyor.
+
+              <br><br>
+
+              Yukarıdaki
+              <b>Canlı Olay Özeti</b>
+              maçta gerçekleşen olaylardan
+              otomatik oluşturuldu.
+
             </div>
           `
       }
@@ -1987,7 +2330,8 @@ async function fetchLiveDetail(fixture){
     );
 
   button.disabled = true;
-  button.textContent = "Yükleniyor...";
+  button.textContent =
+    "Yükleniyor...";
 
   try{
 
@@ -2019,16 +2363,26 @@ async function fetchLiveDetail(fixture){
     root.innerHTML =
       `
       <div class="error">
-        <b>Maç detayı alınamadı.</b>
+
+        <b>
+          Maç detayı alınamadı.
+        </b>
+
         <br><br>
-        ${esc(error.message)}
+
+        ${esc(
+          error.message ||
+          ""
+        )}
+
       </div>
       `;
 
   }finally{
 
     button.disabled = false;
-    button.textContent = "↻ Yenile";
+    button.textContent =
+      "↻ Yenile";
   }
 }
 
@@ -2078,9 +2432,11 @@ function closeLiveDetail(){
     "show"
   );
 
-  document.body.style.overflow = "";
+  document.body.style.overflow =
+    "";
 
-  activeLiveFixture = null;
+  activeLiveFixture =
+    null;
 }
 
 
@@ -2259,9 +2615,15 @@ navButtons[2].onclick =
 
               <div class="score">
                 VS
+
                 <div class="kickoff-time">
                   ${esc(dt.time)}
                 </div>
+
+                <div class="kickoff-date">
+                  ${esc(dt.date)}
+                </div>
+
               </div>
 
               <div class="team">
@@ -2364,7 +2726,10 @@ navButtons[3].onclick =
       <div class="error">
         Maç verileri yüklenemedi.
         <br><br>
-        ${esc(error.message || "")}
+        ${esc(
+          error.message ||
+          ""
+        )}
       </div>
       `;
   }
