@@ -8,7 +8,9 @@ export default {
     };
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: cors });
+      return new Response(null, {
+        headers: cors
+      });
     }
 
     if (!env.API_FOOTBALL_KEY) {
@@ -24,22 +26,49 @@ export default {
       );
     }
 
-    const url = new URL(request.url);
+    const url =
+      new URL(request.url);
 
-    if (url.pathname === "/api/fixtures") {
-      return fixtures(env, ctx, cors, url);
+    if (
+      url.pathname ===
+      "/api/fixtures"
+    ) {
+      return fixtures(
+        env,
+        ctx,
+        cors,
+        url
+      );
     }
 
-    if (url.pathname === "/api/prediction") {
-      return prediction(env, ctx, cors, url);
+    if (
+      url.pathname ===
+      "/api/prediction"
+    ) {
+      return prediction(
+        env,
+        ctx,
+        cors,
+        url
+      );
     }
 
-    if (url.pathname === "/api/live-detail") {
-      return liveDetail(env, ctx, cors, url);
+    if (
+      url.pathname ===
+      "/api/live-detail"
+    ) {
+      return liveDetail(
+        env,
+        ctx,
+        cors,
+        url
+      );
     }
 
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(
+        request
+      );
     }
 
     return Response.json(
@@ -56,11 +85,15 @@ export default {
 };
 
 
-/* =========================================================
+/* =========================
    API FOOTBALL
-   ========================================================= */
+   ========================= */
 
-async function apiFetch(path, params, env) {
+async function apiFetch(
+  path,
+  params,
+  env
+) {
   const url =
     new URL(
       "https://v3.football.api-sports.io" +
@@ -69,7 +102,9 @@ async function apiFetch(path, params, env) {
 
   for (
     const [key, value]
-    of Object.entries(params || {})
+    of Object.entries(
+      params || {}
+    )
   ) {
     if (
       value !== undefined &&
@@ -99,6 +134,7 @@ async function apiFetch(path, params, env) {
   try {
     data =
       await response.json();
+
   } catch {
     const error =
       new Error(
@@ -111,18 +147,24 @@ async function apiFetch(path, params, env) {
     throw error;
   }
 
+
   let hasErrors =
     false;
 
+
   if (data?.errors) {
+
     if (
-      Array.isArray(data.errors)
+      Array.isArray(
+        data.errors
+      )
     ) {
       hasErrors =
         data.errors.length > 0;
 
     } else if (
-      typeof data.errors === "object"
+      typeof data.errors ===
+      "object"
     ) {
       hasErrors =
         Object.keys(
@@ -130,12 +172,15 @@ async function apiFetch(path, params, env) {
         ).length > 0;
 
     } else if (
-      String(data.errors).trim()
+      String(
+        data.errors
+      ).trim()
     ) {
       hasErrors =
         true;
     }
   }
+
 
   if (
     !response.ok ||
@@ -155,13 +200,14 @@ async function apiFetch(path, params, env) {
     throw error;
   }
 
+
   return data;
 }
 
 
-/* =========================================================
+/* =========================
    PLAYERELO
-   ========================================================= */
+   ========================= */
 
 async function playerEloFetch(
   fixture,
@@ -187,6 +233,7 @@ async function playerEloFetch(
         }
       );
 
+
     if (!response.ok) {
       return {
         available: false,
@@ -197,13 +244,16 @@ async function playerEloFetch(
       };
     }
 
+
     const data =
       await response.json();
+
 
     return {
       available: true,
       data
     };
+
 
   } catch {
     return {
@@ -215,9 +265,9 @@ async function playerEloFetch(
 }
 
 
-/* =========================================================
+/* =========================
    TARİH
-   ========================================================= */
+   ========================= */
 
 function istanbulDate() {
   return new Intl.DateTimeFormat(
@@ -238,10 +288,10 @@ function istanbulDate() {
 }
 
 
-/* =========================================================
+/* =========================
    FİKSTÜR
-   30 DK CACHE + 24 SAAT YEDEK
-   ========================================================= */
+   v11
+   ========================= */
 
 async function fixtures(
   env,
@@ -250,40 +300,45 @@ async function fixtures(
   url
 ) {
   const date =
-    url.searchParams.get("date") ||
+    url.searchParams.get(
+      "date"
+    ) ||
     istanbulDate();
+
 
   const cache =
     caches.default;
 
-  /*
-    Güncel veri:
-    30 dakika cache
-  */
-  const cacheKey =
+
+  const mainKey =
     new Request(
-      `${url.origin}/api/fixtures-v10?date=${encodeURIComponent(date)}`
+      `${url.origin}/api/fixtures-v11?date=${encodeURIComponent(date)}`
     );
 
-  /*
-    Son başarılı veri:
-    API hata verirse yedek
-  */
-  const staleKey =
+
+  const backupKey =
     new Request(
-      `${url.origin}/api/fixtures-v10-backup?date=${encodeURIComponent(date)}`
+      `${url.origin}/api/fixtures-v11-backup?date=${encodeURIComponent(date)}`
     );
 
-  const hit =
+
+  /*
+    Önce ana cache
+  */
+
+  const cached =
     await cache.match(
-      cacheKey
+      mainKey
     );
 
-  if (hit) {
-    return hit;
+
+  if (cached) {
+    return cached;
   }
 
+
   try {
+
     const data =
       await apiFetch(
         "/fixtures",
@@ -295,9 +350,86 @@ async function fixtures(
         env
       );
 
+
+    const rawMatches =
+      Array.isArray(
+        data.response
+      )
+        ? data.response
+        : [];
+
+
+    /*
+      Kritik koruma:
+      API bugün için 0 maç döndürdüyse
+      bunu başarılı veri saymıyoruz.
+    */
+
+    if (
+      rawMatches.length === 0
+    ) {
+
+      const backup =
+        await cache.match(
+          backupKey
+        );
+
+
+      if (backup) {
+
+        const saved =
+          await backup.json();
+
+
+        return Response.json(
+          {
+            ...saved,
+
+            success:
+              true,
+
+            stale:
+              true,
+
+            warning:
+              "API boş fikstür döndürdü. Son başarılı maç listesi gösteriliyor."
+          },
+          {
+            headers: {
+              ...cors,
+
+              "Cache-Control":
+                "public, max-age=300"
+            }
+          }
+        );
+      }
+
+
+      return Response.json(
+        {
+          success:
+            false,
+
+          empty:
+            true,
+
+          stale:
+            false,
+
+          error:
+            "API bugün için boş fikstür döndürdü."
+        },
+        {
+          status: 503,
+          headers: cors
+        }
+      );
+    }
+
+
     const matches =
-      (data.response || [])
-      .map(
+      rawMatches.map(
         item => ({
           id:
             item.fixture?.id,
@@ -393,9 +525,13 @@ async function fixtures(
         })
       );
 
+
     const payload = {
-      success: true,
+      success:
+        true,
+
       date,
+
       count:
         matches.length,
 
@@ -410,12 +546,18 @@ async function fixtures(
     };
 
 
-    const result =
+    /*
+      Ana cache:
+      30 dakika
+    */
+
+    const mainResponse =
       Response.json(
         payload,
         {
           headers: {
             ...cors,
+
             "Cache-Control":
               "public, max-age=1800"
           }
@@ -423,12 +565,18 @@ async function fixtures(
       );
 
 
-    const backup =
+    /*
+      Yedek cache:
+      24 saat
+    */
+
+    const backupResponse =
       Response.json(
         payload,
         {
           headers: {
             ...cors,
+
             "Cache-Control":
               "public, max-age=86400"
           }
@@ -439,34 +587,40 @@ async function fixtures(
     ctx.waitUntil(
       Promise.all([
         cache.put(
-          cacheKey,
-          result.clone()
+          mainKey,
+          mainResponse.clone()
         ),
 
         cache.put(
-          staleKey,
-          backup.clone()
+          backupKey,
+          backupResponse.clone()
         )
       ])
     );
 
-    return result;
+
+    return mainResponse;
+
 
   } catch (e) {
 
     /*
-      API hata verirse
-      son başarılı listeyi kullan.
+      API hata verirse yedek
     */
-    const staleHit =
+
+    const backup =
       await cache.match(
-        staleKey
+        backupKey
       );
 
-    if (staleHit) {
+
+    if (backup) {
+
       try {
+
         const saved =
-          await staleHit.json();
+          await backup.json();
+
 
         return Response.json(
           {
@@ -479,25 +633,28 @@ async function fixtures(
               true,
 
             warning:
-              "API geçici olarak kullanılamıyor. Son başarılı maç verisi gösteriliyor."
+              "API geçici olarak kullanılamıyor. Son başarılı maç listesi gösteriliyor."
           },
           {
             headers: {
               ...cors,
+
               "Cache-Control":
                 "public, max-age=300"
             }
           }
         );
 
+
       } catch {
-        // Yedek okunamazsa normal hata aşağıda döner.
       }
     }
 
+
     return Response.json(
       {
-        success: false,
+        success:
+          false,
 
         status:
           e.status || 500,
@@ -505,12 +662,12 @@ async function fixtures(
         errors:
           e.apiErrors || {},
 
+        stale:
+          false,
+
         error:
           e.message ||
-          "Maç verileri alınamadı.",
-
-        stale:
-          false
+          "Maç verileri alınamadı."
       },
       {
         status: 502,
@@ -521,9 +678,9 @@ async function fixtures(
 }
 
 
-/* =========================================================
+/* =========================
    MODEL YARDIMCILARI
-   ========================================================= */
+   ========================= */
 
 function numberValue(value) {
   const number =
@@ -538,6 +695,7 @@ function numberValue(value) {
 
 
 function percentValue(value) {
+
   if (
     value === null ||
     value === undefined
@@ -545,11 +703,13 @@ function percentValue(value) {
     return null;
   }
 
+
   const number =
     Number(
       String(value)
         .replace("%", "")
     );
+
 
   return Number.isFinite(
     number
@@ -560,15 +720,20 @@ function percentValue(value) {
 
 
 function average(values) {
+
   const valid =
     values.filter(
       value =>
-        Number.isFinite(value)
+        Number.isFinite(
+          value
+        )
     );
+
 
   if (!valid.length) {
     return null;
   }
+
 
   return (
     valid.reduce(
@@ -602,25 +767,39 @@ function shrink(
   weight = 0.68
 ) {
   if (
-    !Number.isFinite(value)
+    !Number.isFinite(
+      value
+    )
   ) {
     return target;
   }
 
+
   return (
     value * weight +
     target *
-    (1 - weight)
+    (
+      1 -
+      weight
+    )
   );
 }
 
 
-function poissonOver15(lambda) {
+function poissonOver15(
+  lambda
+) {
+
   const p0 =
-    Math.exp(-lambda);
+    Math.exp(
+      -lambda
+    );
+
 
   const p1 =
-    p0 * lambda;
+    p0 *
+    lambda;
+
 
   return (
     1 -
@@ -630,12 +809,20 @@ function poissonOver15(lambda) {
 }
 
 
-function poissonOver25(lambda) {
+function poissonOver25(
+  lambda
+) {
+
   const p0 =
-    Math.exp(-lambda);
+    Math.exp(
+      -lambda
+    );
+
 
   const p1 =
-    p0 * lambda;
+    p0 *
+    lambda;
+
 
   const p2 =
     p0 *
@@ -644,6 +831,7 @@ function poissonOver25(lambda) {
       2
     ) /
     2;
+
 
   return (
     1 -
@@ -658,6 +846,7 @@ function bttsProbability(
   lambdaHome,
   lambdaAway
 ) {
+
   return (
     1 -
     Math.exp(
@@ -676,11 +865,13 @@ function confidenceLabel(
   score,
   dataCount
 ) {
+
   if (
     dataCount < 4
   ) {
     return "Düşük";
   }
+
 
   if (
     score >= 78 ||
@@ -689,6 +880,7 @@ function confidenceLabel(
     return "Orta";
   }
 
+
   if (
     score >= 62 ||
     score <= 38
@@ -696,29 +888,40 @@ function confidenceLabel(
     return "Orta";
   }
 
+
   return "Düşük";
 }
 
 
-/* =========================================================
+/* =========================
    MAÇANALİZ MODELİ
-   ========================================================= */
+   ========================= */
 
 function buildModel(item) {
+
   const home =
-    item.teams?.home || {};
+    item.teams?.home ||
+    {};
+
 
   const away =
-    item.teams?.away || {};
+    item.teams?.away ||
+    {};
+
 
   const comparison =
-    item.comparison || {};
+    item.comparison ||
+    {};
+
 
   const homeLast =
-    home.last_5 || {};
+    home.last_5 ||
+    {};
+
 
   const awayLast =
-    away.last_5 || {};
+    away.last_5 ||
+    {};
 
 
   const hScored =
@@ -729,6 +932,7 @@ function buildModel(item) {
         ?.average
     );
 
+
   const hConceded =
     numberValue(
       homeLast
@@ -737,6 +941,7 @@ function buildModel(item) {
         ?.average
     );
 
+
   const aScored =
     numberValue(
       awayLast
@@ -744,6 +949,7 @@ function buildModel(item) {
         ?.for
         ?.average
     );
+
 
   const aConceded =
     numberValue(
@@ -763,6 +969,7 @@ function buildModel(item) {
         ?.home
     );
 
+
   const hLeagueConceded =
     numberValue(
       home.league
@@ -772,6 +979,7 @@ function buildModel(item) {
         ?.home
     );
 
+
   const aLeagueScored =
     numberValue(
       away.league
@@ -780,6 +988,7 @@ function buildModel(item) {
         ?.average
         ?.away
     );
+
 
   const aLeagueConceded =
     numberValue(
@@ -797,17 +1006,20 @@ function buildModel(item) {
       hLeagueScored
     ]);
 
+
   const homeDefRaw =
     average([
       aConceded,
       aLeagueConceded
     ]);
 
+
   const awayAttackRaw =
     average([
       aScored,
       aLeagueScored
     ]);
+
 
   const awayDefRaw =
     average([
@@ -851,6 +1063,7 @@ function buildModel(item) {
         ?.home
     );
 
+
   const attAway =
     percentValue(
       comparison
@@ -858,12 +1071,14 @@ function buildModel(item) {
         ?.away
     );
 
+
   const defHome =
     percentValue(
       comparison
         .def
         ?.home
     );
+
 
   const defAway =
     percentValue(
@@ -877,23 +1092,29 @@ function buildModel(item) {
     attHome !== null &&
     attAway !== null
   ) {
+
     const diff =
       clamp(
         (
           attHome -
           attAway
-        ) / 100,
+        ) /
+        100,
         -0.6,
         0.6
       );
 
+
     lambdaHome *=
       1 +
-      diff * 0.07;
+      diff *
+      0.07;
+
 
     lambdaAway *=
       1 -
-      diff * 0.07;
+      diff *
+      0.07;
   }
 
 
@@ -901,23 +1122,29 @@ function buildModel(item) {
     defHome !== null &&
     defAway !== null
   ) {
+
     const diff =
       clamp(
         (
           defHome -
           defAway
-        ) / 100,
+        ) /
+        100,
         -0.6,
         0.6
       );
 
+
     lambdaHome *=
       1 -
-      diff * 0.05;
+      diff *
+      0.05;
+
 
     lambdaAway *=
       1 +
-      diff * 0.05;
+      diff *
+      0.05;
   }
 
 
@@ -927,6 +1154,7 @@ function buildModel(item) {
       0.35,
       2.35
     );
+
 
   lambdaAway =
     clamp(
@@ -961,6 +1189,7 @@ function buildModel(item) {
     totalLambda *
     split;
 
+
   lambdaAway =
     totalLambda *
     (
@@ -974,10 +1203,12 @@ function buildModel(item) {
       totalLambda
     );
 
+
   let over25 =
     poissonOver25(
       totalLambda
     );
+
 
   let btts =
     bttsProbability(
@@ -1003,10 +1234,18 @@ function buildModel(item) {
 
 
   if (
-    underOver.includes("+1.5") ||
-    underOver.includes("over 1.5") ||
-    advice.includes("+1.5") ||
-    advice.includes("over 1.5")
+    underOver.includes(
+      "+1.5"
+    ) ||
+    underOver.includes(
+      "over 1.5"
+    ) ||
+    advice.includes(
+      "+1.5"
+    ) ||
+    advice.includes(
+      "over 1.5"
+    )
   ) {
     over15 +=
       0.025;
@@ -1014,10 +1253,18 @@ function buildModel(item) {
 
 
   if (
-    underOver.includes("+2.5") ||
-    underOver.includes("over 2.5") ||
-    advice.includes("+2.5") ||
-    advice.includes("over 2.5")
+    underOver.includes(
+      "+2.5"
+    ) ||
+    underOver.includes(
+      "over 2.5"
+    ) ||
+    advice.includes(
+      "+2.5"
+    ) ||
+    advice.includes(
+      "over 2.5"
+    )
   ) {
     over25 +=
       0.03;
@@ -1025,8 +1272,12 @@ function buildModel(item) {
 
 
   if (
-    underOver.includes("-1.5") ||
-    underOver.includes("under 1.5")
+    underOver.includes(
+      "-1.5"
+    ) ||
+    underOver.includes(
+      "under 1.5"
+    )
   ) {
     over15 -=
       0.03;
@@ -1034,8 +1285,12 @@ function buildModel(item) {
 
 
   if (
-    underOver.includes("-2.5") ||
-    underOver.includes("under 2.5")
+    underOver.includes(
+      "-2.5"
+    ) ||
+    underOver.includes(
+      "under 2.5"
+    )
   ) {
     over25 -=
       0.03;
@@ -1049,12 +1304,14 @@ function buildModel(item) {
       0.88
     );
 
+
   over25 =
     clamp(
       over25,
       0.12,
       0.78
     );
+
 
   btts =
     clamp(
@@ -1066,17 +1323,22 @@ function buildModel(item) {
 
   const over15Pct =
     Math.round(
-      over15 * 100
+      over15 *
+      100
     );
+
 
   const over25Pct =
     Math.round(
-      over25 * 100
+      over25 *
+      100
     );
+
 
   const bttsPct =
     Math.round(
-      btts * 100
+      btts *
+      100
     );
 
 
@@ -1153,43 +1415,71 @@ function buildModel(item) {
 }
 
 
-/* =========================================================
-   PLAYERELO MODEL
-   ========================================================= */
+/* =========================
+   PLAYERELO MODELİ
+   ========================= */
 
-function probabilityPercent(value) {
+function probabilityPercent(
+  value
+) {
+
   const number =
     Number(value);
 
+
   if (
-    !Number.isFinite(number)
+    !Number.isFinite(
+      number
+    )
   ) {
     return null;
   }
 
-  if (number <= 1) {
+
+  if (
+    number <= 1
+  ) {
     return Math.round(
-      number * 100
+      number *
+      100
     );
   }
 
-  return Math.round(number);
+
+  return Math.round(
+    number
+  );
 }
 
 
-function buildPlayerEloModel(data) {
+function buildPlayerEloModel(
+  data
+) {
+
   if (!data) {
     return null;
   }
+
 
   const scorelines =
     data.scoreline_distribution ||
     {};
 
-  let mass = 0;
-  let over15 = 0;
-  let over25 = 0;
-  let btts = 0;
+
+  let mass =
+    0;
+
+
+  let over15 =
+    0;
+
+
+  let over25 =
+    0;
+
+
+  let btts =
+    0;
 
 
   for (
@@ -1201,8 +1491,10 @@ function buildPlayerEloModel(data) {
       scorelines
     )
   ) {
+
     const parts =
       score.split("-");
+
 
     if (
       parts.length !== 2
@@ -1212,10 +1504,16 @@ function buildPlayerEloModel(data) {
 
 
     const homeGoals =
-      Number(parts[0]);
+      Number(
+        parts[0]
+      );
+
 
     const awayGoals =
-      Number(parts[1]);
+      Number(
+        parts[1]
+      );
+
 
     const probability =
       Number(
@@ -1248,15 +1546,21 @@ function buildPlayerEloModel(data) {
       awayGoals;
 
 
-    if (total >= 2) {
+    if (
+      total >= 2
+    ) {
       over15 +=
         probability;
     }
 
-    if (total >= 3) {
+
+    if (
+      total >= 3
+    ) {
       over25 +=
         probability;
     }
+
 
     if (
       homeGoals > 0 &&
@@ -1299,12 +1603,20 @@ function buildPlayerEloModel(data) {
   };
 
 
-  if (mass <= 0) {
+  if (
+    mass <= 0
+  ) {
     return {
       ...result,
-      over15: null,
-      over25: null,
-      btts: null
+
+      over15:
+        null,
+
+      over25:
+        null,
+
+      btts:
+        null
     };
   }
 
@@ -1342,25 +1654,35 @@ function buildPlayerEloModel(data) {
 }
 
 
-/* =========================================================
+/* =========================
    KONSENSÜS
-   ========================================================= */
+   ========================= */
 
-function numericAverage(values) {
+function numericAverage(
+  values
+) {
+
   const valid =
     values.filter(
       value =>
-        Number.isFinite(value)
+        Number.isFinite(
+          value
+        )
     );
 
-  if (!valid.length) {
+
+  if (
+    !valid.length
+  ) {
     return null;
   }
+
 
   return Math.round(
     valid.reduce(
       (total, value) =>
-        total + value,
+        total +
+        value,
       0
     ) /
     valid.length
@@ -1373,6 +1695,7 @@ function buildConsensus(
   model,
   playerElo
 ) {
+
   const apiHome =
     percentValue(
       apiPrediction
@@ -1380,12 +1703,14 @@ function buildConsensus(
         ?.home
     );
 
+
   const apiDraw =
     percentValue(
       apiPrediction
         ?.percent
         ?.draw
     );
+
 
   const apiAway =
     percentValue(
@@ -1451,9 +1776,9 @@ function buildConsensus(
 }
 
 
-/* =========================================================
+/* =========================
    TAHMİN
-   ========================================================= */
+   ========================= */
 
 async function prediction(
   env,
@@ -1461,6 +1786,7 @@ async function prediction(
   cors,
   url
 ) {
+
   const fixture =
     url.searchParams.get(
       "fixture"
@@ -1475,13 +1801,18 @@ async function prediction(
   ) {
     return Response.json(
       {
-        success: false,
+        success:
+          false,
+
         error:
           "Geçerli fixture ID gerekli."
       },
       {
-        status: 400,
-        headers: cors
+        status:
+          400,
+
+        headers:
+          cors
       }
     );
   }
@@ -1509,6 +1840,7 @@ async function prediction(
 
 
   try {
+
     const [
       apiResult,
       playerEloResult
@@ -1548,20 +1880,26 @@ async function prediction(
     if (!item) {
       return Response.json(
         {
-          success: false,
+          success:
+            false,
+
           error:
             "Bu maç için tahmin verisi yok."
         },
         {
-          status: 404,
-          headers: cors
+          status:
+            404,
+
+          headers:
+            cors
         }
       );
     }
 
 
     const predictions =
-      item.predictions || {};
+      item.predictions ||
+      {};
 
 
     const apiPrediction = {
@@ -1615,7 +1953,9 @@ async function prediction(
 
 
     const model =
-      buildModel(item);
+      buildModel(
+        item
+      );
 
 
     let playerElo = {
@@ -1631,6 +1971,7 @@ async function prediction(
         .value
         ?.available
     ) {
+
       playerElo =
         buildPlayerEloModel(
           playerEloResult
@@ -1656,7 +1997,9 @@ async function prediction(
         true,
 
       fixture:
-        Number(fixture),
+        Number(
+          fixture
+        ),
 
       prediction:
         apiPrediction,
@@ -1676,7 +2019,8 @@ async function prediction(
 
         playerElo:
           Boolean(
-            playerElo.available
+            playerElo
+              .available
           )
       }
     };
@@ -1688,6 +2032,7 @@ async function prediction(
         {
           headers: {
             ...cors,
+
             "Cache-Control":
               "public, max-age=21600"
           }
@@ -1707,80 +2052,99 @@ async function prediction(
 
 
   } catch (e) {
+
     return Response.json(
       {
         success:
           false,
 
         status:
-          e.status || 500,
+          e.status ||
+          500,
 
         errors:
-          e.apiErrors || {},
+          e.apiErrors ||
+          {},
 
         error:
           e.message ||
           "Tahmin verisi alınamadı."
       },
       {
-        status: 502,
-        headers: cors
+        status:
+          502,
+
+        headers:
+          cors
       }
     );
   }
 }
 
 
-/* =========================================================
-   CANLI İSTATİSTİK YARDIMCILARI
-   ========================================================= */
+/* =========================
+   CANLI DETAY YARDIMCILARI
+   ========================= */
 
 function findStat(
   statistics,
   type
 ) {
+
   const found =
     (statistics || [])
-    .find(
-      item =>
-        String(
-          item.type || ""
-        )
-        .toLowerCase() ===
-        String(type)
-        .toLowerCase()
-    );
+      .find(
+        item =>
+          String(
+            item.type ||
+            ""
+          )
+          .toLowerCase() ===
+          String(
+            type
+          )
+          .toLowerCase()
+      );
+
 
   return found
-    ? found.value ?? null
+    ? found.value ??
+      null
     : null;
 }
 
 
-function normalizeStatsTeam(block) {
+function normalizeStatsTeam(
+  block
+) {
+
   if (!block) {
     return null;
   }
 
+
   const statistics =
-    block.statistics || [];
+    block.statistics ||
+    [];
 
 
   return {
     team: {
       id:
-        block.team?.id ||
+        block.team
+          ?.id ||
         null,
 
       name:
-        block.team?.name ||
+        block.team
+          ?.name ||
         null,
 
       logo:
-        block.team?.logo ||
+        block.team
+          ?.logo ||
         null
     },
-
 
     shotsOnGoal:
       findStat(
@@ -1881,7 +2245,10 @@ function normalizeStatsTeam(block) {
 }
 
 
-function normalizeEvent(event) {
+function normalizeEvent(
+  event
+) {
+
   return {
     elapsed:
       event.time
@@ -1895,15 +2262,18 @@ function normalizeEvent(event) {
 
     team: {
       id:
-        event.team?.id ||
+        event.team
+          ?.id ||
         null,
 
       name:
-        event.team?.name ||
+        event.team
+          ?.name ||
         null,
 
       logo:
-        event.team?.logo ||
+        event.team
+          ?.logo ||
         null
     },
 
@@ -1932,7 +2302,10 @@ function normalizeEvent(event) {
 }
 
 
-function settledError(result) {
+function settledError(
+  result
+) {
+
   if (
     !result ||
     result.status !==
@@ -1941,8 +2314,10 @@ function settledError(result) {
     return null;
   }
 
+
   const reason =
-    result.reason || {};
+    result.reason ||
+    {};
 
 
   return {
@@ -1961,9 +2336,9 @@ function settledError(result) {
 }
 
 
-/* =========================================================
+/* =========================
    CANLI / BİTEN MAÇ DETAYI
-   ========================================================= */
+   ========================= */
 
 async function liveDetail(
   env,
@@ -1971,6 +2346,7 @@ async function liveDetail(
   cors,
   url
 ) {
+
   const fixture =
     url.searchParams.get(
       "fixture"
@@ -1992,8 +2368,11 @@ async function liveDetail(
           "Geçerli fixture ID gerekli."
       },
       {
-        status: 400,
-        headers: cors
+        status:
+          400,
+
+        headers:
+          cors
       }
     );
   }
@@ -2060,8 +2439,10 @@ async function liveDetail(
     fixtureResult.status !==
     "fulfilled"
   ) {
+
     const error =
-      fixtureResult.reason || {};
+      fixtureResult.reason ||
+      {};
 
 
     return Response.json(
@@ -2082,8 +2463,11 @@ async function liveDetail(
           {}
       },
       {
-        status: 502,
-        headers: cors
+        status:
+          502,
+
+        headers:
+          cors
       }
     );
   }
@@ -2100,6 +2484,7 @@ async function liveDetail(
 
 
   if (!item) {
+
     return Response.json(
       {
         success:
@@ -2109,8 +2494,11 @@ async function liveDetail(
           "Maç bulunamadı."
       },
       {
-        status: 404,
-        headers: cors
+        status:
+          404,
+
+        headers:
+          cors
       }
     );
   }
@@ -2212,15 +2600,20 @@ async function liveDetail(
 
     fixture: {
       id:
-        item.fixture?.id ||
-        Number(fixture),
+        item.fixture
+          ?.id ||
+        Number(
+          fixture
+        ),
 
       date:
-        item.fixture?.date ||
+        item.fixture
+          ?.date ||
         null,
 
       referee:
-        item.fixture?.referee ||
+        item.fixture
+          ?.referee ||
         null,
 
       venue: {
@@ -2228,13 +2621,13 @@ async function liveDetail(
           item.fixture
             ?.venue
             ?.name ||
-          null,
+        null,
 
         city:
           item.fixture
             ?.venue
             ?.city ||
-          null
+        null
       },
 
       status: {
@@ -2242,90 +2635,92 @@ async function liveDetail(
           item.fixture
             ?.status
             ?.long ||
-          null,
+        null,
 
         short:
           item.fixture
             ?.status
             ?.short ||
-          null,
+        null,
 
         elapsed:
           item.fixture
             ?.status
             ?.elapsed ??
-          null,
+        null,
 
         extra:
           item.fixture
             ?.status
             ?.extra ??
-          null
+        null
       }
     },
 
-
     league: {
       id:
-        item.league?.id ||
+        item.league
+          ?.id ||
         null,
 
       name:
-        item.league?.name ||
+        item.league
+          ?.name ||
         null,
 
       country:
-        item.league?.country ||
+        item.league
+          ?.country ||
         null,
 
       logo:
-        item.league?.logo ||
+        item.league
+          ?.logo ||
         null,
 
       round:
-        item.league?.round ||
+        item.league
+          ?.round ||
         null
     },
-
 
     teams: {
       home: {
         id:
           homeTeamId ||
-          null,
+        null,
 
         name:
           item.teams
             ?.home
             ?.name ||
-          null,
+        null,
 
         logo:
           item.teams
             ?.home
             ?.logo ||
-          null
+        null
       },
 
       away: {
         id:
           awayTeamId ||
-          null,
+        null,
 
         name:
           item.teams
             ?.away
             ?.name ||
-          null,
+        null,
 
         logo:
           item.teams
             ?.away
             ?.logo ||
-          null
+        null
       }
     },
-
 
     goals: {
       home:
@@ -2339,10 +2734,9 @@ async function liveDetail(
         null
     },
 
-
     score:
-      item.score || {},
-
+      item.score ||
+      {},
 
     statistics: {
       available:
@@ -2358,7 +2752,6 @@ async function liveDetail(
         awayStats
     },
 
-
     events: {
       available:
         events.length > 0,
@@ -2369,7 +2762,6 @@ async function liveDetail(
       items:
         events
     },
-
 
     availability: {
       fixture:
@@ -2385,7 +2777,6 @@ async function liveDetail(
         "fulfilled" &&
         eventsResponse.length > 0
     },
-
 
     debug: {
       statisticsError:
