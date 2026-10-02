@@ -625,7 +625,110 @@ function renderStrongPicks(){
       </article>
     `).join("");
 }
+  function strongestModelPick(m){
+  const picks = [
+    {name:"1.5 Üst", value:m.over15},
+    {name:"2.5 Üst", value:m.over25},
+    {name:"KG Var", value:m.btts}
+  ];
 
+  picks.sort((a,b)=>b.value-a.value);
+
+  return picks[0];
+}
+
+function sourceAgreement(p,m){
+  const advice =
+    String(p?.advice || "").toLowerCase();
+
+  let agrees = 0;
+  let checks = 0;
+
+  if(
+    advice.includes("+1.5") ||
+    advice.includes("over 1.5")
+  ){
+    checks++;
+
+    if(m.over15 >= 65){
+      agrees++;
+    }
+  }
+
+  if(
+    advice.includes("+2.5") ||
+    advice.includes("over 2.5")
+  ){
+    checks++;
+
+    if(m.over25 >= 60){
+      agrees++;
+    }
+  }
+
+  if(checks === 0){
+    return "Tarafsız";
+  }
+
+  if(agrees === checks){
+    return "Yüksek Uyum";
+  }
+
+  if(agrees > 0){
+    return "Kısmi Uyum";
+  }
+
+  return "Düşük Uyum";
+}
+function strongestModelPick(m){
+  const picks = [
+    {name:"1.5 Üst", value:m.over15},
+    {name:"2.5 Üst", value:m.over25},
+    {name:"KG Var", value:m.btts}
+  ];
+
+  picks.sort((a,b)=>b.value-a.value);
+
+  return picks[0];
+}
+
+function sourceAgreement(p,m){
+  const advice =
+    String(p?.advice || "").toLowerCase();
+
+  let agrees = 0;
+  let checks = 0;
+
+  if(
+    advice.includes("+1.5") ||
+    advice.includes("over 1.5")
+  ){
+    checks++;
+    if(m.over15 >= 65) agrees++;
+  }
+
+  if(
+    advice.includes("+2.5") ||
+    advice.includes("over 2.5")
+  ){
+    checks++;
+    if(m.over25 >= 60) agrees++;
+  }
+
+  if(checks === 0){
+    return "Tarafsız";
+  }
+
+  if(agrees === checks){
+    return "Yüksek Uyum";
+  }
+
+  if(agrees > 0){
+    return "Kısmi Uyum";
+  }
+
+  return "Düşük Uyum";
+}
 async function loadPrediction(fixture,btn){
   const box =
     document.getElementById(
@@ -657,7 +760,18 @@ async function loadPrediction(fixture,btn){
 
     const m =
       d.model;
+const strongest =
+  strongestModelPick(m);
 
+const agreement =
+  sourceAgreement(p,m);
+
+const dataQuality =
+  m.dataCount >= 7
+    ? "Yüksek"
+    : m.dataCount >= 4
+      ? "Orta"
+      : "Düşük";
     let html = `
       <div class="pred-title">
         ${trAdvice(p.advice)}
@@ -689,116 +803,137 @@ async function loadPrediction(fixture,btn){
       </div>
     `;
 
-    if(m){
-      html += `
-        <div class="model">
+   if(m){
+  html += `
+    <div class="model">
 
-          <h4>
-            MaçAnaliz İstatistik Skoru
-          </h4>
+      <h4>
+        MaçAnaliz AI Detaylı Analiz
+      </h4>
 
-          <div class="model-grid">
+      <div class="model-grid">
 
-            <div class="model-card">
-              1.5 Üst
-              <strong>
-                ${m.over15}%
-              </strong>
-              <span class="conf">
-                ${m.confidence.over15}
-              </span>
-            </div>
-
-            <div class="model-card">
-              2.5 Üst
-              <strong>
-                ${m.over25}%
-              </strong>
-              <span class="conf">
-                ${m.confidence.over25}
-              </span>
-            </div>
-
-            <div class="model-card">
-              KG Var
-              <strong>
-                ${m.btts}%
-              </strong>
-              <span class="conf">
-                ${m.confidence.btts}
-              </span>
-            </div>
-
-          </div>
-
-          <div class="note">
-
-            Model Gol Beklentisi:
-            Ev ${m.expectedGoals.home}
-            -
-            Deplasman ${m.expectedGoals.away}
-
-            <br>
-
-            Toplam:
-            ${m.expectedGoals.total}
-
-            <br><br>
-
-            Son maç ve lig gol verileri
-            kullanılarak Poisson modeliyle
-            hesaplanmıştır.
-            Garanti değildir.
-
-          </div>
-
+        <div class="model-card">
+          1.5 Üst
+          <strong>${m.over15}%</strong>
+          <span class="conf">
+            ${m.confidence.over15}
+          </span>
         </div>
-      `;
-    }
 
-    box.innerHTML = html;
+        <div class="model-card">
+          2.5 Üst
+          <strong>${m.over25}%</strong>
+          <span class="conf">
+            ${m.confidence.over25}
+          </span>
+        </div>
 
-    const match =
-      matches.find(
-        x => x.id === fixture
-      );
+        <div class="model-card">
+          KG Var
+          <strong>${m.btts}%</strong>
+          <span class="conf">
+            ${m.confidence.btts}
+          </span>
+        </div>
 
-    saveStrongPick(
-      match,
-      p,
-      m
-    );
+      </div>
 
-  }catch(e){
+      <div class="consensus-box">
 
-    box.textContent =
-      "Bu maç için analiz verisi alınamadı veya API kotası doldu.";
+        <div class="consensus-title">
+          En Güçlü Model Sinyali
+        </div>
 
-    btn.disabled = false;
-  }
+        <div class="consensus-value">
+          ${strongest.name} · ${strongest.value}%
+        </div>
+
+        <div class="consensus-sub">
+          API tahmini ile model uyumu:
+          ${agreement}
+        </div>
+
+      </div>
+
+      <div class="analysis-details">
+
+        <div class="analysis-row">
+          <span>Model Gol Beklentisi</span>
+          <b>
+            ${m.expectedGoals.home}
+            -
+            ${m.expectedGoals.away}
+          </b>
+        </div>
+
+        <div class="analysis-row">
+          <span>Toplam Gol Beklentisi</span>
+          <b>
+            ${m.expectedGoals.total}
+          </b>
+        </div>
+
+        <div class="analysis-row">
+          <span>Veri Kalitesi</span>
+          <b>
+            ${dataQuality}
+          </b>
+        </div>
+
+        <div class="analysis-row">
+          <span>Kullanılan Veri Alanı</span>
+          <b>
+            ${m.dataCount}/8
+          </b>
+        </div>
+
+        <div class="analysis-row">
+          <span>API Görüşü</span>
+          <b>
+            ${trAdvice(p.advice)}
+          </b>
+        </div>
+
+        <div class="analysis-row">
+          <span>Hesaplama</span>
+          <b>
+            Poisson + form + lig verisi
+          </b>
+        </div>
+
+      </div>
+
+      <div class="source-badges">
+
+        <span class="source-badge active">
+          ✓ API-Football
+        </span>
+
+        <span class="source-badge active">
+          ✓ MaçAnaliz Model
+        </span>
+
+        <span class="source-badge">
+          Sportmonks · Yakında
+        </span>
+
+        <span class="source-badge">
+          Dış Uzman Konsensüsü · Yakında
+        </span>
+
+      </div>
+
+      <div class="note">
+        Aktif hesaplama şu anda API-Football verisi
+        ve MaçAnaliz Poisson modelini kullanır.
+        Henüz bağlanmamış dış kaynaklar sonuç
+        hesabına dahil edilmez.
+      </div>
+
+    </div>
+  `;
 }
-
-document
-  .querySelectorAll(".bar button")
-  .forEach(btn => {
-
-    btn.onclick = () => {
-
-      document
-        .querySelectorAll(".bar button")
-        .forEach(
-          x => x.classList.remove("active")
-        );
-
-      btn.classList.add("active");
-
-      activeFilter =
-        btn.dataset.filter;
-
-      render();
-    };
-
-  });
 
 const navButtons =
   document.querySelectorAll(
