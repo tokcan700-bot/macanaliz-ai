@@ -73,7 +73,6 @@ button{font-family:inherit}
 .hero h1{
   margin:0 0 7px;
   font-size:25px;
-  line-height:1.08;
 }
 
 .hero h1 span{color:var(--green)}
@@ -101,7 +100,6 @@ button{font-family:inherit}
   color:#c8d4e0;
   font-size:11px;
   font-weight:800;
-  white-space:nowrap;
 }
 
 .bar button.active{
@@ -113,8 +111,8 @@ button{font-family:inherit}
 
 .section-title{
   display:flex;
-  align-items:center;
   justify-content:space-between;
+  align-items:center;
   margin:6px 0 10px;
 }
 
@@ -213,7 +211,6 @@ button{font-family:inherit}
   margin-top:2px;
   color:var(--muted);
   font-size:8px;
-  font-weight:700;
 }
 
 .minute{
@@ -226,7 +223,13 @@ button{font-family:inherit}
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:8px;
+  gap:7px;
+}
+
+.action-right{
+  display:flex;
+  align-items:center;
+  gap:6px;
 }
 
 .status{
@@ -245,15 +248,16 @@ button{font-family:inherit}
 
 .pred-btn,
 .detail-btn,
-.refresh-btn{
+.refresh-btn,
+.fav-btn{
   padding:8px 10px;
-  border:0;
   border-radius:9px;
   font-size:11px;
   font-weight:900;
 }
 
 .pred-btn{
+  border:0;
   background:var(--green);
   color:#06150e;
 }
@@ -265,8 +269,25 @@ button{font-family:inherit}
 }
 
 .refresh-btn{
+  border:0;
   background:var(--green);
   color:#06150e;
+}
+
+.fav-btn{
+  width:36px;
+  padding:7px 0;
+  border:1px solid #40566f;
+  background:#10243a;
+  color:#9eb0c4;
+  font-size:18px;
+  line-height:1;
+}
+
+.fav-btn.active{
+  color:var(--gold);
+  border-color:#8b6c24;
+  background:#201b0e;
 }
 
 .pred-btn:disabled,
@@ -290,16 +311,17 @@ button{font-family:inherit}
   margin-bottom:8px;
   font-size:12px;
   font-weight:900;
-  line-height:1.4;
 }
 
-.pred-grid{
+.pred-grid,
+.model-grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:6px;
 }
 
-.pill{
+.pill,
+.model-card{
   padding:7px 4px;
   border-radius:9px;
   background:#12243a;
@@ -307,7 +329,13 @@ button{font-family:inherit}
   font-size:9px;
 }
 
-.pill b{
+.model-card{
+  border:1px solid #263b55;
+  background:var(--panel2);
+}
+
+.pill b,
+.model-card strong{
   display:block;
   margin-top:2px;
   color:var(--green);
@@ -326,28 +354,6 @@ button{font-family:inherit}
   font-size:12px;
 }
 
-.model-grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:6px;
-}
-
-.model-card{
-  padding:7px 4px;
-  border:1px solid #263b55;
-  border-radius:9px;
-  background:var(--panel2);
-  text-align:center;
-  font-size:9px;
-}
-
-.model-card strong{
-  display:block;
-  margin:2px 0;
-  color:var(--green);
-  font-size:16px;
-}
-
 .conf{
   color:var(--muted);
   font-size:8px;
@@ -358,7 +364,7 @@ button{font-family:inherit}
   padding:9px;
   border:1px solid #29445f;
   border-radius:9px;
-  background:linear-gradient(135deg,#0c1d2e,#10253a);
+  background:#10253a;
 }
 
 .consensus-title{
@@ -407,11 +413,6 @@ button{font-family:inherit}
 .analysis-row:last-child{border-bottom:0}
 .analysis-row span{color:var(--muted)}
 
-.analysis-row b{
-  max-width:64%;
-  text-align:right;
-}
-
 .source-badges{
   display:flex;
   flex-wrap:wrap;
@@ -442,7 +443,6 @@ button{font-family:inherit}
   margin-top:8px;
   color:var(--muted);
   font-size:8px;
-  line-height:1.5;
 }
 
 .loading,
@@ -491,10 +491,12 @@ button{font-family:inherit}
   font-size:18px;
 }
 
-.nav button.active{color:var(--green)}
+.nav button.active{
+  color:var(--green);
+}
 
 
-/* DETAY */
+/* MODAL */
 
 .modal{
   display:none;
@@ -692,12 +694,9 @@ button{font-family:inherit}
   border-radius:9px;
   background:#102033;
   font-size:9px;
-  line-height:1.5;
 }
 
-.summary-row span{
-  color:var(--muted);
-}
+.summary-row span{color:var(--muted)}
 
 .stat-row{
   display:grid;
@@ -844,6 +843,7 @@ button{font-family:inherit}
 let matches = [];
 let activeFilter = "all";
 let activeLiveFixture = null;
+let activePage = "home";
 
 
 function esc(value){
@@ -858,14 +858,9 @@ function esc(value){
 
 function fmtDateTime(iso){
 
-  const dateObject =
-    new Date(iso);
+  const d = new Date(iso);
 
-  if(
-    Number.isNaN(
-      dateObject.getTime()
-    )
-  ){
+  if(Number.isNaN(d.getTime())){
     return {
       date:"-",
       time:"-"
@@ -881,7 +876,7 @@ function fmtDateTime(iso){
         month:"2-digit",
         year:"numeric"
       }
-    ).format(dateObject);
+    ).format(d);
 
   const time =
     new Intl.DateTimeFormat(
@@ -892,7 +887,7 @@ function fmtDateTime(iso){
         minute:"2-digit",
         hour12:false
       }
-    ).format(dateObject);
+    ).format(d);
 
   return {date,time};
 }
@@ -981,6 +976,107 @@ function todayKey(){
 }
 
 
+/* FAVORİLER */
+
+const FAVORITES_KEY =
+  "macanaliz-favorites-v1";
+
+
+function getFavorites(){
+
+  try{
+
+    const value =
+      JSON.parse(
+        localStorage.getItem(
+          FAVORITES_KEY
+        ) || "[]"
+      );
+
+    return Array.isArray(value)
+      ? value
+      : [];
+
+  }catch{
+
+    return [];
+  }
+}
+
+
+function saveFavorites(items){
+
+  localStorage.setItem(
+    FAVORITES_KEY,
+    JSON.stringify(items)
+  );
+}
+
+
+function isFavorite(fixture){
+
+  return getFavorites()
+    .some(
+      item =>
+        Number(item.id) ===
+        Number(fixture)
+    );
+}
+
+
+function toggleFavorite(fixture){
+
+  let favorites =
+    getFavorites();
+
+  const index =
+    favorites.findIndex(
+      item =>
+        Number(item.id) ===
+        Number(fixture)
+    );
+
+  if(index >= 0){
+
+    favorites.splice(
+      index,
+      1
+    );
+
+  }else{
+
+    const match =
+      matches.find(
+        item =>
+          Number(item.id) ===
+          Number(fixture)
+      );
+
+    if(!match){
+      return;
+    }
+
+    favorites.unshift({
+      ...match,
+      savedAt:
+        new Date().toISOString()
+    });
+  }
+
+  saveFavorites(
+    favorites
+  );
+
+  if(activePage === "favorites"){
+    renderFavorites();
+  }else{
+    render();
+  }
+}
+
+
+/* TAHMİN KAYDI */
+
 function trAdvice(text){
 
   if(!text){
@@ -1024,7 +1120,11 @@ function getStrongPicks(){
 }
 
 
-function saveStrongPick(match,prediction,model){
+function saveStrongPick(
+  match,
+  prediction,
+  model
+){
 
   if(!match || !model){
     return;
@@ -1048,7 +1148,9 @@ function saveStrongPick(match,prediction,model){
     league:match.league,
     home:match.home,
     away:match.away,
-    advice:trAdvice(prediction?.advice),
+    advice:trAdvice(
+      prediction?.advice
+    ),
     model:{
       over15:model.over15,
       over25:model.over25,
@@ -1058,15 +1160,15 @@ function saveStrongPick(match,prediction,model){
     }
   };
 
-  const index =
+  const oldIndex =
     picks.findIndex(
       x =>
         Number(x.id) ===
         Number(match.id)
     );
 
-  if(index >= 0){
-    picks[index] = item;
+  if(oldIndex >= 0){
+    picks[oldIndex] = item;
   }else{
     picks.push(item);
   }
@@ -1078,10 +1180,224 @@ function saveStrongPick(match,prediction,model){
 }
 
 
+/* MAÇ KARTI */
+
+function matchCard(match){
+
+  const live =
+    isLive(match.status);
+
+  const dt =
+    fmtDateTime(
+      match.kickoff
+    );
+
+  const minute =
+    match.elapsed
+      ? `${match.elapsed}'`
+      : "";
+
+  const favorite =
+    isFavorite(
+      match.id
+    );
+
+  return `
+  <article
+    class="card ${
+      live
+        ? "live-card"
+        : ""
+    }"
+  >
+
+    <div class="meta">
+
+      <div class="league">
+
+        ${
+          match.league?.logo
+            ? `
+              <img
+                src="${esc(match.league.logo)}"
+                alt=""
+              >
+            `
+            : ""
+        }
+
+        <span>
+          ${esc(match.league?.country)}
+          ·
+          ${esc(
+            trLeagueText(
+              match.league?.name
+            )
+          )}
+        </span>
+
+      </div>
+
+      <div class="match-date">
+        ${esc(dt.date)}
+        ·
+        ${esc(dt.time)}
+      </div>
+
+    </div>
+
+
+    <div class="teams">
+
+      <div class="team">
+
+        <img
+          src="${esc(match.home?.logo || "")}"
+          alt=""
+        >
+
+        ${esc(match.home?.name)}
+
+      </div>
+
+
+      <div class="score">
+
+        ${
+          match.status === "NS"
+            ? `
+              VS
+
+              <div class="kickoff-time">
+                ${esc(dt.time)}
+              </div>
+
+              <div class="kickoff-date">
+                ${esc(dt.date)}
+              </div>
+            `
+            : `
+              ${match.score?.home ?? "-"}
+              -
+              ${match.score?.away ?? "-"}
+            `
+        }
+
+        ${
+          live
+            ? `
+              <div class="minute">
+                ${esc(minute)}
+              </div>
+            `
+            : ""
+        }
+
+      </div>
+
+
+      <div class="team">
+
+        <img
+          src="${esc(match.away?.logo || "")}"
+          alt=""
+        >
+
+        ${esc(match.away?.name)}
+
+      </div>
+
+    </div>
+
+
+    <div class="actions">
+
+      <div
+        class="status ${
+          live
+            ? "live-status"
+            : ""
+        }"
+      >
+
+        ${
+          live
+            ? `● CANLI ${esc(minute)}`
+            : match.status === "NS"
+              ? `Başlama: ${esc(dt.date)} ${esc(dt.time)}`
+              : `Durum: ${esc(match.status)}`
+        }
+
+      </div>
+
+
+      <div class="action-right">
+
+        <button
+          class="fav-btn ${
+            favorite
+              ? "active"
+              : ""
+          }"
+          onclick="toggleFavorite(${Number(match.id)})"
+          title="Favori"
+        >
+          ${favorite ? "★" : "☆"}
+        </button>
+
+
+        ${
+          match.status === "NS"
+
+            ? `
+              <button
+                class="pred-btn"
+                onclick="loadPrediction(${Number(match.id)},this)"
+              >
+                Analizi Gör
+              </button>
+            `
+
+            : `
+              <button
+                class="detail-btn"
+                onclick="openLiveDetail(${Number(match.id)})"
+              >
+                ${
+                  live
+                    ? "Canlı Detay"
+                    : "Maç Detayı"
+                }
+              </button>
+            `
+        }
+
+      </div>
+
+    </div>
+
+
+    <div
+      class="pred"
+      id="pred-${Number(match.id)}"
+    ></div>
+
+  </article>
+  `;
+}
+
+
+/* ANA MAÇLAR */
+
 function render(){
 
+  activePage =
+    "home";
+
   const root =
-    document.getElementById("list");
+    document.getElementById(
+      "list"
+    );
 
   document.querySelector(
     ".section-title h2"
@@ -1092,13 +1408,15 @@ function render(){
     matches.filter(
       match =>
         activeFilter === "all" ||
-        group(match.status) === activeFilter
+        group(match.status) ===
+        activeFilter
     );
 
   document.getElementById(
     "count"
   ).textContent =
-    filtered.length + " maç";
+    filtered.length +
+    " maç";
 
   if(!filtered.length){
 
@@ -1113,172 +1431,77 @@ function render(){
   }
 
   root.innerHTML =
-    filtered.map(
-      match => {
-
-        const live =
-          isLive(match.status);
-
-        const dt =
-          fmtDateTime(match.kickoff);
-
-        const minute =
-          match.elapsed
-            ? `${match.elapsed}'`
-            : "";
-
-        return `
-        <article class="card ${live ? "live-card" : ""}">
-
-          <div class="meta">
-
-            <div class="league">
-
-              ${
-                match.league?.logo
-                  ? `
-                    <img
-                      src="${esc(match.league.logo)}"
-                      alt=""
-                    >
-                  `
-                  : ""
-              }
-
-              <span>
-                ${esc(match.league?.country)}
-                ·
-                ${esc(
-                  trLeagueText(
-                    match.league?.name
-                  )
-                )}
-              </span>
-
-            </div>
-
-            <div class="match-date">
-              ${esc(dt.date)}
-              ·
-              ${esc(dt.time)}
-            </div>
-
-          </div>
-
-
-          <div class="teams">
-
-            <div class="team">
-
-              <img
-                src="${esc(match.home?.logo || "")}"
-                alt=""
-              >
-
-              ${esc(match.home?.name)}
-
-            </div>
-
-
-            <div class="score">
-
-              ${
-                match.status === "NS"
-                  ? `
-                    VS
-
-                    <div class="kickoff-time">
-                      ${esc(dt.time)}
-                    </div>
-
-                    <div class="kickoff-date">
-                      ${esc(dt.date)}
-                    </div>
-                  `
-                  : `
-                    ${match.score?.home ?? "-"}
-                    -
-                    ${match.score?.away ?? "-"}
-                  `
-              }
-
-              ${
-                live
-                  ? `
-                    <div class="minute">
-                      ${esc(minute)}
-                    </div>
-                  `
-                  : ""
-              }
-
-            </div>
-
-
-            <div class="team">
-
-              <img
-                src="${esc(match.away?.logo || "")}"
-                alt=""
-              >
-
-              ${esc(match.away?.name)}
-
-            </div>
-
-          </div>
-
-
-          <div class="actions">
-
-            <div class="status ${live ? "live-status" : ""}">
-
-              ${
-                live
-                  ? `● CANLI ${esc(minute)}`
-                  : match.status === "NS"
-                    ? `Başlama: ${esc(dt.date)} ${esc(dt.time)}`
-                    : `Durum: ${esc(match.status)}`
-              }
-
-            </div>
-
-            ${
-              match.status === "NS"
-
-                ? `
-                  <button
-                    class="pred-btn"
-                    onclick="loadPrediction(${Number(match.id)},this)"
-                  >
-                    Analizi Gör
-                  </button>
-                `
-
-                : `
-                  <button
-                    class="detail-btn"
-                    onclick="openLiveDetail(${Number(match.id)})"
-                  >
-                    ${live ? "Canlı Detay" : "Maç Detayı"}
-                  </button>
-                `
-            }
-
-          </div>
-
-
-          <div
-            class="pred"
-            id="pred-${Number(match.id)}"
-          ></div>
-
-        </article>
-        `;
-      }
-    ).join("");
+    filtered
+      .map(matchCard)
+      .join("");
 }
 
+
+/* FAVORİLER SAYFASI */
+
+function renderFavorites(){
+
+  activePage =
+    "favorites";
+
+  const root =
+    document.getElementById(
+      "list"
+    );
+
+  const saved =
+    getFavorites();
+
+  const favorites =
+    saved.map(
+      favorite => {
+
+        const current =
+          matches.find(
+            item =>
+              Number(item.id) ===
+              Number(favorite.id)
+          );
+
+        return current || favorite;
+      }
+    );
+
+  document.querySelector(
+    ".section-title h2"
+  ).textContent =
+    "Favori Maçlar";
+
+  document.getElementById(
+    "count"
+  ).textContent =
+    favorites.length +
+    " maç";
+
+  if(!favorites.length){
+
+    root.innerHTML =
+      `
+      <div class="empty">
+        Henüz favori maç eklemedin.
+        <br><br>
+        Maç kartlarındaki
+        <b>☆ yıldız</b>
+        simgesine basarak maç ekleyebilirsin.
+      </div>
+      `;
+
+    return;
+  }
+
+  root.innerHTML =
+    favorites
+      .map(matchCard)
+      .join("");
+}
+
+
+/* TAHMİN */
 
 async function loadPrediction(
   fixture,
@@ -1290,7 +1513,14 @@ async function loadPrediction(
       "pred-" + fixture
     );
 
-  box.classList.add("show");
+  if(!box){
+    return;
+  }
+
+  box.classList.add(
+    "show"
+  );
+
   box.textContent =
     "Analiz hazırlanıyor...";
 
@@ -1350,21 +1580,37 @@ async function loadPrediction(
 
         <div class="pill">
           Ev Sahibi
-          <b>${esc(prediction.percent?.home || "-")}</b>
+          <b>
+            ${esc(
+              prediction.percent?.home ||
+              "-"
+            )}
+          </b>
         </div>
 
         <div class="pill">
           Beraberlik
-          <b>${esc(prediction.percent?.draw || "-")}</b>
+          <b>
+            ${esc(
+              prediction.percent?.draw ||
+              "-"
+            )}
+          </b>
         </div>
 
         <div class="pill">
           Deplasman
-          <b>${esc(prediction.percent?.away || "-")}</b>
+          <b>
+            ${esc(
+              prediction.percent?.away ||
+              "-"
+            )}
+          </b>
         </div>
 
       </div>
       `;
+
 
     if(model){
 
@@ -1388,12 +1634,23 @@ async function loadPrediction(
 
       const best =
         [
-          {name:"1.5 Üst",value:over15},
-          {name:"2.5 Üst",value:over25},
-          {name:"KG Var",value:btts}
+          {
+            name:"1.5 Üst",
+            value:over15
+          },
+          {
+            name:"2.5 Üst",
+            value:over25
+          },
+          {
+            name:"KG Var",
+            value:btts
+          }
         ].sort(
-          (a,b) => b.value - a.value
+          (a,b) =>
+            b.value - a.value
         )[0];
+
 
       html +=
         `
@@ -1407,33 +1664,53 @@ async function loadPrediction(
             }
           </h4>
 
+
           <div class="model-grid">
 
             <div class="model-card">
               1.5 Üst
-              <strong>${over15}%</strong>
+              <strong>
+                ${over15}%
+              </strong>
               <span class="conf">
-                ${hasPlayerElo ? "Konsensüs" : "Model"}
+                ${
+                  hasPlayerElo
+                    ? "Konsensüs"
+                    : "Model"
+                }
               </span>
             </div>
 
             <div class="model-card">
               2.5 Üst
-              <strong>${over25}%</strong>
+              <strong>
+                ${over25}%
+              </strong>
               <span class="conf">
-                ${hasPlayerElo ? "Konsensüs" : "Model"}
+                ${
+                  hasPlayerElo
+                    ? "Konsensüs"
+                    : "Model"
+                }
               </span>
             </div>
 
             <div class="model-card">
               KG Var
-              <strong>${btts}%</strong>
+              <strong>
+                ${btts}%
+              </strong>
               <span class="conf">
-                ${hasPlayerElo ? "Konsensüs" : "Model"}
+                ${
+                  hasPlayerElo
+                    ? "Konsensüs"
+                    : "Model"
+                }
               </span>
             </div>
 
           </div>
+
 
           <div class="consensus-box">
 
@@ -1461,6 +1738,7 @@ async function loadPrediction(
 
           </div>
 
+
           <div class="analysis-details">
 
             <div class="analysis-title">
@@ -1484,34 +1762,6 @@ async function loadPrediction(
 
           </div>
 
-          ${
-            hasPlayerElo
-              ? `
-                <div class="analysis-details">
-
-                  <div class="analysis-title">
-                    PlayerElo Analizi
-                  </div>
-
-                  <div class="analysis-row">
-                    <span>1.5 Üst</span>
-                    <b>${playerElo.over15 ?? "-"}%</b>
-                  </div>
-
-                  <div class="analysis-row">
-                    <span>2.5 Üst</span>
-                    <b>${playerElo.over25 ?? "-"}%</b>
-                  </div>
-
-                  <div class="analysis-row">
-                    <span>KG Var</span>
-                    <b>${playerElo.btts ?? "-"}%</b>
-                  </div>
-
-                </div>
-              `
-              : ""
-          }
 
           <div class="source-badges">
 
@@ -1523,7 +1773,13 @@ async function loadPrediction(
               ✓ MaçAnaliz Model
             </span>
 
-            <span class="source-badge ${hasPlayerElo ? "active" : "warn"}">
+            <span
+              class="source-badge ${
+                hasPlayerElo
+                  ? "active"
+                  : "warn"
+              }"
+            >
               ${
                 hasPlayerElo
                   ? "✓ PlayerElo"
@@ -1540,6 +1796,7 @@ async function loadPrediction(
         </div>
         `;
 
+
       const match =
         matches.find(
           item =>
@@ -1547,29 +1804,36 @@ async function loadPrediction(
             Number(fixture)
         );
 
-      saveStrongPick(
-        match,
-        prediction,
-        {
-          ...model,
-          over15,
-          over25,
-          btts
-        }
-      );
+      if(match){
+
+        saveStrongPick(
+          match,
+          prediction,
+          {
+            ...model,
+            over15,
+            over25,
+            btts
+          }
+        );
+      }
     }
 
-    box.innerHTML = html;
+    box.innerHTML =
+      html;
 
   }catch(error){
 
     box.textContent =
       "Bu maç için analiz verisi alınamadı.";
 
-    button.disabled = false;
+    button.disabled =
+      false;
   }
 }
 
+
+/* CANLI DETAY */
 
 function showValue(value){
 
@@ -1599,21 +1863,21 @@ function statRow(
   }
 
   return `
-  <div class="stat-row">
+    <div class="stat-row">
 
-    <div class="stat-home">
-      ${showValue(home)}
+      <div class="stat-home">
+        ${showValue(home)}
+      </div>
+
+      <div class="stat-name">
+        ${esc(name)}
+      </div>
+
+      <div class="stat-away">
+        ${showValue(away)}
+      </div>
+
     </div>
-
-    <div class="stat-name">
-      ${esc(name)}
-    </div>
-
-    <div class="stat-away">
-      ${showValue(away)}
-    </div>
-
-  </div>
   `;
 }
 
@@ -1680,15 +1944,31 @@ function trEventDetail(value){
     return map[text];
   }
 
-  if(/^Substitution\s*\d*$/i.test(text)){
+  if(
+    /^Substitution\s*\d*$/i.test(
+      text
+    )
+  ){
     return "Oyuncu Değişikliği";
   }
 
   return text
-    .replace(/Substitution/gi,"Oyuncu Değişikliği")
-    .replace(/Normal Goal/gi,"Gol")
-    .replace(/Yellow Card/gi,"Sarı Kart")
-    .replace(/Red Card/gi,"Kırmızı Kart");
+    .replace(
+      /Substitution/gi,
+      "Oyuncu Değişikliği"
+    )
+    .replace(
+      /Normal Goal/gi,
+      "Gol"
+    )
+    .replace(
+      /Yellow Card/gi,
+      "Sarı Kart"
+    )
+    .replace(
+      /Red Card/gi,
+      "Kırmızı Kart"
+    );
 }
 
 
@@ -1762,7 +2042,9 @@ function buildEventSummary(events){
           type.includes("card") &&
           (
             detail.includes("red") ||
-            detail.includes("second yellow")
+            detail.includes(
+              "second yellow"
+            )
           )
         );
       }
@@ -1785,12 +2067,16 @@ function buildEventSummary(events){
 
   const lastGoal =
     goals.length
-      ? goals[goals.length - 1]
+      ? goals[
+          goals.length - 1
+        ]
       : null;
 
   const lastEvent =
     list.length
-      ? list[list.length - 1]
+      ? list[
+          list.length - 1
+        ]
       : null;
 
   return {
@@ -1825,7 +2111,9 @@ function eventMinute(event){
 function renderEventSummary(events){
 
   const summary =
-    buildEventSummary(events);
+    buildEventSummary(
+      events
+    );
 
   if(!events.length){
 
@@ -1864,7 +2152,11 @@ function renderEventSummary(events){
         <b>
           ${
             summary.firstGoal
-              ? esc(eventMinute(summary.firstGoal))
+              ? esc(
+                  eventMinute(
+                    summary.firstGoal
+                  )
+                )
               : "-"
           }
         </b>
@@ -1875,13 +2167,18 @@ function renderEventSummary(events){
         <b>
           ${
             summary.lastGoal
-              ? esc(eventMinute(summary.lastGoal))
+              ? esc(
+                  eventMinute(
+                    summary.lastGoal
+                  )
+                )
               : "-"
           }
         </b>
       </div>
 
     </div>
+
 
     ${
       summary.lastEvent
@@ -1893,18 +2190,27 @@ function renderEventSummary(events){
             </span>
 
             <b>
-              ${esc(eventMinute(summary.lastEvent))}
+              ${esc(
+                eventMinute(
+                  summary.lastEvent
+                )
+              )}
               ·
               ${eventIcon(
                 summary.lastEvent.type,
                 summary.lastEvent.detail
               )}
-              ${esc(summary.lastEvent.team?.name || "")}
+              ${esc(
+                summary.lastEvent.team?.name ||
+                ""
+              )}
 
               ${
                 summary.lastEvent.player
                   ? " · " +
-                    esc(summary.lastEvent.player)
+                    esc(
+                      summary.lastEvent.player
+                    )
                   : ""
               }
             </b>
@@ -1950,13 +2256,17 @@ function renderLiveDetail(data){
   let minute =
     fixture.status?.elapsed;
 
-  if(fixture.status?.extra){
+  if(
+    fixture.status?.extra
+  ){
     minute =
       `${minute}+${fixture.status.extra}`;
   }
 
+
   const statsHtml =
     [
+
       statRow(
         "Toplam Şut",
         homeStats.totalShots,
@@ -2052,11 +2362,13 @@ function renderLiveDetail(data){
         homeStats.passAccuracy,
         awayStats.passAccuracy
       )
+
     ].join("");
 
 
   const events =
-    data.events?.items || [];
+    data.events?.items ||
+    [];
 
 
   const eventsHtml =
@@ -2069,7 +2381,9 @@ function renderLiveDetail(data){
             event => {
 
               const time =
-                eventMinute(event);
+                eventMinute(
+                  event
+                );
 
               return `
               <div class="event">
@@ -2086,7 +2400,8 @@ function renderLiveDetail(data){
                       event.detail
                     )}
                     ${esc(
-                      event.team?.name || ""
+                      event.team?.name ||
+                      ""
                     )}
                   </b>
 
@@ -2094,7 +2409,9 @@ function renderLiveDetail(data){
                     event.player
                       ? `
                         <div>
-                          ${esc(event.player)}
+                          ${esc(
+                            event.player
+                          )}
                         </div>
                       `
                       : ""
@@ -2105,7 +2422,9 @@ function renderLiveDetail(data){
                       ? `
                         <div class="event-detail">
                           Asist:
-                          ${esc(event.assist)}
+                          ${esc(
+                            event.assist
+                          )}
                         </div>
                       `
                       : ""
@@ -2142,7 +2461,6 @@ function renderLiveDetail(data){
     <div class="live-head">
 
       <div class="live-league">
-
         ${esc(league.country || "")}
         ·
         ${esc(
@@ -2150,7 +2468,6 @@ function renderLiveDetail(data){
             league.name || ""
           )
         )}
-
       </div>
 
 
@@ -2159,11 +2476,15 @@ function renderLiveDetail(data){
         <div class="live-team">
 
           <img
-            src="${esc(home.logo || "")}"
+            src="${esc(
+              home.logo || ""
+            )}"
             alt=""
           >
 
-          ${esc(home.name || "")}
+          ${esc(
+            home.name || ""
+          )}
 
         </div>
 
@@ -2175,7 +2496,6 @@ function renderLiveDetail(data){
           ${data.goals?.away ?? "-"}
 
           <div class="live-minute">
-
             ${
               minute
                 ? `${esc(minute)}'`
@@ -2185,7 +2505,6 @@ function renderLiveDetail(data){
                     ""
                   )
             }
-
           </div>
 
         </div>
@@ -2194,11 +2513,15 @@ function renderLiveDetail(data){
         <div class="live-team">
 
           <img
-            src="${esc(away.logo || "")}"
+            src="${esc(
+              away.logo || ""
+            )}"
             alt=""
           >
 
-          ${esc(away.name || "")}
+          ${esc(
+            away.name || ""
+          )}
 
         </div>
 
@@ -2228,11 +2551,16 @@ function renderLiveDetail(data){
           fixture.venue?.name
             ? `
               <br>
-              ${esc(fixture.venue.name)}
+              ${esc(
+                fixture.venue.name
+              )}
+
               ${
                 fixture.venue.city
                   ? " · " +
-                    esc(fixture.venue.city)
+                    esc(
+                      fixture.venue.city
+                    )
                   : ""
               }
             `
@@ -2244,7 +2572,9 @@ function renderLiveDetail(data){
             ? `
               <br>
               Hakem:
-              ${esc(fixture.referee)}
+              ${esc(
+                fixture.referee
+              )}
             `
             : ""
         }
@@ -2299,7 +2629,9 @@ function renderLiveDetail(data){
         Canlı Olay Özeti
       </h3>
 
-      ${renderEventSummary(events)}
+      ${renderEventSummary(
+        events
+      )}
 
     </div>
 
@@ -2315,7 +2647,6 @@ function renderLiveDetail(data){
           ? statsHtml
           : `
             <div class="no-data">
-
               Bu maç için ayrıntılı
               istatistik verisi sağlanmıyor.
 
@@ -2323,9 +2654,7 @@ function renderLiveDetail(data){
 
               Yukarıdaki
               <b>Canlı Olay Özeti</b>
-              maçta gerçekleşen olaylardan
-              otomatik oluşturuldu.
-
+              maç olaylarından otomatik oluşturuldu.
             </div>
           `
       }
@@ -2356,14 +2685,18 @@ function renderLiveDetail(data){
           minute:"2-digit",
           second:"2-digit"
         }
-      ).format(new Date())}
+      ).format(
+        new Date()
+      )}
 
     </div>
     `;
 }
 
 
-async function fetchLiveDetail(fixture){
+async function fetchLiveDetail(
+  fixture
+){
 
   const root =
     document.getElementById(
@@ -2402,22 +2735,25 @@ async function fetchLiveDetail(fixture){
       );
     }
 
-    renderLiveDetail(data);
+    renderLiveDetail(
+      data
+    );
 
   }catch(error){
 
     root.innerHTML =
       `
       <div class="error">
-
         <b>
           Maç detayı alınamadı.
         </b>
 
         <br><br>
 
-        ${esc(error.message || "")}
-
+        ${esc(
+          error.message ||
+          ""
+        )}
       </div>
       `;
 
@@ -2430,7 +2766,9 @@ async function fetchLiveDetail(fixture){
 }
 
 
-function openLiveDetail(fixture){
+function openLiveDetail(
+  fixture
+){
 
   activeLiveFixture =
     fixture;
@@ -2453,13 +2791,16 @@ function openLiveDetail(fixture){
     </div>
     `;
 
-  fetchLiveDetail(fixture);
+  fetchLiveDetail(
+    fixture
+  );
 }
 
 
 function refreshLiveDetail(){
 
   if(activeLiveFixture){
+
     fetchLiveDetail(
       activeLiveFixture
     );
@@ -2499,6 +2840,8 @@ document.getElementById(
 );
 
 
+/* ÜST FİLTRELER */
+
 document.querySelectorAll(
   ".bar button"
 ).forEach(
@@ -2528,6 +2871,8 @@ document.querySelectorAll(
   }
 );
 
+
+/* ALT MENÜ */
 
 const navButtons =
   document.querySelectorAll(
@@ -2561,7 +2906,8 @@ navButtons[0].onclick =
     ).style.display =
       "flex";
 
-    activeFilter = "all";
+    activeFilter =
+      "all";
 
     render();
   };
@@ -2584,6 +2930,9 @@ navButtons[1].onclick =
 navButtons[2].onclick =
   () => {
 
+    activePage =
+      "picks";
+
     setNavActive(2);
 
     document.querySelector(
@@ -2602,7 +2951,8 @@ navButtons[2].onclick =
     document.getElementById(
       "count"
     ).textContent =
-      picks.length + " maç";
+      picks.length +
+      " maç";
 
     if(!picks.length){
 
@@ -2617,7 +2967,6 @@ navButtons[2].onclick =
 
       return;
     }
-
 
     document.getElementById(
       "list"
@@ -2655,9 +3004,10 @@ navButtons[2].onclick =
             <div class="teams">
 
               <div class="team">
-                ${esc(item.home?.name)}
+                ${esc(
+                  item.home?.name
+                )}
               </div>
-
 
               <div class="score">
 
@@ -2673,9 +3023,36 @@ navButtons[2].onclick =
 
               </div>
 
-
               <div class="team">
-                ${esc(item.away?.name)}
+                ${esc(
+                  item.away?.name
+                )}
+              </div>
+
+            </div>
+
+
+            <div class="model-grid">
+
+              <div class="model-card">
+                1.5 Üst
+                <strong>
+                  ${item.model?.over15 ?? "-"}%
+                </strong>
+              </div>
+
+              <div class="model-card">
+                2.5 Üst
+                <strong>
+                  ${item.model?.over25 ?? "-"}%
+                </strong>
+              </div>
+
+              <div class="model-card">
+                KG Var
+                <strong>
+                  ${item.model?.btts ?? "-"}%
+                </strong>
               </div>
 
             </div>
@@ -2697,26 +3074,11 @@ navButtons[3].onclick =
     ).style.display =
       "none";
 
-    document.querySelector(
-      ".section-title h2"
-    ).textContent =
-      "Favoriler";
-
-    document.getElementById(
-      "count"
-    ).textContent =
-      "";
-
-    document.getElementById(
-      "list"
-    ).innerHTML =
-      `
-      <div class="empty">
-        Favoriler özelliğini sonraki aşamada ekleyeceğiz.
-      </div>
-      `;
+    renderFavorites();
   };
 
+
+/* MAÇLARI YÜKLE */
 
 (async()=>{
 
@@ -2756,7 +3118,8 @@ navButtons[3].onclick =
     }
 
     matches =
-      data.matches || [];
+      data.matches ||
+      [];
 
     render();
 
@@ -2770,13 +3133,14 @@ navButtons[3].onclick =
     root.innerHTML =
       `
       <div class="error">
-
         Maç verileri yüklenemedi.
 
         <br><br>
 
-        ${esc(error.message || "")}
-
+        ${esc(
+          error.message ||
+          ""
+        )}
       </div>
       `;
   }
