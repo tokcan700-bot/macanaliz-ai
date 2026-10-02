@@ -262,7 +262,7 @@ async function fixtures(
 
   const cacheKey =
     new Request(
-      `${url.origin}/api/fixtures-v8?date=${encodeURIComponent(date)}`
+      `${url.origin}/api/fixtures-v9?date=${encodeURIComponent(date)}`
     );
 
   const hit =
@@ -294,7 +294,11 @@ async function fixtures(
             item.fixture?.id,
 
           kickoff:
-            item.fixture?.date,
+            item.fixture?.timestamp
+              ? new Date(
+                  Number(item.fixture.timestamp) * 1000
+                ).toISOString()
+              : item.fixture?.date,
 
           status:
             item.fixture
@@ -2106,13 +2110,13 @@ async function liveDetail(
           item.fixture
             ?.venue
             ?.name ||
-          null,
+        null,
 
         city:
           item.fixture
             ?.venue
             ?.city ||
-          null
+        null
       },
 
       status: {
@@ -2120,25 +2124,25 @@ async function liveDetail(
           item.fixture
             ?.status
             ?.long ||
-          null,
+        null,
 
         short:
           item.fixture
             ?.status
             ?.short ||
-          null,
+        null,
 
         elapsed:
           item.fixture
             ?.status
             ?.elapsed ??
-          null,
+        null,
 
         extra:
           item.fixture
             ?.status
             ?.extra ??
-          null
+        null
       }
     },
 
@@ -2282,7 +2286,6 @@ async function liveDetail(
       {
         headers: {
           ...cors,
-
           "Cache-Control":
             "public, max-age=30"
         }
