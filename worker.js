@@ -2042,7 +2042,7 @@ async function prediction(
             ...cors,
 
             "Cache-Control":
-              "public, max-age=21600"
+              "public, max-age=86400"
           }
         }
       );
@@ -2392,7 +2392,7 @@ async function liveDetail(
 
   const cacheKey =
     new Request(
-      `${url.origin}/api/live-detail-v2?fixture=${fixture}`
+      `${url.origin}/api/live-detail-v3?fixture=${fixture}`
     );
 
 
@@ -2808,7 +2808,7 @@ async function liveDetail(
           ...cors,
 
           "Cache-Control":
-            "public, max-age=30"
+            "public, max-age=600"
         }
       }
     );
@@ -2903,7 +2903,7 @@ async function apiStatus(
           ...cors,
 
           "Cache-Control":
-            "no-store"
+            "public, max-age=900"
         }
       }
     );
