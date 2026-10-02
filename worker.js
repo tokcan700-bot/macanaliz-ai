@@ -2824,3 +2824,115 @@ async function liveDetail(
 
   return result;
 }
+/* =========================
+   API DURUM KONTROLÜ
+   ========================= */
+
+async function apiStatus(
+  env,
+  cors
+) {
+
+  try {
+
+    const response =
+      await fetch(
+        "https://v3.football.api-sports.io/status",
+        {
+          headers: {
+            "x-apisports-key":
+              env.API_FOOTBALL_KEY
+          }
+        }
+      );
+
+
+    let data = null;
+
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch {
+
+      return Response.json(
+        {
+          success: false,
+
+          httpStatus:
+            response.status,
+
+          error:
+            "API cevabı JSON olarak okunamadı."
+        },
+        {
+          status: 200,
+          headers: cors
+        }
+      );
+    }
+
+
+    return Response.json(
+      {
+        success:
+          response.ok,
+
+        httpStatus:
+          response.status,
+
+        apiErrors:
+          data?.errors || {},
+
+        results:
+          data?.results ?? null,
+
+        response:
+          data?.response || null,
+
+        checkedAt:
+          new Date()
+            .toISOString()
+      },
+      {
+        status: 200,
+
+        headers: {
+          ...cors,
+
+          "Cache-Control":
+            "no-store"
+        }
+      }
+    );
+
+
+  } catch (error) {
+
+    return Response.json(
+      {
+        success: false,
+
+        error:
+          error.message ||
+          "API durum kontrolü başarısız.",
+
+        checkedAt:
+          new Date()
+            .toISOString()
+      },
+      {
+        status: 200,
+
+        headers: {
+          ...cors,
+
+          "Cache-Control":
+            "no-store"
+        }
+      }
+    );
+  }
+}
