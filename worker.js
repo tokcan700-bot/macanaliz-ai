@@ -13,8 +13,14 @@ export default {
 
     if (!env.API_FOOTBALL_KEY) {
       return Response.json(
-        { success: false, error: "API_FOOTBALL_KEY bulunamadı." },
-        { status: 500, headers: cors }
+        {
+          success: false,
+          error: "API_FOOTBALL_KEY bulunamadı."
+        },
+        {
+          status: 500,
+          headers: cors
+        }
       );
     }
 
@@ -33,125 +39,258 @@ export default {
     }
 
     return Response.json(
-      { success: false, error: "Endpoint bulunamadı." },
-      { status: 404, headers: cors }
+      {
+        success: false,
+        error: "Endpoint bulunamadı."
+      },
+      {
+        status: 404,
+        headers: cors
+      }
     );
   }
 };
 
+
 async function apiFetch(path, params, env) {
-  const u = new URL("https://v3.football.api-sports.io" + path);
+  const u = new URL(
+    "https://v3.football.api-sports.io" + path
+  );
 
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") {
-      u.searchParams.set(k, String(v));
+    if (
+      v !== undefined &&
+      v !== null &&
+      v !== ""
+    ) {
+      u.searchParams.set(
+        k,
+        String(v)
+      );
     }
   }
 
-  const r = await fetch(u.toString(), {
-    headers: {
-      "x-apisports-key": env.API_FOOTBALL_KEY
+  const r = await fetch(
+    u.toString(),
+    {
+      headers: {
+        "x-apisports-key":
+          env.API_FOOTBALL_KEY
+      }
     }
-  });
+  );
 
   const data = await r.json();
 
   const errors =
-    data.errors && typeof data.errors === "object"
+    data.errors &&
+    typeof data.errors === "object"
       ? Object.keys(data.errors)
       : [];
 
   if (!r.ok || errors.length) {
-    const e = new Error("API Football isteği başarısız.");
+    const e = new Error(
+      "API Football isteği başarısız."
+    );
+
     e.status = r.status;
     e.apiErrors = data.errors || {};
+
     throw e;
   }
 
   return data;
 }
 
-function istanbulDate() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Istanbul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(new Date());
-}
 
-async function fixtures(env, ctx, cors, url) {
-  const date =
-    url.searchParams.get("date") ||
-    istanbulDate();
-
-  const cache = caches.default;
-
-  const cacheKey = new Request(
-    `${url.origin}/api/fixtures-v5?date=${encodeURIComponent(date)}`
-  );
-
-  const hit = await cache.match(cacheKey);
-
-  if (hit) return hit;
+async function playerEloFetch(
+  fixture,
+  env
+) {
+  if (!env.PLAYERELO_KEY) {
+    return {
+      available: false,
+      reason:
+        "PLAYERELO_KEY bulunamadı."
+    };
+  }
 
   try {
-    const data = await apiFetch(
-      "/fixtures",
-      {
-        date,
-        timezone: "Europe/Istanbul"
-      },
-      env
-    );
-
-    const matches = (data.response || []).map(m => ({
-      id: m.fixture.id,
-      kickoff: m.fixture.date,
-      status: m.fixture.status.short,
-
-      league: {
-        id: m.league.id,
-        name: m.league.name,
-        country: m.league.country,
-        logo: m.league.logo
-      },
-
-      home: {
-        id: m.teams.home.id,
-        name: m.teams.home.name,
-        logo: m.teams.home.logo
-      },
-
-      away: {
-        id: m.teams.away.id,
-        name: m.teams.away.name,
-        logo: m.teams.away.logo
-      },
-
-      score: {
-        home: m.goals.home,
-        away: m.goals.away
-      }
-    }));
-
-    const result = Response.json(
-      {
-        success: true,
-        date,
-        count: matches.length,
-        matches
-      },
+    const r = await fetch(
+      `https://data-api.playerelo.football/v1/fixtures/${fixture}/prediction`,
       {
         headers: {
-          ...cors,
-          "Cache-Control": "public, max-age=600"
+          "Authorization":
+            `Bearer ${env.PLAYERELO_KEY}`
         }
       }
     );
 
+    if (!r.ok) {
+      return {
+        available: false,
+        status: r.status,
+        reason:
+          "PlayerElo verisi alınamadı."
+      };
+    }
+
+    const data =
+      await r.json();
+
+    return {
+      available: true,
+      data
+    };
+
+  } catch (e) {
+    return {
+      available: false,
+      reason:
+        "PlayerElo bağlantı hatası."
+    };
+  }
+}
+
+
+function istanbulDate() {
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone:
+        "Europe/Istanbul",
+
+      year:
+        "numeric",
+
+      month:
+        "2-digit",
+
+      day:
+        "2-digit"
+    }
+  ).format(new Date());
+}
+
+
+async function fixtures(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const date =
+    url.searchParams.get("date") ||
+    istanbulDate();
+
+  const cache =
+    caches.default;
+
+  const cacheKey =
+    new Request(
+      `${url.origin}/api/fixtures-v6?date=${encodeURIComponent(date)}`
+    );
+
+  const hit =
+    await cache.match(cacheKey);
+
+  if (hit) {
+    return hit;
+  }
+
+  try {
+    const data =
+      await apiFetch(
+        "/fixtures",
+        {
+          date,
+          timezone:
+            "Europe/Istanbul"
+        },
+        env
+      );
+
+    const matches =
+      (data.response || [])
+      .map(m => ({
+        id:
+          m.fixture.id,
+
+        kickoff:
+          m.fixture.date,
+
+        status:
+          m.fixture.status.short,
+
+        league: {
+          id:
+            m.league.id,
+
+          name:
+            m.league.name,
+
+          country:
+            m.league.country,
+
+          logo:
+            m.league.logo
+        },
+
+        home: {
+          id:
+            m.teams.home.id,
+
+          name:
+            m.teams.home.name,
+
+          logo:
+            m.teams.home.logo
+        },
+
+        away: {
+          id:
+            m.teams.away.id,
+
+          name:
+            m.teams.away.name,
+
+          logo:
+            m.teams.away.logo
+        },
+
+        score: {
+          home:
+            m.goals.home,
+
+          away:
+            m.goals.away
+        }
+      }));
+
+    const result =
+      Response.json(
+        {
+          success: true,
+          date,
+          count:
+            matches.length,
+          matches
+        },
+        {
+          headers: {
+            ...cors,
+
+            "Cache-Control":
+              "public, max-age=600"
+          }
+        }
+      );
+
     ctx.waitUntil(
-      cache.put(cacheKey, result.clone())
+      cache.put(
+        cacheKey,
+        result.clone()
+      )
     );
 
     return result;
@@ -160,9 +299,15 @@ async function fixtures(env, ctx, cors, url) {
     return Response.json(
       {
         success: false,
-        status: e.status || 500,
-        errors: e.apiErrors || {},
-        error: e.message
+
+        status:
+          e.status || 500,
+
+        errors:
+          e.apiErrors || {},
+
+        error:
+          e.message
       },
       {
         status: 502,
@@ -172,51 +317,77 @@ async function fixtures(env, ctx, cors, url) {
   }
 }
 
+
 function numberValue(value) {
-  const n = Number(value);
+  const n =
+    Number(value);
 
   return Number.isFinite(n)
     ? n
     : null;
 }
 
+
 function percentValue(value) {
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return null;
   }
 
-  const n = Number(
-    String(value).replace("%", "")
-  );
+  const n =
+    Number(
+      String(value)
+      .replace("%", "")
+    );
 
   return Number.isFinite(n)
     ? n
     : null;
 }
 
+
 function average(values) {
-  const valid = values.filter(
-    v => Number.isFinite(v)
-  );
+  const valid =
+    values.filter(
+      v => Number.isFinite(v)
+    );
 
   if (!valid.length) {
     return null;
   }
 
   return (
-    valid.reduce((a, b) => a + b, 0) /
+    valid.reduce(
+      (a, b) => a + b,
+      0
+    ) /
     valid.length
   );
 }
 
-function clamp(value, min, max) {
+
+function clamp(
+  value,
+  min,
+  max
+) {
   return Math.max(
     min,
-    Math.min(max, value)
+    Math.min(
+      max,
+      value
+    )
   );
 }
 
-function shrink(value, target, weight = 0.68) {
+
+function shrink(
+  value,
+  target,
+  weight = 0.68
+) {
   if (!Number.isFinite(value)) {
     return target;
   }
@@ -227,34 +398,57 @@ function shrink(value, target, weight = 0.68) {
   );
 }
 
+
 function poissonOver15(lambda) {
-  const p0 = Math.exp(-lambda);
-  const p1 = p0 * lambda;
+  const p0 =
+    Math.exp(-lambda);
+
+  const p1 =
+    p0 * lambda;
 
   return 1 - p0 - p1;
 }
 
-function poissonOver25(lambda) {
-  const p0 = Math.exp(-lambda);
-  const p1 = p0 * lambda;
-  const p2 =
-    p0 * Math.pow(lambda, 2) / 2;
 
-  return 1 - p0 - p1 - p2;
+function poissonOver25(lambda) {
+  const p0 =
+    Math.exp(-lambda);
+
+  const p1 =
+    p0 * lambda;
+
+  const p2 =
+    p0 *
+    Math.pow(lambda, 2) /
+    2;
+
+  return (
+    1 -
+    p0 -
+    p1 -
+    p2
+  );
 }
+
 
 function bttsProbability(
   lambdaHome,
   lambdaAway
 ) {
   return (
-    1 - Math.exp(-lambdaHome)
+    1 -
+    Math.exp(-lambdaHome)
   ) * (
-    1 - Math.exp(-lambdaAway)
+    1 -
+    Math.exp(-lambdaAway)
   );
 }
 
-function confidenceLabel(score, dataCount) {
+
+function confidenceLabel(
+  score,
+  dataCount
+) {
   if (dataCount < 4) {
     return "Düşük";
   }
@@ -275,6 +469,7 @@ function confidenceLabel(score, dataCount) {
 
   return "Düşük";
 }
+
 
 function buildModel(item) {
   const home =
@@ -314,26 +509,38 @@ function buildModel(item) {
 
   const hLeagueScored =
     numberValue(
-      home.league?.goals?.for
-        ?.average?.home
+      home.league
+        ?.goals
+        ?.for
+        ?.average
+        ?.home
     );
 
   const hLeagueConceded =
     numberValue(
-      home.league?.goals?.against
-        ?.average?.home
+      home.league
+        ?.goals
+        ?.against
+        ?.average
+        ?.home
     );
 
   const aLeagueScored =
     numberValue(
-      away.league?.goals?.for
-        ?.average?.away
+      away.league
+        ?.goals
+        ?.for
+        ?.average
+        ?.away
     );
 
   const aLeagueConceded =
     numberValue(
-      away.league?.goals?.against
-        ?.average?.away
+      away.league
+        ?.goals
+        ?.against
+        ?.average
+        ?.away
     );
 
   const homeAttackRaw =
@@ -366,6 +573,7 @@ function buildModel(item) {
         homeAttackRaw,
         1.35
       ),
+
       shrink(
         homeDefRaw,
         1.20
@@ -378,6 +586,7 @@ function buildModel(item) {
         awayAttackRaw,
         1.10
       ),
+
       shrink(
         awayDefRaw,
         1.15
@@ -473,7 +682,8 @@ function buildModel(item) {
     );
 
   lambdaHome =
-    totalLambda * split;
+    totalLambda *
+    split;
 
   lambdaAway =
     totalLambda *
@@ -497,13 +707,17 @@ function buildModel(item) {
 
   const underOver =
     String(
-      item.predictions?.under_over || ""
-    ).toLowerCase();
+      item.predictions
+        ?.under_over || ""
+    )
+    .toLowerCase();
 
   const advice =
     String(
-      item.predictions?.advice || ""
-    ).toLowerCase();
+      item.predictions
+        ?.advice || ""
+    )
+    .toLowerCase();
 
   if (
     underOver.includes("+1.5") ||
@@ -583,9 +797,11 @@ function buildModel(item) {
       hLeagueConceded,
       aLeagueScored,
       aLeagueConceded
-    ].filter(
+    ]
+    .filter(
       v => v !== null
-    ).length;
+    )
+    .length;
 
   return {
     over15:
@@ -620,43 +836,301 @@ function buildModel(item) {
     expectedGoals: {
       home:
         Number(
-          lambdaHome.toFixed(2)
+          lambdaHome
+          .toFixed(2)
         ),
 
       away:
         Number(
-          lambdaAway.toFixed(2)
+          lambdaAway
+          .toFixed(2)
         ),
 
       total:
         Number(
-          totalLambda.toFixed(2)
+          totalLambda
+          .toFixed(2)
         )
     },
 
-    recent: {
-      home: {
-        scored:
-          hScored,
-        conceded:
-          hConceded
-      },
-
-      away: {
-        scored:
-          aScored,
-        conceded:
-          aConceded
-      }
-    },
-
     dataCount:
-      recentDataCount,
-
-    basis:
-      "Son maç ve lig gol ortalamaları ortalamaya doğru dengelenmiş, aşırı uç değerler sınırlandırılmış ve Poisson modeliyle hesaplanmıştır."
+      recentDataCount
   };
 }
+
+
+function buildPlayerEloModel(data) {
+  if (!data) {
+    return null;
+  }
+
+  const scorelines =
+    data.scoreline_distribution || {};
+
+  let mass = 0;
+
+  let over15 = 0;
+  let over25 = 0;
+  let btts = 0;
+
+  for (
+    const [score, rawProbability]
+    of Object.entries(scorelines)
+  ) {
+    const parts =
+      score.split("-");
+
+    if (parts.length !== 2) {
+      continue;
+    }
+
+    const h =
+      Number(parts[0]);
+
+    const a =
+      Number(parts[1]);
+
+    const p =
+      Number(rawProbability);
+
+    if (
+      !Number.isFinite(h) ||
+      !Number.isFinite(a) ||
+      !Number.isFinite(p) ||
+      p < 0
+    ) {
+      continue;
+    }
+
+    mass += p;
+
+    const total =
+      h + a;
+
+    if (total >= 2) {
+      over15 += p;
+    }
+
+    if (total >= 3) {
+      over25 += p;
+    }
+
+    if (
+      h > 0 &&
+      a > 0
+    ) {
+      btts += p;
+    }
+  }
+
+  if (mass <= 0) {
+    return {
+      available: true,
+
+      home:
+        probabilityPercent(
+          data.p_home
+        ),
+
+      draw:
+        probabilityPercent(
+          data.p_draw
+        ),
+
+      away:
+        probabilityPercent(
+          data.p_away
+        ),
+
+      over15: null,
+      over25: null,
+      btts: null,
+
+      homeElo:
+        numberValue(
+          data.home_team_elo
+        ),
+
+      awayElo:
+        numberValue(
+          data.away_team_elo
+        )
+    };
+  }
+
+  return {
+    available: true,
+
+    home:
+      probabilityPercent(
+        data.p_home
+      ),
+
+    draw:
+      probabilityPercent(
+        data.p_draw
+      ),
+
+    away:
+      probabilityPercent(
+        data.p_away
+      ),
+
+    over15:
+      Math.round(
+        (over15 / mass) * 100
+      ),
+
+    over25:
+      Math.round(
+        (over25 / mass) * 100
+      ),
+
+    btts:
+      Math.round(
+        (btts / mass) * 100
+      ),
+
+    homeElo:
+      numberValue(
+        data.home_team_elo
+      ),
+
+    awayElo:
+      numberValue(
+        data.away_team_elo
+      )
+  };
+}
+
+
+function probabilityPercent(value) {
+  const n =
+    Number(value);
+
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+
+  if (n <= 1) {
+    return Math.round(
+      n * 100
+    );
+  }
+
+  return Math.round(n);
+}
+
+
+function numericAverage(values) {
+  const valid =
+    values.filter(
+      v => Number.isFinite(v)
+    );
+
+  if (!valid.length) {
+    return null;
+  }
+
+  return Math.round(
+    valid.reduce(
+      (a, b) => a + b,
+      0
+    ) /
+    valid.length
+  );
+}
+
+
+function buildConsensus(
+  apiPrediction,
+  model,
+  playerElo
+) {
+  const apiHome =
+    percentValue(
+      apiPrediction
+        ?.percent
+        ?.home
+    );
+
+  const apiDraw =
+    percentValue(
+      apiPrediction
+        ?.percent
+        ?.draw
+    );
+
+  const apiAway =
+    percentValue(
+      apiPrediction
+        ?.percent
+        ?.away
+    );
+
+  const result = {
+    home:
+      numericAverage([
+        apiHome,
+        playerElo?.home
+      ]),
+
+    draw:
+      numericAverage([
+        apiDraw,
+        playerElo?.draw
+      ]),
+
+    away:
+      numericAverage([
+        apiAway,
+        playerElo?.away
+      ]),
+
+    over15:
+      numericAverage([
+        model?.over15,
+        playerElo?.over15
+      ]),
+
+    over25:
+      numericAverage([
+        model?.over25,
+        playerElo?.over25
+      ]),
+
+    btts:
+      numericAverage([
+        model?.btts,
+        playerElo?.btts
+      ])
+  };
+
+  const goalSources =
+    playerElo?.over15 !== null &&
+    playerElo?.over15 !== undefined
+      ? 2
+      : 1;
+
+  const resultSources =
+    playerElo?.home !== null &&
+    playerElo?.home !== undefined
+      ? 2
+      : 1;
+
+  return {
+    ...result,
+
+    sources: {
+      goals:
+        goalSources,
+
+      result:
+        resultSources
+    }
+  };
+}
+
 
 async function prediction(
   env,
@@ -691,7 +1165,7 @@ async function prediction(
 
   const cacheKey =
     new Request(
-      `${url.origin}/api/prediction-v5?fixture=${fixture}`
+      `${url.origin}/api/prediction-v6?fixture=${fixture}`
     );
 
   const hit =
@@ -704,12 +1178,34 @@ async function prediction(
   }
 
   try {
+    const [
+      apiResult,
+      playerEloResult
+    ] =
+      await Promise.allSettled([
+        apiFetch(
+          "/predictions",
+          {
+            fixture
+          },
+          env
+        ),
+
+        playerEloFetch(
+          fixture,
+          env
+        )
+      ]);
+
+    if (
+      apiResult.status !==
+      "fulfilled"
+    ) {
+      throw apiResult.reason;
+    }
+
     const data =
-      await apiFetch(
-        "/predictions",
-        { fixture },
-        env
-      );
+      apiResult.value;
 
     const item =
       data.response?.[0];
@@ -718,6 +1214,7 @@ async function prediction(
       return Response.json(
         {
           success: false,
+
           error:
             "Bu maç için tahmin verisi yok."
         },
@@ -731,42 +1228,89 @@ async function prediction(
     const p =
       item.predictions || {};
 
+    const apiPrediction = {
+      winner:
+        p.winner?.name || null,
+
+      winnerComment:
+        p.winner?.comment || null,
+
+      winOrDraw:
+        p.win_or_draw ?? null,
+
+      underOver:
+        p.under_over || null,
+
+      advice:
+        p.advice || null,
+
+      percent: {
+        home:
+          p.percent?.home || null,
+
+        draw:
+          p.percent?.draw || null,
+
+        away:
+          p.percent?.away || null
+      }
+    };
+
+    const model =
+      buildModel(item);
+
+    let playerElo = {
+      available: false
+    };
+
+    if (
+      playerEloResult.status ===
+      "fulfilled" &&
+      playerEloResult.value
+        ?.available
+    ) {
+      playerElo =
+        buildPlayerEloModel(
+          playerEloResult
+            .value
+            .data
+        ) || {
+          available: false
+        };
+    }
+
+    const consensus =
+      buildConsensus(
+        apiPrediction,
+        model,
+        playerElo
+      );
+
     const payload = {
       success: true,
 
       fixture:
         Number(fixture),
 
-      prediction: {
-        winner:
-          p.winner?.name || null,
+      prediction:
+        apiPrediction,
 
-        winnerComment:
-          p.winner?.comment || null,
+      model,
 
-        winOrDraw:
-          p.win_or_draw ?? null,
+      playerElo,
 
-        underOver:
-          p.under_over || null,
+      consensus,
 
-        advice:
-          p.advice || null,
+      sources: {
+        apiFootball: true,
 
-        percent: {
-          home:
-            p.percent?.home || null,
+        macAnalizModel: true,
 
-          draw:
-            p.percent?.draw || null,
-
-          away:
-            p.percent?.away || null
-        }
-      },
-
-      model:
-        buildModel(item)
+        playerElo:
+          Boolean(
+            playerElo.available
+          )
+      }
     };
 
     const result =
@@ -775,6 +1319,7 @@ async function prediction(
         {
           headers: {
             ...cors,
+
             "Cache-Control":
               "public, max-age=21600"
           }
@@ -802,7 +1347,8 @@ async function prediction(
           e.apiErrors || {},
 
         error:
-          e.message
+          e.message ||
+          "Tahmin verisi alınamadı."
       },
       {
         status: 502,
