@@ -6214,5 +6214,1221 @@ loadFixtures();
 
 })();
 </script>
+  <script id="macanaliz-success-stats-v1">
+(() => {
+
+  const HISTORY_KEY =
+    "macanaliz-prediction-history-v1";
+
+
+  /* =========================
+     TASARIM
+     ========================= */
+
+  const style =
+    document.createElement(
+      "style"
+    );
+
+  style.textContent = `
+
+    .success-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:8px;
+      margin-bottom:10px;
+    }
+
+    .success-card{
+      padding:12px 8px;
+      border:1px solid #263b55;
+      border-radius:12px;
+      background:#102033;
+      text-align:center;
+    }
+
+    .success-card span{
+      display:block;
+      color:#91a2b7;
+      font-size:9px;
+    }
+
+    .success-card strong{
+      display:block;
+      margin-top:4px;
+      color:#19e58c;
+      font-size:22px;
+    }
+
+    .success-market{
+      margin-bottom:8px;
+      padding:11px;
+      border:1px solid #20334b;
+      border-radius:11px;
+      background:#0d1b2c;
+    }
+
+    .success-market-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+
+    .success-market-name{
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .success-market-rate{
+      color:#19e58c;
+      font-size:17px;
+      font-weight:900;
+    }
+
+    .success-bar{
+      height:6px;
+      margin-top:8px;
+      overflow:hidden;
+      border-radius:999px;
+      background:#16283c;
+    }
+
+    .success-bar-fill{
+      height:100%;
+      border-radius:999px;
+      background:#19e58c;
+    }
+
+    .success-sub{
+      margin-top:6px;
+      color:#91a2b7;
+      font-size:8px;
+    }
+
+    .history-match{
+      margin-bottom:8px;
+      padding:11px;
+      border:1px solid #20334b;
+      border-radius:11px;
+      background:#0b1828;
+    }
+
+    .history-match-top{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .history-score{
+      color:#19e58c;
+      white-space:nowrap;
+    }
+
+    .history-match-sub{
+      margin-top:5px;
+      color:#91a2b7;
+      font-size:8px;
+    }
+
+    .history-result-good{
+      color:#19e58c;
+    }
+
+    .history-result-bad{
+      color:#ff6376;
+    }
+
+  `;
+
+  document.head.appendChild(
+    style
+  );
+
+
+  /* =========================
+     BAŞARI BUTONU
+     ========================= */
+
+  const pickFilters =
+    document.getElementById(
+      "pickFilters"
+    );
+
+
+  let successButton =
+    document.getElementById(
+      "successStatsBtn"
+    );
+
+
+  if(!successButton){
+
+    successButton =
+      document.createElement(
+        "button"
+      );
+
+    successButton.id =
+      "successStatsBtn";
+
+    successButton.className =
+      "pick-filter";
+
+    successButton.textContent =
+      "Başarı";
+
+    pickFilters.appendChild(
+      successButton
+    );
+  }
+
+
+  /* =========================
+     VERİ
+     ========================= */
+
+  function getHistory(){
+
+    try{
+
+      const history =
+        JSON.parse(
+          localStorage.getItem(
+            HISTORY_KEY
+          ) || "{}"
+        );
+
+      return (
+        history &&
+        typeof history === "object"
+      )
+        ? history
+        : {};
+
+    }catch{
+
+      return {};
+    }
+  }
+
+
+  function saveHistory(
+    history
+  ){
+
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(
+        history
+      )
+    );
+  }
+
+
+  function pct(value){
+
+    if(
+      value === null ||
+      value === undefined ||
+      value === ""
+    ){
+      return null;
+    }
+
+    const number =
+      Number(
+        String(value)
+          .replace("%","")
+      );
+
+    return Number.isFinite(
+      number
+    )
+      ? number
+      : null;
+  }
+
+
+  /* =========================
+     BİTEN MAÇLARIN SONUCUNU
+     GEÇMİŞE YAZ
+     ========================= */
+
+  function syncFinishedResults(){
+
+    const history =
+      getHistory();
+
+    let changed =
+      false;
+
+
+    matches.forEach(
+      match => {
+
+        const key =
+          String(
+            match.id
+          );
+
+
+        const saved =
+          history[key];
+
+
+        if(!saved){
+          return;
+        }
+
+
+        const finished =
+          [
+            "FT",
+            "AET",
+            "PEN"
+          ].includes(
+            match.status
+          );
+
+
+        if(!finished){
+          return;
+        }
+
+
+        const homeGoals =
+          Number(
+            match.score?.home
+          );
+
+        const awayGoals =
+          Number(
+            match.score?.away
+          );
+
+
+        if(
+          !Number.isFinite(
+            homeGoals
+          ) ||
+          !Number.isFinite(
+            awayGoals
+          )
+        ){
+          return;
+        }
+
+
+        saved.result = {
+
+          homeGoals,
+
+          awayGoals,
+
+          status:
+            match.status,
+
+          recordedAt:
+            new Date()
+              .toISOString()
+        };
+
+
+        changed =
+          true;
+      }
+    );
+
+
+    if(changed){
+
+      saveHistory(
+        history
+      );
+    }
+  }
+
+
+  /* =========================
+     MAÇ DETAYINA GİRİNCE
+     SONUCU DA KAYDET
+     ========================= */
+
+  const oldRenderLiveDetailForStats =
+    renderLiveDetail;
+
+
+  renderLiveDetail =
+    function(data){
+
+      oldRenderLiveDetailForStats(
+        data
+      );
+
+
+      const status =
+        data
+          ?.fixture
+          ?.status
+          ?.short;
+
+
+      if(
+        ![
+          "FT",
+          "AET",
+          "PEN"
+        ].includes(
+          status
+        )
+      ){
+        return;
+      }
+
+
+      const fixture =
+        data
+          ?.fixture
+          ?.id;
+
+
+      const history =
+        getHistory();
+
+
+      const saved =
+        history[
+          String(fixture)
+        ];
+
+
+      if(!saved){
+        return;
+      }
+
+
+      const homeGoals =
+        Number(
+          data.goals?.home
+        );
+
+      const awayGoals =
+        Number(
+          data.goals?.away
+        );
+
+
+      if(
+        !Number.isFinite(
+          homeGoals
+        ) ||
+        !Number.isFinite(
+          awayGoals
+        )
+      ){
+        return;
+      }
+
+
+      saved.result = {
+
+        homeGoals,
+
+        awayGoals,
+
+        status,
+
+        recordedAt:
+          new Date()
+            .toISOString()
+      };
+
+
+      saveHistory(
+        history
+      );
+    };
+
+
+  /* =========================
+     DEĞERLENDİRME
+     ========================= */
+
+  function evaluateEntry(
+    item
+  ){
+
+    if(
+      !item ||
+      !item.result
+    ){
+      return null;
+    }
+
+
+    const homeGoals =
+      Number(
+        item.result.homeGoals
+      );
+
+    const awayGoals =
+      Number(
+        item.result.awayGoals
+      );
+
+
+    if(
+      !Number.isFinite(
+        homeGoals
+      ) ||
+      !Number.isFinite(
+        awayGoals
+      )
+    ){
+      return null;
+    }
+
+
+    const totalGoals =
+      homeGoals +
+      awayGoals;
+
+
+    const actual = {
+
+      over15:
+        totalGoals >= 2,
+
+      over25:
+        totalGoals >= 3,
+
+      btts:
+        homeGoals > 0 &&
+        awayGoals > 0,
+
+      result:
+        homeGoals > awayGoals
+          ? "home"
+          : homeGoals < awayGoals
+            ? "away"
+            : "draw"
+    };
+
+
+    const over15 =
+      pct(
+        item
+          ?.finalModel
+          ?.over15
+      );
+
+
+    const over25 =
+      pct(
+        item
+          ?.finalModel
+          ?.over25
+      );
+
+
+    const btts =
+      pct(
+        item
+          ?.finalModel
+          ?.btts
+      );
+
+
+    const home =
+      pct(
+        item
+          ?.prediction
+          ?.percent
+          ?.home
+      );
+
+
+    const draw =
+      pct(
+        item
+          ?.prediction
+          ?.percent
+          ?.draw
+      );
+
+
+    const away =
+      pct(
+        item
+          ?.prediction
+          ?.percent
+          ?.away
+      );
+
+
+    let predicted1X2 =
+      null;
+
+
+    const resultOptions = [
+
+      {
+        key:"home",
+        value:home
+      },
+
+      {
+        key:"draw",
+        value:draw
+      },
+
+      {
+        key:"away",
+        value:away
+      }
+
+    ].filter(
+      x =>
+        x.value !== null
+    );
+
+
+    if(
+      resultOptions.length
+    ){
+
+      resultOptions.sort(
+        (a,b) =>
+          b.value -
+          a.value
+      );
+
+      predicted1X2 =
+        resultOptions[0];
+    }
+
+
+    return {
+
+      fixture:
+        item.fixture,
+
+      home:
+        item.home,
+
+      away:
+        item.away,
+
+      savedAt:
+        item.savedAt,
+
+      score:{
+        home:
+          homeGoals,
+
+        away:
+          awayGoals
+      },
+
+      over15:
+        over15 === null
+          ? null
+          : (
+              over15 >= 50
+            ) ===
+            actual.over15,
+
+      over25:
+        over25 === null
+          ? null
+          : (
+              over25 >= 50
+            ) ===
+            actual.over25,
+
+      btts:
+        btts === null
+          ? null
+          : (
+              btts >= 50
+            ) ===
+            actual.btts,
+
+      oneXtwo:
+        predicted1X2
+          ? predicted1X2.key ===
+            actual.result
+          : null
+    };
+  }
+
+
+  function marketStats(
+    evaluated,
+    field
+  ){
+
+    const valid =
+      evaluated.filter(
+        item =>
+          item[field] !==
+          null
+      );
+
+
+    const correct =
+      valid.filter(
+        item =>
+          item[field] ===
+          true
+      ).length;
+
+
+    return {
+
+      total:
+        valid.length,
+
+      correct,
+
+      rate:
+        valid.length
+          ? Math.round(
+              (
+                correct /
+                valid.length
+              ) *
+              100
+            )
+          : 0
+    };
+  }
+
+
+  function resultCount(
+    item
+  ){
+
+    const values = [
+      item.over15,
+      item.over25,
+      item.btts,
+      item.oneXtwo
+    ].filter(
+      value =>
+        value !== null
+    );
+
+
+    return {
+
+      total:
+        values.length,
+
+      correct:
+        values.filter(
+          Boolean
+        ).length
+    };
+  }
+
+
+  function formatDate(
+    value
+  ){
+
+    try{
+
+      return new Intl
+        .DateTimeFormat(
+          "tr-TR",
+          {
+            timeZone:
+              "Europe/Istanbul",
+
+            day:
+              "2-digit",
+
+            month:
+              "2-digit",
+
+            hour:
+              "2-digit",
+
+            minute:
+              "2-digit"
+          }
+        )
+        .format(
+          new Date(value)
+        );
+
+    }catch{
+
+      return "-";
+    }
+  }
+
+
+  /* =========================
+     MARKET KARTI
+     ========================= */
+
+  function marketCard(
+    name,
+    stats
+  ){
+
+    return `
+      <div class="success-market">
+
+        <div class="success-market-head">
+
+          <div class="success-market-name">
+            ${esc(name)}
+          </div>
+
+          <div class="success-market-rate">
+            %${stats.rate}
+          </div>
+
+        </div>
+
+
+        <div class="success-bar">
+
+          <div
+            class="success-bar-fill"
+            style="
+              width:${stats.rate}%
+            "
+          ></div>
+
+        </div>
+
+
+        <div class="success-sub">
+
+          ${stats.correct}
+          doğru
+          ·
+          ${stats.total}
+          değerlendirme
+
+        </div>
+
+      </div>
+    `;
+  }
+
+
+  /* =========================
+     BAŞARI SAYFASI
+     ========================= */
+
+  function renderSuccessStats(){
+
+    activePage =
+      "success";
+
+    showHero(false);
+    showFilters(false);
+    showPickFilters(true);
+
+
+    syncFinishedResults();
+
+
+    document
+      .querySelectorAll(
+        ".pick-filter"
+      )
+      .forEach(
+        button =>
+          button.classList.remove(
+            "active"
+          )
+      );
+
+
+    successButton
+      .classList
+      .add(
+        "active"
+      );
+
+
+    const history =
+      Object.values(
+        getHistory()
+      );
+
+
+    const evaluated =
+      history
+        .map(
+          evaluateEntry
+        )
+        .filter(Boolean);
+
+
+    const over15Stats =
+      marketStats(
+        evaluated,
+        "over15"
+      );
+
+
+    const over25Stats =
+      marketStats(
+        evaluated,
+        "over25"
+      );
+
+
+    const bttsStats =
+      marketStats(
+        evaluated,
+        "btts"
+      );
+
+
+    const oneXtwoStats =
+      marketStats(
+        evaluated,
+        "oneXtwo"
+      );
+
+
+    const allResults =
+      evaluated.flatMap(
+        item =>
+          [
+            item.over15,
+            item.over25,
+            item.btts,
+            item.oneXtwo
+          ]
+          .filter(
+            value =>
+              value !== null
+          )
+      );
+
+
+    const totalCorrect =
+      allResults.filter(
+        Boolean
+      ).length;
+
+
+    const overallRate =
+      allResults.length
+
+        ? Math.round(
+            (
+              totalCorrect /
+              allResults.length
+            ) *
+            100
+          )
+
+        : 0;
+
+
+    document
+      .querySelector(
+        ".section-title h2"
+      )
+      .textContent =
+        "Başarı İstatistikleri";
+
+
+    document
+      .getElementById(
+        "count"
+      )
+      .textContent =
+        evaluated.length +
+        " maç";
+
+
+    const root =
+      document.getElementById(
+        "list"
+      );
+
+
+    if(
+      !evaluated.length
+    ){
+
+      root.innerHTML = `
+        <div class="empty">
+
+          Henüz değerlendirilebilecek
+          tamamlanmış tahmin bulunmuyor.
+
+          <br><br>
+
+          Maç başlamadan
+          <b>Analizi Gör</b>
+          ile tahmini kaydet.
+
+          Maç bittikten sonra sonuç
+          sisteme geldiğinde başarı
+          istatistikleri burada oluşacak.
+
+        </div>
+      `;
+
+      return;
+    }
+
+
+    const last10 =
+      evaluated
+        .slice()
+        .sort(
+          (a,b) =>
+            new Date(
+              b.savedAt
+            ) -
+            new Date(
+              a.savedAt
+            )
+        )
+        .slice(
+          0,
+          10
+        );
+
+
+    root.innerHTML = `
+
+      <div class="success-grid">
+
+        <div class="success-card">
+
+          <span>
+            Genel Başarı
+          </span>
+
+          <strong>
+            %${overallRate}
+          </strong>
+
+        </div>
+
+
+        <div class="success-card">
+
+          <span>
+            Değerlendirilen Maç
+          </span>
+
+          <strong>
+            ${evaluated.length}
+          </strong>
+
+        </div>
+
+
+        <div class="success-card">
+
+          <span>
+            Doğru Tahmin
+          </span>
+
+          <strong>
+            ${totalCorrect}
+          </strong>
+
+        </div>
+
+
+        <div class="success-card">
+
+          <span>
+            Toplam Değerlendirme
+          </span>
+
+          <strong>
+            ${allResults.length}
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div class="analysis-details">
+
+        <div class="analysis-title">
+          Market Başarıları
+        </div>
+
+        ${marketCard(
+          "1.5 Üst / Alt",
+          over15Stats
+        )}
+
+        ${marketCard(
+          "2.5 Üst / Alt",
+          over25Stats
+        )}
+
+        ${marketCard(
+          "KG Var / Yok",
+          bttsStats
+        )}
+
+        ${marketCard(
+          "1X2",
+          oneXtwoStats
+        )}
+
+      </div>
+
+
+      <div class="analysis-details">
+
+        <div class="analysis-title">
+          Son 10 Değerlendirilen Maç
+        </div>
+
+
+        ${last10.map(
+          item => {
+
+            const result =
+              resultCount(
+                item
+              );
+
+
+            const good =
+              result.total &&
+              result.correct >=
+              Math.ceil(
+                result.total / 2
+              );
+
+
+            return `
+              <div class="history-match">
+
+                <div class="history-match-top">
+
+                  <div>
+
+                    ${esc(
+                      item.home?.name ||
+                      ""
+                    )}
+
+                    -
+
+                    ${esc(
+                      item.away?.name ||
+                      ""
+                    )}
+
+                  </div>
+
+
+                  <div class="history-score">
+
+                    ${item.score.home}
+                    -
+                    ${item.score.away}
+
+                  </div>
+
+                </div>
+
+
+                <div
+                  class="history-match-sub ${
+                    good
+                      ? "history-result-good"
+                      : "history-result-bad"
+                  }"
+                >
+
+                  ${result.correct}
+                  /
+                  ${result.total}
+                  değerlendirme doğru
+
+                  ·
+
+                  ${esc(
+                    formatDate(
+                      item.savedAt
+                    )
+                  )}
+
+                </div>
+
+              </div>
+            `;
+          }
+        ).join("")}
+
+      </div>
+
+
+      <div class="note">
+
+        İstatistikler yalnızca
+        maç başlamadan kaydedilmiş
+        tahminler ve doğrulanmış
+        bitmiş maç sonuçları üzerinden
+        hesaplanır.
+
+      </div>
+    `;
+  }
+
+
+  /* =========================
+     BUTON
+     ========================= */
+
+  successButton.onclick =
+    () => {
+
+      setNavActive(2);
+
+      renderSuccessStats();
+    };
+
+
+  /*
+    Başarı ekranındayken sonuçlar
+    yenilenirse tabloyu da yenile.
+  */
+
+  setInterval(
+    () => {
+
+      if(
+        activePage ===
+        "success"
+      ){
+        renderSuccessStats();
+      }
+
+    },
+    60000
+  );
+
+})();
+</script>
+  
 </body>
 </html>
