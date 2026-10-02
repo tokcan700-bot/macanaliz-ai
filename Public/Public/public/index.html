@@ -5011,6 +5011,1208 @@ loadFixtures();
 
 })();
 </script>
-  
+  <script id="macanaliz-prediction-history-v1">
+(() => {
+
+  /* =========================================
+     MAÇ ÖNCESİ TAHMİN GEÇMİŞİ
+     ========================================= */
+
+  const HISTORY_KEY =
+    "macanaliz-prediction-history-v1";
+
+
+  function getPredictionHistory(){
+
+    try{
+
+      const data =
+        JSON.parse(
+          localStorage.getItem(
+            HISTORY_KEY
+          ) || "{}"
+        );
+
+      return (
+        data &&
+        typeof data === "object"
+      )
+        ? data
+        : {};
+
+    }catch{
+
+      return {};
+    }
+  }
+
+
+  function savePredictionHistory(
+    history
+  ){
+
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(
+        history
+      )
+    );
+  }
+
+
+  function getSavedPrediction(
+    fixture
+  ){
+
+    const history =
+      getPredictionHistory();
+
+    return (
+      history[
+        String(fixture)
+      ] ||
+      null
+    );
+  }
+
+
+  function percentNumber(value){
+
+    if(
+      value === null ||
+      value === undefined ||
+      value === ""
+    ){
+      return null;
+    }
+
+    const number =
+      Number(
+        String(value)
+          .replace("%","")
+          .trim()
+      );
+
+    return Number.isFinite(
+      number
+    )
+      ? number
+      : null;
+  }
+
+
+  function canSavePreMatch(
+    fixture
+  ){
+
+    const match =
+      matches.find(
+        item =>
+          Number(item.id) ===
+          Number(fixture)
+      );
+
+    if(!match){
+      return null;
+    }
+
+
+    if(
+      match.status !== "NS"
+    ){
+      return null;
+    }
+
+
+    const kickoff =
+      new Date(
+        match.kickoff
+      ).getTime();
+
+
+    if(
+      !Number.isFinite(
+        kickoff
+      )
+    ){
+      return null;
+    }
+
+
+    /*
+      Başlamış maçın tahmini geçmişe
+      yazılmasın.
+    */
+
+    if(
+      Date.now() >=
+      kickoff
+    ){
+      return null;
+    }
+
+
+    return match;
+  }
+
+
+  function savePredictionSnapshot(
+    fixture,
+    data
+  ){
+
+    const match =
+      canSavePreMatch(
+        fixture
+      );
+
+
+    if(
+      !match ||
+      !data ||
+      !data.success
+    ){
+      return;
+    }
+
+
+    const history =
+      getPredictionHistory();
+
+
+    const prediction =
+      data.prediction ||
+      {};
+
+
+    const model =
+      data.model ||
+      {};
+
+
+    const playerElo =
+      data.playerElo ||
+      {
+        available:false
+      };
+
+
+    const consensus =
+      data.consensus ||
+      {};
+
+
+    const hasPlayerElo =
+      Boolean(
+        data.sources?.playerElo &&
+        playerElo.available
+      );
+
+
+    const over15 =
+      hasPlayerElo &&
+      consensus.over15 != null
+
+        ? consensus.over15
+
+        : model.over15;
+
+
+    const over25 =
+      hasPlayerElo &&
+      consensus.over25 != null
+
+        ? consensus.over25
+
+        : model.over25;
+
+
+    const btts =
+      hasPlayerElo &&
+      consensus.btts != null
+
+        ? consensus.btts
+
+        : model.btts;
+
+
+    history[
+      String(fixture)
+    ] = {
+
+      fixture:
+        Number(fixture),
+
+      savedAt:
+        new Date()
+          .toISOString(),
+
+      kickoff:
+        match.kickoff,
+
+      league:
+        match.league,
+
+      home:
+        match.home,
+
+      away:
+        match.away,
+
+      prediction:{
+        advice:
+          prediction.advice ||
+          "",
+
+        percent:{
+          home:
+            prediction.percent?.home ??
+            null,
+
+          draw:
+            prediction.percent?.draw ??
+            null,
+
+          away:
+            prediction.percent?.away ??
+            null
+        }
+      },
+
+      model:{
+        over15:
+          model.over15 ??
+          null,
+
+        over25:
+          model.over25 ??
+          null,
+
+        btts:
+          model.btts ??
+          null,
+
+        expectedGoals:
+          model.expectedGoals ??
+          null,
+
+        dataCount:
+          model.dataCount ??
+          null
+      },
+
+      finalModel:{
+        over15:
+          over15 ??
+          null,
+
+        over25:
+          over25 ??
+          null,
+
+        btts:
+          btts ??
+          null
+      },
+
+      playerElo:{
+        available:
+          Boolean(
+            playerElo.available
+          ),
+
+        home:
+          playerElo.home ??
+          null,
+
+        draw:
+          playerElo.draw ??
+          null,
+
+        away:
+          playerElo.away ??
+          null,
+
+        over15:
+          playerElo.over15 ??
+          null,
+
+        over25:
+          playerElo.over25 ??
+          null,
+
+        btts:
+          playerElo.btts ??
+          null
+      },
+
+      sources:
+        data.sources ||
+        {}
+    };
+
+
+    savePredictionHistory(
+      history
+    );
+  }
+
+
+  /* =========================================
+     /api/prediction CEVABINI OTOMATİK KAYDET
+     ========================================= */
+
+  const originalFetch =
+    window.fetch.bind(
+      window
+    );
+
+
+  window.fetch =
+    async function(
+      input,
+      options
+    ){
+
+      const response =
+        await originalFetch(
+          input,
+          options
+        );
+
+
+      try{
+
+        const url =
+          typeof input === "string"
+            ? input
+            : input?.url;
+
+
+        if(
+          url &&
+          url.includes(
+            "/api/prediction"
+          )
+        ){
+
+          const parsed =
+            new URL(
+              url,
+              window.location.origin
+            );
+
+
+          const fixture =
+            parsed
+              .searchParams
+              .get(
+                "fixture"
+              );
+
+
+          if(fixture){
+
+            const copy =
+              response.clone();
+
+
+            copy.json()
+              .then(
+                data => {
+
+                  savePredictionSnapshot(
+                    fixture,
+                    data
+                  );
+                }
+              )
+              .catch(
+                () => {}
+              );
+          }
+        }
+
+      }catch(error){
+
+      }
+
+
+      return response;
+    };
+
+
+  /* =========================================
+     KARŞILAŞTIRMA YARDIMCILARI
+     ========================================= */
+
+  function result1X2(
+    homeGoals,
+    awayGoals
+  ){
+
+    if(
+      homeGoals >
+      awayGoals
+    ){
+      return {
+        key:"home",
+        name:"Ev Sahibi"
+      };
+    }
+
+
+    if(
+      homeGoals <
+      awayGoals
+    ){
+      return {
+        key:"away",
+        name:"Deplasman"
+      };
+    }
+
+
+    return {
+      key:"draw",
+      name:"Beraberlik"
+    };
+  }
+
+
+  function predicted1X2(
+    saved
+  ){
+
+    const options = [
+
+      {
+        key:"home",
+        name:"Ev Sahibi",
+        value:
+          percentNumber(
+            saved
+              ?.prediction
+              ?.percent
+              ?.home
+          )
+      },
+
+      {
+        key:"draw",
+        name:"Beraberlik",
+        value:
+          percentNumber(
+            saved
+              ?.prediction
+              ?.percent
+              ?.draw
+          )
+      },
+
+      {
+        key:"away",
+        name:"Deplasman",
+        value:
+          percentNumber(
+            saved
+              ?.prediction
+              ?.percent
+              ?.away
+          )
+      }
+
+    ].filter(
+      item =>
+        item.value !== null
+    );
+
+
+    if(!options.length){
+      return null;
+    }
+
+
+    options.sort(
+      (a,b) =>
+        b.value -
+        a.value
+    );
+
+
+    return options[0];
+  }
+
+
+  function marketResult(
+    probability,
+    actualYes,
+    yesName,
+    noName
+  ){
+
+    const pct =
+      percentNumber(
+        probability
+      );
+
+
+    if(
+      pct === null
+    ){
+      return null;
+    }
+
+
+    const predictedYes =
+      pct >= 50;
+
+
+    return {
+
+      probability:
+        pct,
+
+      predicted:
+        predictedYes
+          ? yesName
+          : noName,
+
+      actual:
+        actualYes
+          ? yesName
+          : noName,
+
+      correct:
+        predictedYes ===
+        actualYes
+    };
+  }
+
+
+  function resultIcon(correct){
+
+    return correct
+      ? "✅"
+      : "❌";
+  }
+
+
+  function formatSavedTime(
+    value
+  ){
+
+    if(!value){
+      return "-";
+    }
+
+    try{
+
+      return new Intl
+        .DateTimeFormat(
+          "tr-TR",
+          {
+            timeZone:
+              "Europe/Istanbul",
+
+            day:
+              "2-digit",
+
+            month:
+              "2-digit",
+
+            year:
+              "numeric",
+
+            hour:
+              "2-digit",
+
+            minute:
+              "2-digit"
+          }
+        )
+        .format(
+          new Date(value)
+        );
+
+    }catch{
+
+      return "-";
+    }
+  }
+
+
+  /* =========================================
+     KARŞILAŞTIRMA HTML
+     ========================================= */
+
+  function buildPredictionComparison(
+    data
+  ){
+
+    const fixture =
+      data.fixture ||
+      {};
+
+
+    const fixtureId =
+      fixture.id;
+
+
+    const saved =
+      getSavedPrediction(
+        fixtureId
+      );
+
+
+    if(!saved){
+
+      return `
+        <div class="live-section">
+
+          <h3>
+            Tahmin vs Gerçekleşen
+          </h3>
+
+          <div class="no-data">
+
+            Bu maç için maç öncesinde
+            kaydedilmiş bir MaçAnaliz tahmini
+            bulunmuyor.
+
+            <br><br>
+
+            Bundan sonra maç başlamadan
+            <b>Analizi Gör</b> kullanılan maçların
+            tahminleri otomatik kaydedilecek ve
+            maç bittikten sonra burada
+            karşılaştırılacak.
+
+          </div>
+
+        </div>
+      `;
+    }
+
+
+    const homeGoals =
+      Number(
+        data.goals?.home
+      );
+
+
+    const awayGoals =
+      Number(
+        data.goals?.away
+      );
+
+
+    if(
+      !Number.isFinite(
+        homeGoals
+      ) ||
+      !Number.isFinite(
+        awayGoals
+      )
+    ){
+
+      return "";
+    }
+
+
+    const totalGoals =
+      homeGoals +
+      awayGoals;
+
+
+    const actualBtts =
+      homeGoals > 0 &&
+      awayGoals > 0;
+
+
+    const over15Result =
+      marketResult(
+        saved
+          ?.finalModel
+          ?.over15,
+
+        totalGoals >= 2,
+
+        "Üst",
+        "Alt"
+      );
+
+
+    const over25Result =
+      marketResult(
+        saved
+          ?.finalModel
+          ?.over25,
+
+        totalGoals >= 3,
+
+        "Üst",
+        "Alt"
+      );
+
+
+    const bttsResult =
+      marketResult(
+        saved
+          ?.finalModel
+          ?.btts,
+
+        actualBtts,
+
+        "Var",
+        "Yok"
+      );
+
+
+    const actual1X2 =
+      result1X2(
+        homeGoals,
+        awayGoals
+      );
+
+
+    const predictedResult =
+      predicted1X2(
+        saved
+      );
+
+
+    const oneXtwoCorrect =
+      predictedResult
+        ? predictedResult.key ===
+          actual1X2.key
+        : null;
+
+
+    const evaluated = [
+      over15Result,
+      over25Result,
+      bttsResult,
+      oneXtwoCorrect === null
+        ? null
+        : {
+            correct:
+              oneXtwoCorrect
+          }
+    ].filter(Boolean);
+
+
+    const correctCount =
+      evaluated.filter(
+        item =>
+          item.correct
+      ).length;
+
+
+    const expectedTotal =
+      saved
+        ?.model
+        ?.expectedGoals
+        ?.total;
+
+
+    const expectedHome =
+      saved
+        ?.model
+        ?.expectedGoals
+        ?.home;
+
+
+    const expectedAway =
+      saved
+        ?.model
+        ?.expectedGoals
+        ?.away;
+
+
+    return `
+      <div class="live-section">
+
+        <h3>
+          📊 Tahmin vs Gerçekleşen
+        </h3>
+
+
+        <div
+          style="
+            margin-bottom:10px;
+            padding:10px;
+            border:1px solid #176844;
+            border-radius:10px;
+            background:#0b211b;
+          "
+        >
+
+          <div
+            style="
+              color:#91a2b7;
+              font-size:9px;
+            "
+          >
+            Maç Sonucu
+          </div>
+
+          <div
+            style="
+              margin-top:3px;
+              color:#19e58c;
+              font-size:20px;
+              font-weight:900;
+            "
+          >
+
+            ${esc(
+              saved.home?.name ||
+              ""
+            )}
+
+            ${homeGoals}
+            -
+            ${awayGoals}
+
+            ${esc(
+              saved.away?.name ||
+              ""
+            )}
+
+          </div>
+
+        </div>
+
+
+        ${
+          over15Result
+            ? `
+              <div class="detail-line">
+
+                <span>
+                  1.5 Üst
+                  ·
+                  %${over15Result.probability}
+                </span>
+
+                <b>
+
+                  Tahmin:
+                  ${over15Result.predicted}
+
+                  →
+
+                  Gerçek:
+                  ${over15Result.actual}
+
+                  ${resultIcon(
+                    over15Result.correct
+                  )}
+
+                </b>
+
+              </div>
+            `
+            : ""
+        }
+
+
+        ${
+          over25Result
+            ? `
+              <div class="detail-line">
+
+                <span>
+                  2.5 Üst
+                  ·
+                  %${over25Result.probability}
+                </span>
+
+                <b>
+
+                  Tahmin:
+                  ${over25Result.predicted}
+
+                  →
+
+                  Gerçek:
+                  ${over25Result.actual}
+
+                  ${resultIcon(
+                    over25Result.correct
+                  )}
+
+                </b>
+
+              </div>
+            `
+            : ""
+        }
+
+
+        ${
+          bttsResult
+            ? `
+              <div class="detail-line">
+
+                <span>
+                  KG Var
+                  ·
+                  %${bttsResult.probability}
+                </span>
+
+                <b>
+
+                  Tahmin:
+                  ${bttsResult.predicted}
+
+                  →
+
+                  Gerçek:
+                  ${bttsResult.actual}
+
+                  ${resultIcon(
+                    bttsResult.correct
+                  )}
+
+                </b>
+
+              </div>
+            `
+            : ""
+        }
+
+
+        ${
+          predictedResult
+            ? `
+              <div class="detail-line">
+
+                <span>
+                  1X2
+                  ·
+                  %${predictedResult.value}
+                </span>
+
+                <b>
+
+                  Tahmin:
+                  ${esc(
+                    predictedResult.name
+                  )}
+
+                  →
+
+                  Gerçek:
+                  ${esc(
+                    actual1X2.name
+                  )}
+
+                  ${resultIcon(
+                    oneXtwoCorrect
+                  )}
+
+                </b>
+
+              </div>
+            `
+            : ""
+        }
+
+
+        <div class="detail-line">
+
+          <span>
+            Gerçek Toplam Gol
+          </span>
+
+          <b>
+            ${totalGoals}
+          </b>
+
+        </div>
+
+
+        ${
+          expectedTotal != null
+            ? `
+              <div class="detail-line">
+
+                <span>
+                  Beklenen Toplam Gol
+                </span>
+
+                <b>
+                  ${esc(
+                    expectedTotal
+                  )}
+                </b>
+
+              </div>
+            `
+            : ""
+        }
+
+
+        ${
+          expectedHome != null
+          &&
+          expectedAway != null
+            ? `
+              <div class="detail-line">
+
+                <span>
+                  Beklenen Gol Dağılımı
+                </span>
+
+                <b>
+
+                  ${esc(
+                    expectedHome
+                  )}
+
+                  -
+
+                  ${esc(
+                    expectedAway
+                  )}
+
+                </b>
+
+              </div>
+            `
+            : ""
+        }
+
+
+        ${
+          evaluated.length
+            ? `
+              <div
+                style="
+                  margin-top:11px;
+                  padding:11px;
+                  border:1px solid #786225;
+                  border-radius:10px;
+                  background:#1c190e;
+                "
+              >
+
+                <div
+                  style="
+                    color:#f6c453;
+                    font-size:9px;
+                    font-weight:900;
+                  "
+                >
+                  KARŞILAŞTIRMA ÖZETİ
+                </div>
+
+                <div
+                  style="
+                    margin-top:4px;
+                    color:#f5f7fb;
+                    font-size:17px;
+                    font-weight:900;
+                  "
+                >
+
+                  ${correctCount}
+                  /
+                  ${evaluated.length}
+                  değerlendirme doğru
+
+                </div>
+
+              </div>
+            `
+            : ""
+        }
+
+
+        <div
+          style="
+            margin-top:9px;
+            color:#91a2b7;
+            font-size:8px;
+            line-height:1.5;
+          "
+        >
+
+          Tahmin kaydı:
+          ${esc(
+            formatSavedTime(
+              saved.savedAt
+            )
+          )}
+
+          <br>
+
+          Bu karşılaştırmada maç bittikten sonra
+          yeniden hesaplanan tahmin kullanılmaz;
+          maç öncesinde kaydedilen tahmin kullanılır.
+
+        </div>
+
+      </div>
+    `;
+  }
+
+
+  /* =========================================
+     BİTEN MAÇ DETAYINA EKLE
+     ========================================= */
+
+  const oldRenderLiveDetail =
+    renderLiveDetail;
+
+
+  renderLiveDetail =
+    function(data){
+
+      oldRenderLiveDetail(
+        data
+      );
+
+
+      const status =
+        data
+          ?.fixture
+          ?.status
+          ?.short;
+
+
+      const finished =
+        [
+          "FT",
+          "AET",
+          "PEN"
+        ].includes(
+          status
+        );
+
+
+      if(!finished){
+        return;
+      }
+
+
+      const root =
+        document.getElementById(
+          "liveContent"
+        );
+
+
+      root.insertAdjacentHTML(
+        "beforeend",
+        buildPredictionComparison(
+          data
+        )
+      );
+    };
+
+})();
+</script>
 </body>
 </html>
