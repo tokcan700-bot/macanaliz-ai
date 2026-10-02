@@ -7723,5 +7723,302 @@ loadFixtures();
 
 })();
 </script>
+  <script id="macanaliz-local-fixture-backup-v1">
+(() => {
+
+  const FIXTURE_BACKUP_KEY =
+    "macanaliz-fixture-backup-v1";
+
+
+  function saveFixtureBackup(data){
+
+    if(
+      !data ||
+      !data.success ||
+      !Array.isArray(data.matches) ||
+      !data.matches.length
+    ){
+      return;
+    }
+
+
+    try{
+
+      localStorage.setItem(
+        FIXTURE_BACKUP_KEY,
+        JSON.stringify({
+          savedAt:
+            new Date().toISOString(),
+
+          date:
+            data.date || null,
+
+          matches:
+            data.matches
+        })
+      );
+
+    }catch(error){
+
+    }
+  }
+
+
+  function getFixtureBackup(){
+
+    try{
+
+      const saved =
+        JSON.parse(
+          localStorage.getItem(
+            FIXTURE_BACKUP_KEY
+          ) || "null"
+        );
+
+
+      if(
+        !saved ||
+        !Array.isArray(
+          saved.matches
+        ) ||
+        !saved.matches.length
+      ){
+        return null;
+      }
+
+
+      return saved;
+
+    }catch{
+
+      return null;
+    }
+  }
+
+
+  function useFixtureBackup(){
+
+    const backup =
+      getFixtureBackup();
+
+
+    if(!backup){
+      return false;
+    }
+
+
+    matches =
+      backup.matches;
+
+
+    renderMatches();
+
+
+    const count =
+      document.getElementById(
+        "count"
+      );
+
+
+    if(count){
+
+      count.textContent =
+        matches.length +
+        " maç · yedek";
+    }
+
+
+    return true;
+  }
+
+
+  /*
+    Tüm fetch çağrılarını dinle.
+    /api/fixtures başarılı ve dolu
+    dönerse telefonda yedekle.
+  */
+
+  const originalFetchBackup =
+    window.fetch.bind(
+      window
+    );
+
+
+  window.fetch =
+    async function(
+      input,
+      options
+    ){
+
+      try{
+
+        const response =
+          await originalFetchBackup(
+            input,
+            options
+          );
+
+
+        const url =
+          typeof input === "string"
+            ? input
+            : input?.url;
+
+
+        if(
+          url &&
+          url.includes(
+            "/api/fixtures"
+          )
+        ){
+
+          try{
+
+            const copy =
+              response.clone();
+
+
+            const data =
+              await copy.json();
+
+
+            if(
+              response.ok &&
+              data.success &&
+              Array.isArray(
+                data.matches
+              ) &&
+              data.matches.length
+            ){
+
+              saveFixtureBackup(
+                data
+              );
+            }
+
+          }catch(error){
+
+          }
+        }
+
+
+        return response;
+
+
+      }catch(error){
+
+        const url =
+          typeof input === "string"
+            ? input
+            : input?.url;
+
+
+        if(
+          url &&
+          url.includes(
+            "/api/fixtures"
+          )
+        ){
+
+          useFixtureBackup();
+        }
+
+
+        throw error;
+      }
+    };
+
+
+  /*
+    Mevcut loadFixtures fonksiyonunu
+    güvenli hale getir.
+  */
+
+  const oldLoadFixtures =
+    loadFixtures;
+
+
+  loadFixtures =
+    async function(){
+
+      const root =
+        document.getElementById(
+          "list"
+        );
+
+
+      try{
+
+        await oldLoadFixtures();
+
+
+        /*
+          Eski fonksiyon hata durumunda
+          ekrana hata yazmış olabilir.
+          matches boşsa telefondaki
+          son başarılı listeye dön.
+        */
+
+        if(
+          !Array.isArray(matches) ||
+          !matches.length
+        ){
+
+          useFixtureBackup();
+        }
+
+
+      }catch(error){
+
+        const usedBackup =
+          useFixtureBackup();
+
+
+        if(
+          !usedBackup &&
+          root
+        ){
+
+          root.innerHTML = `
+            <div class="error">
+
+              <b>
+                Maç verileri şu anda alınamıyor.
+              </b>
+
+              <br><br>
+
+              Henüz kullanılabilir bir
+              yerel yedek bulunmuyor.
+
+            </div>
+          `;
+        }
+      }
+    };
+
+
+  /*
+    Sayfa açıldığında eğer maç listesi
+    boşsa yedeği hemen göster.
+  */
+
+  setTimeout(
+    () => {
+
+      if(
+        !Array.isArray(matches) ||
+        !matches.length
+      ){
+
+        useFixtureBackup();
+      }
+
+    },
+    1200
+  );
+
+})();
+</script>
 </body>
 </html>
