@@ -8,9 +8,7 @@ export default {
     };
 
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: cors
-      });
+      return new Response(null, { headers: cors });
     }
 
     if (!env.API_FOOTBALL_KEY) {
@@ -29,36 +27,19 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/fixtures") {
-      return fixtures(
-        env,
-        ctx,
-        cors,
-        url
-      );
+      return fixtures(env, ctx, cors, url);
     }
 
     if (url.pathname === "/api/prediction") {
-      return prediction(
-        env,
-        ctx,
-        cors,
-        url
-      );
+      return prediction(env, ctx, cors, url);
     }
 
     if (url.pathname === "/api/live-detail") {
-      return liveDetail(
-        env,
-        ctx,
-        cors,
-        url
-      );
+      return liveDetail(env, ctx, cors, url);
     }
 
     if (env.ASSETS) {
-      return env.ASSETS.fetch(
-        request
-      );
+      return env.ASSETS.fetch(request);
     }
 
     return Response.json(
@@ -75,12 +56,12 @@ export default {
 };
 
 
-async function apiFetch(
-  path,
-  params,
-  env
-) {
-  const u =
+/* =========================================================
+   API FOOTBALL
+   ========================================================= */
+
+async function apiFetch(path, params, env) {
+  const url =
     new URL(
       "https://v3.football.api-sports.io" +
       path
@@ -95,7 +76,7 @@ async function apiFetch(
       value !== null &&
       value !== ""
     ) {
-      u.searchParams.set(
+      url.searchParams.set(
         key,
         String(value)
       );
@@ -104,7 +85,7 @@ async function apiFetch(
 
   const response =
     await fetch(
-      u.toString(),
+      url.toString(),
       {
         headers: {
           "x-apisports-key":
@@ -118,7 +99,7 @@ async function apiFetch(
   try {
     data =
       await response.json();
-  } catch (e) {
+  } catch {
     const error =
       new Error(
         "API Football JSON cevabı alınamadı."
@@ -139,6 +120,7 @@ async function apiFetch(
     ) {
       hasErrors =
         data.errors.length > 0;
+
     } else if (
       typeof data.errors === "object"
     ) {
@@ -146,6 +128,7 @@ async function apiFetch(
         Object.keys(
           data.errors
         ).length > 0;
+
     } else if (
       String(data.errors).trim()
     ) {
@@ -176,6 +159,10 @@ async function apiFetch(
 }
 
 
+/* =========================================================
+   PLAYERELO
+   ========================================================= */
+
 async function playerEloFetch(
   fixture,
   env
@@ -194,7 +181,7 @@ async function playerEloFetch(
         `https://data-api.playerelo.football/v1/fixtures/${fixture}/prediction`,
         {
           headers: {
-            "Authorization":
+            Authorization:
               `Bearer ${env.PLAYERELO_KEY}`
           }
         }
@@ -218,7 +205,7 @@ async function playerEloFetch(
       data
     };
 
-  } catch (e) {
+  } catch {
     return {
       available: false,
       reason:
@@ -227,6 +214,10 @@ async function playerEloFetch(
   }
 }
 
+
+/* =========================================================
+   TARİH
+   ========================================================= */
 
 function istanbulDate() {
   return new Intl.DateTimeFormat(
@@ -247,6 +238,11 @@ function istanbulDate() {
 }
 
 
+/* =========================================================
+   FİKSTÜR
+   30 DK CACHE + 24 SAAT YEDEK
+   ========================================================= */
+
 async function fixtures(
   env,
   ctx,
@@ -260,9 +256,22 @@ async function fixtures(
   const cache =
     caches.default;
 
+  /*
+    Güncel veri:
+    30 dakika cache
+  */
   const cacheKey =
     new Request(
-      `${url.origin}/api/fixtures-v9?date=${encodeURIComponent(date)}`
+      `${url.origin}/api/fixtures-v10?date=${encodeURIComponent(date)}`
+    );
+
+  /*
+    Son başarılı veri:
+    API hata verirse yedek
+  */
+  const staleKey =
+    new Request(
+      `${url.origin}/api/fixtures-v10-backup?date=${encodeURIComponent(date)}`
     );
 
   const hit =
@@ -296,7 +305,9 @@ async function fixtures(
           kickoff:
             item.fixture?.timestamp
               ? new Date(
-                  Number(item.fixture.timestamp) * 1000
+                  Number(
+                    item.fixture.timestamp
+                  ) * 1000
                 ).toISOString()
               : item.fixture?.date,
 
@@ -382,43 +393,124 @@ async function fixtures(
         })
       );
 
+    const payload = {
+      success: true,
+      date,
+      count:
+        matches.length,
+
+      stale:
+        false,
+
+      updatedAt:
+        new Date()
+          .toISOString(),
+
+      matches
+    };
+
+
     const result =
       Response.json(
-        {
-          success: true,
-          date,
-          count:
-            matches.length,
-          matches
-        },
+        payload,
         {
           headers: {
             ...cors,
             "Cache-Control":
-              "public, max-age=60"
+              "public, max-age=1800"
           }
         }
       );
 
+
+    const backup =
+      Response.json(
+        payload,
+        {
+          headers: {
+            ...cors,
+            "Cache-Control":
+              "public, max-age=86400"
+          }
+        }
+      );
+
+
     ctx.waitUntil(
-      cache.put(
-        cacheKey,
-        result.clone()
-      )
+      Promise.all([
+        cache.put(
+          cacheKey,
+          result.clone()
+        ),
+
+        cache.put(
+          staleKey,
+          backup.clone()
+        )
+      ])
     );
 
     return result;
 
   } catch (e) {
+
+    /*
+      API hata verirse
+      son başarılı listeyi kullan.
+    */
+    const staleHit =
+      await cache.match(
+        staleKey
+      );
+
+    if (staleHit) {
+      try {
+        const saved =
+          await staleHit.json();
+
+        return Response.json(
+          {
+            ...saved,
+
+            success:
+              true,
+
+            stale:
+              true,
+
+            warning:
+              "API geçici olarak kullanılamıyor. Son başarılı maç verisi gösteriliyor."
+          },
+          {
+            headers: {
+              ...cors,
+              "Cache-Control":
+                "public, max-age=300"
+            }
+          }
+        );
+
+      } catch {
+        // Yedek okunamazsa normal hata aşağıda döner.
+      }
+    }
+
     return Response.json(
       {
         success: false,
+
         status:
           e.status || 500,
+
         errors:
           e.apiErrors || {},
+
         error:
-          e.message
+          e.message ||
+          "Maç verileri alınamadı.",
+
+        stale:
+          false
       },
       {
         status: 502,
@@ -428,6 +520,10 @@ async function fixtures(
   }
 }
 
+
+/* =========================================================
+   MODEL YARDIMCILARI
+   ========================================================= */
 
 function numberValue(value) {
   const number =
@@ -467,9 +563,7 @@ function average(values) {
   const valid =
     values.filter(
       value =>
-        Number.isFinite(
-          value
-        )
+        Number.isFinite(value)
     );
 
   if (!valid.length) {
@@ -508,9 +602,7 @@ function shrink(
   weight = 0.68
 ) {
   if (
-    !Number.isFinite(
-      value
-    )
+    !Number.isFinite(value)
   ) {
     return target;
   }
@@ -523,13 +615,9 @@ function shrink(
 }
 
 
-function poissonOver15(
-  lambda
-) {
+function poissonOver15(lambda) {
   const p0 =
-    Math.exp(
-      -lambda
-    );
+    Math.exp(-lambda);
 
   const p1 =
     p0 * lambda;
@@ -542,13 +630,9 @@ function poissonOver15(
 }
 
 
-function poissonOver25(
-  lambda
-) {
+function poissonOver25(lambda) {
   const p0 =
-    Math.exp(
-      -lambda
-    );
+    Math.exp(-lambda);
 
   const p1 =
     p0 * lambda;
@@ -616,26 +700,26 @@ function confidenceLabel(
 }
 
 
+/* =========================================================
+   MAÇANALİZ MODELİ
+   ========================================================= */
+
 function buildModel(item) {
   const home =
-    item.teams?.home ||
-    {};
+    item.teams?.home || {};
 
   const away =
-    item.teams?.away ||
-    {};
+    item.teams?.away || {};
 
   const comparison =
-    item.comparison ||
-    {};
+    item.comparison || {};
 
   const homeLast =
-    home.last_5 ||
-    {};
+    home.last_5 || {};
 
   const awayLast =
-    away.last_5 ||
-    {};
+    away.last_5 || {};
+
 
   const hScored =
     numberValue(
@@ -668,6 +752,7 @@ function buildModel(item) {
         ?.against
         ?.average
     );
+
 
   const hLeagueScored =
     numberValue(
@@ -705,6 +790,7 @@ function buildModel(item) {
         ?.away
     );
 
+
   const homeAttackRaw =
     average([
       hScored,
@@ -729,17 +815,20 @@ function buildModel(item) {
       hLeagueConceded
     ]);
 
+
   let lambdaHome =
     average([
       shrink(
         homeAttackRaw,
         1.35
       ),
+
       shrink(
         homeDefRaw,
         1.20
       )
     ]) ?? 1.30;
+
 
   let lambdaAway =
     average([
@@ -747,11 +836,13 @@ function buildModel(item) {
         awayAttackRaw,
         1.10
       ),
+
       shrink(
         awayDefRaw,
         1.15
       )
     ]) ?? 1.10;
+
 
   const attHome =
     percentValue(
@@ -781,6 +872,7 @@ function buildModel(item) {
         ?.away
     );
 
+
   if (
     attHome !== null &&
     attAway !== null
@@ -797,14 +889,13 @@ function buildModel(item) {
 
     lambdaHome *=
       1 +
-      diff *
-      0.07;
+      diff * 0.07;
 
     lambdaAway *=
       1 -
-      diff *
-      0.07;
+      diff * 0.07;
   }
+
 
   if (
     defHome !== null &&
@@ -822,14 +913,13 @@ function buildModel(item) {
 
     lambdaHome *=
       1 -
-      diff *
-      0.05;
+      diff * 0.05;
 
     lambdaAway *=
       1 +
-      diff *
-      0.05;
+      diff * 0.05;
   }
+
 
   lambdaHome =
     clamp(
@@ -845,9 +935,11 @@ function buildModel(item) {
       2.15
     );
 
+
   let totalLambda =
     lambdaHome +
     lambdaAway;
+
 
   totalLambda =
     clamp(
@@ -856,12 +948,14 @@ function buildModel(item) {
       4.00
     );
 
+
   const split =
     lambdaHome /
     (
       lambdaHome +
       lambdaAway
     );
+
 
   lambdaHome =
     totalLambda *
@@ -873,6 +967,7 @@ function buildModel(item) {
       1 -
       split
     );
+
 
   let over15 =
     poissonOver15(
@@ -890,12 +985,14 @@ function buildModel(item) {
       lambdaAway
     );
 
+
   const underOver =
     String(
       item.predictions
         ?.under_over ||
       ""
     ).toLowerCase();
+
 
   const advice =
     String(
@@ -904,65 +1001,46 @@ function buildModel(item) {
       ""
     ).toLowerCase();
 
+
   if (
-    underOver.includes(
-      "+1.5"
-    ) ||
-    underOver.includes(
-      "over 1.5"
-    ) ||
-    advice.includes(
-      "+1.5"
-    ) ||
-    advice.includes(
-      "over 1.5"
-    )
+    underOver.includes("+1.5") ||
+    underOver.includes("over 1.5") ||
+    advice.includes("+1.5") ||
+    advice.includes("over 1.5")
   ) {
     over15 +=
       0.025;
   }
 
+
   if (
-    underOver.includes(
-      "+2.5"
-    ) ||
-    underOver.includes(
-      "over 2.5"
-    ) ||
-    advice.includes(
-      "+2.5"
-    ) ||
-    advice.includes(
-      "over 2.5"
-    )
+    underOver.includes("+2.5") ||
+    underOver.includes("over 2.5") ||
+    advice.includes("+2.5") ||
+    advice.includes("over 2.5")
   ) {
     over25 +=
       0.03;
   }
 
+
   if (
-    underOver.includes(
-      "-1.5"
-    ) ||
-    underOver.includes(
-      "under 1.5"
-    )
+    underOver.includes("-1.5") ||
+    underOver.includes("under 1.5")
   ) {
     over15 -=
       0.03;
   }
 
+
   if (
-    underOver.includes(
-      "-2.5"
-    ) ||
-    underOver.includes(
-      "under 2.5"
-    )
+    underOver.includes("-2.5") ||
+    underOver.includes("under 2.5")
   ) {
     over25 -=
       0.03;
   }
+
 
   over15 =
     clamp(
@@ -985,6 +1063,7 @@ function buildModel(item) {
       0.75
     );
 
+
   const over15Pct =
     Math.round(
       over15 * 100
@@ -999,6 +1078,7 @@ function buildModel(item) {
     Math.round(
       btts * 100
     );
+
 
   const dataCount =
     [
@@ -1016,6 +1096,7 @@ function buildModel(item) {
         value !== null
     )
     .length;
+
 
   return {
     over15:
@@ -1072,35 +1153,31 @@ function buildModel(item) {
 }
 
 
+/* =========================================================
+   PLAYERELO MODEL
+   ========================================================= */
+
 function probabilityPercent(value) {
   const number =
     Number(value);
 
   if (
-    !Number.isFinite(
-      number
-    )
+    !Number.isFinite(number)
   ) {
     return null;
   }
 
-  if (
-    number <= 1
-  ) {
+  if (number <= 1) {
     return Math.round(
       number * 100
     );
   }
 
-  return Math.round(
-    number
-  );
+  return Math.round(number);
 }
 
 
-function buildPlayerEloModel(
-  data
-) {
+function buildPlayerEloModel(data) {
   if (!data) {
     return null;
   }
@@ -1109,17 +1186,11 @@ function buildPlayerEloModel(
     data.scoreline_distribution ||
     {};
 
-  let mass =
-    0;
+  let mass = 0;
+  let over15 = 0;
+  let over25 = 0;
+  let btts = 0;
 
-  let over15 =
-    0;
-
-  let over25 =
-    0;
-
-  let btts =
-    0;
 
   for (
     const [
@@ -1139,20 +1210,18 @@ function buildPlayerEloModel(
       continue;
     }
 
+
     const homeGoals =
-      Number(
-        parts[0]
-      );
+      Number(parts[0]);
 
     const awayGoals =
-      Number(
-        parts[1]
-      );
+      Number(parts[1]);
 
     const probability =
       Number(
         rawProbability
       );
+
 
     if (
       !Number.isFinite(
@@ -1169,23 +1238,22 @@ function buildPlayerEloModel(
       continue;
     }
 
+
     mass +=
       probability;
+
 
     const total =
       homeGoals +
       awayGoals;
 
-    if (
-      total >= 2
-    ) {
+
+    if (total >= 2) {
       over15 +=
         probability;
     }
 
-    if (
-      total >= 3
-    ) {
+    if (total >= 3) {
       over25 +=
         probability;
     }
@@ -1199,8 +1267,10 @@ function buildPlayerEloModel(
     }
   }
 
+
   const result = {
-    available: true,
+    available:
+      true,
 
     home:
       probabilityPercent(
@@ -1228,19 +1298,16 @@ function buildPlayerEloModel(
       )
   };
 
-  if (
-    mass <= 0
-  ) {
+
+  if (mass <= 0) {
     return {
       ...result,
-      over15:
-        null,
-      over25:
-        null,
-      btts:
-        null
+      over15: null,
+      over25: null,
+      btts: null
     };
   }
+
 
   return {
     ...result,
@@ -1275,18 +1342,18 @@ function buildPlayerEloModel(
 }
 
 
+/* =========================================================
+   KONSENSÜS
+   ========================================================= */
+
 function numericAverage(values) {
   const valid =
     values.filter(
       value =>
-        Number.isFinite(
-          value
-        )
+        Number.isFinite(value)
     );
 
-  if (
-    !valid.length
-  ) {
+  if (!valid.length) {
     return null;
   }
 
@@ -1326,6 +1393,7 @@ function buildConsensus(
         ?.percent
         ?.away
     );
+
 
   return {
     home:
@@ -1383,6 +1451,10 @@ function buildConsensus(
 }
 
 
+/* =========================================================
+   TAHMİN
+   ========================================================= */
+
 async function prediction(
   env,
   ctx,
@@ -1393,6 +1465,7 @@ async function prediction(
     url.searchParams.get(
       "fixture"
     );
+
 
   if (
     !fixture ||
@@ -1413,22 +1486,27 @@ async function prediction(
     );
   }
 
+
   const cache =
     caches.default;
+
 
   const cacheKey =
     new Request(
       `${url.origin}/api/prediction-v8?fixture=${fixture}`
     );
 
+
   const hit =
     await cache.match(
       cacheKey
     );
 
+
   if (hit) {
     return hit;
   }
+
 
   try {
     const [
@@ -1450,6 +1528,7 @@ async function prediction(
         )
       ]);
 
+
     if (
       apiResult.status !==
       "fulfilled"
@@ -1457,11 +1536,14 @@ async function prediction(
       throw apiResult.reason;
     }
 
+
     const data =
       apiResult.value;
 
+
     const item =
       data.response?.[0];
+
 
     if (!item) {
       return Response.json(
@@ -1477,9 +1559,10 @@ async function prediction(
       );
     }
 
+
     const predictions =
-      item.predictions ||
-      {};
+      item.predictions || {};
+
 
     const apiPrediction = {
       winner:
@@ -1530,15 +1613,16 @@ async function prediction(
       }
     };
 
+
     const model =
-      buildModel(
-        item
-      );
+      buildModel(item);
+
 
     let playerElo = {
       available:
         false
     };
+
 
     if (
       playerEloResult.status ===
@@ -1558,6 +1642,7 @@ async function prediction(
         };
     }
 
+
     const consensus =
       buildConsensus(
         apiPrediction,
@@ -1565,8 +1650,10 @@ async function prediction(
         playerElo
       );
 
+
     const payload = {
-      success: true,
+      success:
+        true,
 
       fixture:
         Number(fixture),
@@ -1589,11 +1676,11 @@ async function prediction(
 
         playerElo:
           Boolean(
-            playerElo
-              .available
+            playerElo.available
           )
       }
     };
+
 
     const result =
       Response.json(
@@ -1607,6 +1694,7 @@ async function prediction(
         }
       );
 
+
     ctx.waitUntil(
       cache.put(
         cacheKey,
@@ -1614,18 +1702,22 @@ async function prediction(
       )
     );
 
+
     return result;
+
 
   } catch (e) {
     return Response.json(
       {
-        success: false,
+        success:
+          false,
+
         status:
-          e.status ||
-          500,
+          e.status || 500,
+
         errors:
-          e.apiErrors ||
-          {},
+          e.apiErrors || {},
+
         error:
           e.message ||
           "Tahmin verisi alınamadı."
@@ -1639,6 +1731,10 @@ async function prediction(
 }
 
 
+/* =========================================================
+   CANLI İSTATİSTİK YARDIMCILARI
+   ========================================================= */
+
 function findStat(
   statistics,
   type
@@ -1648,8 +1744,7 @@ function findStat(
     .find(
       item =>
         String(
-          item.type ||
-          ""
+          item.type || ""
         )
         .toLowerCase() ===
         String(type)
@@ -1662,34 +1757,30 @@ function findStat(
 }
 
 
-function normalizeStatsTeam(
-  block
-) {
+function normalizeStatsTeam(block) {
   if (!block) {
     return null;
   }
 
   const statistics =
-    block.statistics ||
-    [];
+    block.statistics || [];
+
 
   return {
     team: {
       id:
-        block.team
-          ?.id ||
+        block.team?.id ||
         null,
 
       name:
-        block.team
-          ?.name ||
+        block.team?.name ||
         null,
 
       logo:
-        block.team
-          ?.logo ||
+        block.team?.logo ||
         null
     },
+
 
     shotsOnGoal:
       findStat(
@@ -1804,18 +1895,15 @@ function normalizeEvent(event) {
 
     team: {
       id:
-        event.team
-          ?.id ||
+        event.team?.id ||
         null,
 
       name:
-        event.team
-          ?.name ||
+        event.team?.name ||
         null,
 
       logo:
-        event.team
-          ?.logo ||
+        event.team?.logo ||
         null
     },
 
@@ -1854,8 +1942,8 @@ function settledError(result) {
   }
 
   const reason =
-    result.reason ||
-    {};
+    result.reason || {};
+
 
   return {
     message:
@@ -1873,6 +1961,10 @@ function settledError(result) {
 }
 
 
+/* =========================================================
+   CANLI / BİTEN MAÇ DETAYI
+   ========================================================= */
+
 async function liveDetail(
   env,
   ctx,
@@ -1884,6 +1976,7 @@ async function liveDetail(
       "fixture"
     );
 
+
   if (
     !fixture ||
     !/^\d+$/.test(
@@ -1892,7 +1985,9 @@ async function liveDetail(
   ) {
     return Response.json(
       {
-        success: false,
+        success:
+          false,
+
         error:
           "Geçerli fixture ID gerekli."
       },
@@ -1903,22 +1998,27 @@ async function liveDetail(
     );
   }
 
+
   const cache =
     caches.default;
+
 
   const cacheKey =
     new Request(
       `${url.origin}/api/live-detail-v2?fixture=${fixture}`
     );
 
+
   const hit =
     await cache.match(
       cacheKey
     );
 
+
   if (hit) {
     return hit;
   }
+
 
   const [
     fixtureResult,
@@ -1931,6 +2031,7 @@ async function liveDetail(
         {
           id:
             fixture,
+
           timezone:
             "Europe/Istanbul"
         },
@@ -1954,17 +2055,19 @@ async function liveDetail(
       )
     ]);
 
+
   if (
     fixtureResult.status !==
     "fulfilled"
   ) {
     const error =
-      fixtureResult.reason ||
-      {};
+      fixtureResult.reason || {};
+
 
     return Response.json(
       {
-        success: false,
+        success:
+          false,
 
         error:
           error.message ||
@@ -1985,18 +2088,23 @@ async function liveDetail(
     );
   }
 
+
   const fixtureData =
     fixtureResult.value;
+
 
   const item =
     fixtureData
       .response
       ?.[0];
 
+
   if (!item) {
     return Response.json(
       {
-        success: false,
+        success:
+          false,
+
         error:
           "Maç bulunamadı."
       },
@@ -2007,8 +2115,10 @@ async function liveDetail(
     );
   }
 
+
   let statsResponse =
     [];
+
 
   if (
     statisticsResult.status ===
@@ -2021,8 +2131,10 @@ async function liveDetail(
       [];
   }
 
+
   let eventsResponse =
     [];
+
 
   if (
     eventsResult.status ===
@@ -2035,15 +2147,18 @@ async function liveDetail(
       [];
   }
 
+
   const homeTeamId =
     item.teams
       ?.home
       ?.id;
 
+
   const awayTeamId =
     item.teams
       ?.away
       ?.id;
+
 
   const homeStatsBlock =
     statsResponse.find(
@@ -2058,6 +2173,7 @@ async function liveDetail(
     statsResponse[0] ||
     null;
 
+
   const awayStatsBlock =
     statsResponse.find(
       block =>
@@ -2071,38 +2187,40 @@ async function liveDetail(
     statsResponse[1] ||
     null;
 
+
   const homeStats =
     normalizeStatsTeam(
       homeStatsBlock
     );
+
 
   const awayStats =
     normalizeStatsTeam(
       awayStatsBlock
     );
 
+
   const events =
     eventsResponse.map(
       normalizeEvent
     );
 
+
   const payload = {
-    success: true,
+    success:
+      true,
 
     fixture: {
       id:
-        item.fixture
-          ?.id ||
+        item.fixture?.id ||
         Number(fixture),
 
       date:
-        item.fixture
-          ?.date ||
+        item.fixture?.date ||
         null,
 
       referee:
-        item.fixture
-          ?.referee ||
+        item.fixture?.referee ||
         null,
 
       venue: {
@@ -2110,13 +2228,13 @@ async function liveDetail(
           item.fixture
             ?.venue
             ?.name ||
-        null,
+          null,
 
         city:
           item.fixture
             ?.venue
             ?.city ||
-        null
+          null
       },
 
       status: {
@@ -2124,92 +2242,90 @@ async function liveDetail(
           item.fixture
             ?.status
             ?.long ||
-        null,
+          null,
 
         short:
           item.fixture
             ?.status
             ?.short ||
-        null,
+          null,
 
         elapsed:
           item.fixture
             ?.status
             ?.elapsed ??
-        null,
+          null,
 
         extra:
           item.fixture
             ?.status
             ?.extra ??
-        null
+          null
       }
     },
 
+
     league: {
       id:
-        item.league
-          ?.id ||
+        item.league?.id ||
         null,
 
       name:
-        item.league
-          ?.name ||
+        item.league?.name ||
         null,
 
       country:
-        item.league
-          ?.country ||
+        item.league?.country ||
         null,
 
       logo:
-        item.league
-          ?.logo ||
+        item.league?.logo ||
         null,
 
       round:
-        item.league
-          ?.round ||
+        item.league?.round ||
         null
     },
+
 
     teams: {
       home: {
         id:
           homeTeamId ||
-        null,
+          null,
 
         name:
           item.teams
             ?.home
             ?.name ||
-        null,
+          null,
 
         logo:
           item.teams
             ?.home
             ?.logo ||
-        null
+          null
       },
 
       away: {
         id:
           awayTeamId ||
-        null,
+          null,
 
         name:
           item.teams
             ?.away
             ?.name ||
-        null,
+          null,
 
         logo:
           item.teams
             ?.away
             ?.logo ||
-        null
+          null
       }
     },
+
 
     goals: {
       home:
@@ -2223,9 +2339,10 @@ async function liveDetail(
         null
     },
 
+
     score:
-      item.score ||
-      {},
+      item.score || {},
+
 
     statistics: {
       available:
@@ -2241,6 +2358,7 @@ async function liveDetail(
         awayStats
     },
 
+
     events: {
       available:
         events.length > 0,
@@ -2251,6 +2369,7 @@ async function liveDetail(
       items:
         events
     },
+
 
     availability: {
       fixture:
@@ -2267,6 +2386,7 @@ async function liveDetail(
         eventsResponse.length > 0
     },
 
+
     debug: {
       statisticsError:
         settledError(
@@ -2280,17 +2400,20 @@ async function liveDetail(
     }
   };
 
+
   const result =
     Response.json(
       payload,
       {
         headers: {
           ...cors,
+
           "Cache-Control":
             "public, max-age=30"
         }
       }
     );
+
 
   ctx.waitUntil(
     cache.put(
@@ -2298,6 +2421,7 @@ async function liveDetail(
       result.clone()
     )
   );
+
 
   return result;
 }
