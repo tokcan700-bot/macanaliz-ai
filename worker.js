@@ -199,11 +199,28 @@ async function apiFetch(
         "API Football isteği başarısız."
       );
 
-    error.status =
-      response.status;
+error.status =
+  response.status;
 
-    error.apiErrors =
-      data?.errors || {};
+error.apiErrors =
+  data?.errors || {};
+
+error.rateLimit = {
+  dailyRemaining:
+    response.headers.get(
+      "x-ratelimit-requests-remaining"
+    ),
+
+  minuteRemaining:
+    response.headers.get(
+      "x-ratelimit-remaining"
+    ),
+
+  retryAfter:
+    response.headers.get(
+      "retry-after"
+    )
+};
 
     throw error;
   }
