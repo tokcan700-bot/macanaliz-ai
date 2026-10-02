@@ -1832,7 +1832,7 @@ async function prediction(
 
   const cacheKey =
     new Request(
-      `${url.origin}/api/prediction-v8?fixture=${fixture}`
+      `${url.origin}/api/prediction-v9?fixture=${fixture}`
     );
 
 
