@@ -2407,11 +2407,7 @@ async function liveDetail(
   }
 
 
-  const [
-    fixtureResult,
-    statisticsResult,
-    eventsResult
-  ] =
+  const fixtureResult =
     await Promise.allSettled([
       apiFetch(
         "/fixtures",
@@ -2423,24 +2419,99 @@ async function liveDetail(
             "Europe/Istanbul"
         },
         env
-      ),
-
-      apiFetch(
-        "/fixtures/statistics",
-        {
-          fixture
-        },
-        env
-      ),
-
-      apiFetch(
-        "/fixtures/events",
-        {
-          fixture
-        },
-        env
       )
-    ]);
+    ]).then(
+      results =>
+        results[0]
+    );
+
+
+  let statisticsResult = {
+    status:
+      "fulfilled",
+
+    value: {
+      response: []
+    }
+  };
+
+
+  let eventsResult = {
+    status:
+      "fulfilled",
+
+    value: {
+      response: []
+    }
+  };
+
+
+  if (
+    fixtureResult.status ===
+    "fulfilled"
+  ) {
+
+    const liveItem =
+      fixtureResult
+        .value
+        ?.response
+        ?.[0];
+
+
+    const statusShort =
+      liveItem
+        ?.fixture
+        ?.status
+        ?.short ||
+      "";
+
+
+    const startedStatuses =
+      [
+        "1H",
+        "HT",
+        "2H",
+        "ET",
+        "BT",
+        "P",
+        "SUSP",
+        "INT",
+        "FT",
+        "AET",
+        "PEN"
+      ];
+
+
+    if (
+      startedStatuses.includes(
+        statusShort
+      )
+    ) {
+
+      [
+        statisticsResult,
+        eventsResult
+      ] =
+        await Promise.allSettled([
+          apiFetch(
+            "/fixtures/statistics",
+            {
+              fixture
+            },
+            env
+          ),
+
+          apiFetch(
+            "/fixtures/events",
+            {
+              fixture
+            },
+            env
+          )
+        ]);
+    }
+  }
+
 
 
   if (
