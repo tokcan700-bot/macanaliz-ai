@@ -556,7 +556,7 @@ async function fixtures(
 
     /*
       Ana cache:
-      30 dakika
+      1 saat
     */
 
     const mainResponse =
@@ -567,7 +567,7 @@ async function fixtures(
             ...cors,
 
             "Cache-Control":
-              "public, max-age=7200"
+              "public, max-age=3600"
           }
         }
       );
