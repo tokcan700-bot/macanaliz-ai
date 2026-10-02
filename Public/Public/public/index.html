@@ -7429,6 +7429,299 @@ loadFixtures();
 
 })();
 </script>
-  
+  <script id="macanaliz-success-fix-v1">
+(() => {
+
+  const HISTORY_KEY =
+    "macanaliz-prediction-history-v1";
+
+
+  function readHistory(){
+
+    try{
+
+      const data =
+        JSON.parse(
+          localStorage.getItem(
+            HISTORY_KEY
+          ) || "{}"
+        );
+
+      return (
+        data &&
+        typeof data === "object"
+      )
+        ? data
+        : {};
+
+    }catch{
+
+      return {};
+    }
+  }
+
+
+  function writeHistory(history){
+
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(history)
+    );
+  }
+
+
+  /* =====================================
+     ESKİ GÜÇLÜ TAHMİNLERİ GEÇMİŞE AKTAR
+     ===================================== */
+
+  function migrateStrongPicks(){
+
+    let strongPicks = [];
+
+    try{
+
+      strongPicks =
+        getStrongPicks();
+
+    }catch{
+
+      strongPicks = [];
+    }
+
+
+    if(
+      !Array.isArray(strongPicks) ||
+      !strongPicks.length
+    ){
+      return;
+    }
+
+
+    const history =
+      readHistory();
+
+
+    let changed =
+      false;
+
+
+    strongPicks.forEach(
+      item => {
+
+        const key =
+          String(
+            item.id
+          );
+
+
+        /*
+          Yeni sistemde zaten kayıt varsa
+          üzerine yazma.
+        */
+        if(history[key]){
+          return;
+        }
+
+
+        history[key] = {
+
+          fixture:
+            Number(item.id),
+
+          savedAt:
+            item.savedAt ||
+            item.kickoff ||
+            new Date()
+              .toISOString(),
+
+          kickoff:
+            item.kickoff,
+
+          league:
+            item.league,
+
+          home:
+            item.home,
+
+          away:
+            item.away,
+
+          prediction:{
+            advice:
+              item.advice ||
+              "",
+
+            percent:{
+              home:null,
+              draw:null,
+              away:null
+            }
+          },
+
+          model:{
+
+            over15:
+              item.model?.over15 ??
+              null,
+
+            over25:
+              item.model?.over25 ??
+              null,
+
+            btts:
+              item.model?.btts ??
+              null,
+
+            expectedGoals:
+              item.model?.expectedGoals ??
+              null,
+
+            dataCount:
+              item.model?.dataCount ??
+              null
+          },
+
+          finalModel:{
+
+            over15:
+              item.model?.over15 ??
+              null,
+
+            over25:
+              item.model?.over25 ??
+              null,
+
+            btts:
+              item.model?.btts ??
+              null
+          },
+
+          playerElo:{
+            available:false
+          },
+
+          sources:{
+            migrated:true
+          }
+        };
+
+
+        changed =
+          true;
+      }
+    );
+
+
+    if(changed){
+
+      writeHistory(
+        history
+      );
+    }
+  }
+
+
+  /* =====================================
+     BAŞARI SAYFASINA GİRERKEN
+     FİKSTÜRÜ YENİLE
+     ===================================== */
+
+  const successButton =
+    document.getElementById(
+      "successStatsBtn"
+    );
+
+
+  if(!successButton){
+    return;
+  }
+
+
+  const oldSuccessClick =
+    successButton.onclick;
+
+
+  successButton.onclick =
+    async function(event){
+
+      successButton.disabled =
+        true;
+
+
+      try{
+
+        /*
+          Önce geçmiş eski tahminleri aktar.
+        */
+        migrateStrongPicks();
+
+
+        /*
+          Sonra maç durumlarını ve
+          final skorlarını güncel çek.
+        */
+        const response =
+          await fetch(
+            `/api/fixtures?t=${Date.now()}`,
+            {
+              cache:"no-store"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if(
+          response.ok &&
+          data.success
+        ){
+
+          matches =
+            data.matches ||
+            [];
+        }
+
+
+      }catch(error){
+
+        /*
+          Yenileme başarısız olsa bile
+          Başarı ekranını açmaya devam et.
+        */
+
+      }finally{
+
+        successButton.disabled =
+          false;
+      }
+
+
+      /*
+        Orijinal Başarı ekranını çalıştır.
+      */
+      if(
+        typeof oldSuccessClick ===
+        "function"
+      ){
+
+        oldSuccessClick.call(
+          successButton,
+          event
+        );
+      }
+    };
+
+
+  /*
+    Sayfa açılır açılmaz eski kayıtları
+    bir kere aktar.
+  */
+
+  migrateStrongPicks();
+
+})();
+</script>
 </body>
 </html>
