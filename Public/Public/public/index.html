@@ -70,6 +70,10 @@ button{font-family:inherit}
   padding:18px 14px 12px;
 }
 
+.hero.hidden{
+  display:none;
+}
+
 .hero h1{
   margin:0 0 7px;
   font-size:25px;
@@ -107,13 +111,15 @@ button{font-family:inherit}
   color:#06150e;
 }
 
-.section{padding:0 14px}
+.section{
+  padding:0 14px;
+}
 
 .section-title{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin:6px 0 10px;
+  margin:14px 0 10px;
 }
 
 .section-title h2{
@@ -458,7 +464,9 @@ button{font-family:inherit}
   line-height:1.5;
 }
 
-.error{color:#ff98a4}
+.error{
+  color:#ff98a4;
+}
 
 .bottom{
   position:fixed;
@@ -507,7 +515,9 @@ button{font-family:inherit}
   backdrop-filter:blur(6px);
 }
 
-.modal.show{display:block}
+.modal.show{
+  display:block;
+}
 
 .modal-sheet{
   position:absolute;
@@ -696,7 +706,9 @@ button{font-family:inherit}
   font-size:9px;
 }
 
-.summary-row span{color:var(--muted)}
+.summary-row span{
+  color:var(--muted);
+}
 
 .stat-row{
   display:grid;
@@ -708,11 +720,25 @@ button{font-family:inherit}
   font-size:9px;
 }
 
-.stat-row:last-child{border-bottom:0}
+.stat-row:last-child{
+  border-bottom:0;
+}
 
-.stat-home{text-align:right;font-weight:800}
-.stat-name{text-align:center;color:var(--muted);font-size:8px}
-.stat-away{text-align:left;font-weight:800}
+.stat-home{
+  text-align:right;
+  font-weight:800;
+}
+
+.stat-name{
+  text-align:center;
+  color:var(--muted);
+  font-size:8px;
+}
+
+.stat-away{
+  text-align:left;
+  font-weight:800;
+}
 
 .event{
   display:grid;
@@ -764,15 +790,18 @@ button{font-family:inherit}
   </div>
 </header>
 
-<section class="hero">
-  <h1>Bugünün <span>gerçek maçları</span></h1>
+<section class="hero" id="heroSection">
+  <h1>
+    Bugünün <span>gerçek maçları</span>
+  </h1>
+
   <p>
     Türkiye tarih ve saatiyle maç programı,
     canlı skor, olaylar ve MaçAnaliz AI tahminleri.
   </p>
 </section>
 
-<div class="bar">
+<div class="bar" id="filterBar">
   <button class="active" data-filter="all">Tümü</button>
   <button data-filter="NS">Başlamadı</button>
   <button data-filter="LIVE">Canlı</button>
@@ -780,26 +809,50 @@ button{font-family:inherit}
 </div>
 
 <section class="section">
+
   <div class="section-title">
     <h2>Bugünün Maçları</h2>
     <small id="count">yükleniyor...</small>
   </div>
 
   <div id="list"></div>
+
 </section>
 
 </main>
 
+
 <nav class="bottom">
+
   <div class="nav">
-    <button class="active"><span>⌂</span>Ana Sayfa</button>
-    <button><span>⚽</span>Maçlar</button>
-    <button><span>▥</span>Tahminler</button>
-    <button><span>☆</span>Favoriler</button>
+
+    <button class="active">
+      <span>⌂</span>
+      Ana Sayfa
+    </button>
+
+    <button>
+      <span>⚽</span>
+      Maçlar
+    </button>
+
+    <button>
+      <span>▥</span>
+      Tahminler
+    </button>
+
+    <button>
+      <span>☆</span>
+      Favoriler
+    </button>
+
   </div>
+
 </nav>
 
+
 <div class="modal" id="matchModal">
+
   <div class="modal-sheet">
 
     <div class="modal-head">
@@ -830,13 +883,17 @@ button{font-family:inherit}
     </div>
 
     <div id="liveContent">
+
       <div class="loading">
         Maç detayları yükleniyor...
       </div>
+
     </div>
 
   </div>
+
 </div>
+
 
 <script>
 
@@ -847,6 +904,7 @@ let activePage = "home";
 
 
 function esc(value){
+
   return String(value ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
@@ -856,11 +914,46 @@ function esc(value){
 }
 
 
+function showHero(show){
+
+  const hero =
+    document.getElementById(
+      "heroSection"
+    );
+
+  if(show){
+    hero.classList.remove(
+      "hidden"
+    );
+  }else{
+    hero.classList.add(
+      "hidden"
+    );
+  }
+}
+
+
+function showFilters(show){
+
+  document.getElementById(
+    "filterBar"
+  ).style.display =
+    show
+      ? "flex"
+      : "none";
+}
+
+
 function fmtDateTime(iso){
 
-  const d = new Date(iso);
+  const d =
+    new Date(iso);
 
-  if(Number.isNaN(d.getTime())){
+  if(
+    Number.isNaN(
+      d.getTime()
+    )
+  ){
     return {
       date:"-",
       time:"-"
@@ -889,7 +982,10 @@ function fmtDateTime(iso){
       }
     ).format(d);
 
-  return {date,time};
+  return {
+    date,
+    time
+  };
 }
 
 
@@ -899,10 +995,17 @@ function trLeagueText(value){
     String(value || "");
 
   const map = {
-    "Friendlies Clubs":"Kulüp Hazırlık Maçları",
-    "Club Friendlies":"Kulüp Hazırlık Maçları",
-    "Friendlies":"Hazırlık Maçları",
-    "International Friendlies":"Uluslararası Hazırlık Maçları"
+    "Friendlies Clubs":
+      "Kulüp Hazırlık Maçları",
+
+    "Club Friendlies":
+      "Kulüp Hazırlık Maçları",
+
+    "Friendlies":
+      "Hazırlık Maçları",
+
+    "International Friendlies":
+      "Uluslararası Hazırlık Maçları"
   };
 
   return map[text] || text;
@@ -915,9 +1018,14 @@ function trRoundText(value){
     String(value || "");
 
   const map = {
-    "Club Friendlies":"Kulüp Hazırlık Maçı",
-    "Friendlies Clubs":"Kulüp Hazırlık Maçı",
-    "Friendlies":"Hazırlık Maçı"
+    "Club Friendlies":
+      "Kulüp Hazırlık Maçı",
+
+    "Friendlies Clubs":
+      "Kulüp Hazırlık Maçı",
+
+    "Friendlies":
+      "Hazırlık Maçı"
   };
 
   if(map[text]){
@@ -925,31 +1033,65 @@ function trRoundText(value){
   }
 
   return text
-    .replace(/^Regular Season\s*-?\s*/i,"Normal Sezon - ")
-    .replace(/^Group Stage\s*-?\s*/i,"Grup Aşaması - ")
-    .replace(/^Round of 16$/i,"Son 16")
-    .replace(/^Quarter-finals$/i,"Çeyrek Final")
-    .replace(/^Semi-finals$/i,"Yarı Final")
-    .replace(/^Final$/i,"Final Maçı");
+    .replace(
+      /^Regular Season\s*-?\s*/i,
+      "Normal Sezon - "
+    )
+    .replace(
+      /^Group Stage\s*-?\s*/i,
+      "Grup Aşaması - "
+    )
+    .replace(
+      /^Round of 16$/i,
+      "Son 16"
+    )
+    .replace(
+      /^Quarter-finals$/i,
+      "Çeyrek Final"
+    )
+    .replace(
+      /^Semi-finals$/i,
+      "Yarı Final"
+    )
+    .replace(
+      /^Final$/i,
+      "Final Maçı"
+    );
 }
 
 
 function group(status){
 
   const liveStatuses = [
-    "1H","HT","2H","ET",
-    "BT","P","LIVE","INT"
+    "1H",
+    "HT",
+    "2H",
+    "ET",
+    "BT",
+    "P",
+    "LIVE",
+    "INT"
   ];
 
   const finishedStatuses = [
-    "FT","AET","PEN"
+    "FT",
+    "AET",
+    "PEN"
   ];
 
-  if(liveStatuses.includes(status)){
+  if(
+    liveStatuses.includes(
+      status
+    )
+  ){
     return "LIVE";
   }
 
-  if(finishedStatuses.includes(status)){
+  if(
+    finishedStatuses.includes(
+      status
+    )
+  ){
     return "FT";
   }
 
@@ -1059,7 +1201,8 @@ function toggleFavorite(fixture){
     favorites.unshift({
       ...match,
       savedAt:
-        new Date().toISOString()
+        new Date()
+          .toISOString()
     });
   }
 
@@ -1067,7 +1210,10 @@ function toggleFavorite(fixture){
     favorites
   );
 
-  if(activePage === "favorites"){
+  if(
+    activePage ===
+    "favorites"
+  ){
     renderFavorites();
   }else{
     render();
@@ -1084,13 +1230,34 @@ function trAdvice(text){
   }
 
   return String(text)
-    .replace(/^Combo Double chance\s*:\s*/i,"Kombine Tahmin: ")
-    .replace(/^Double chance\s*:\s*/i,"Çifte Şans: ")
-    .replace(/\bor draw\b/gi,"veya Beraberlik")
-    .replace(/\band\s*\+1\.5 goals\b/gi," + 1.5 Üst")
-    .replace(/\band\s*\+2\.5 goals\b/gi," + 2.5 Üst")
-    .replace(/\band\s*-1\.5 goals\b/gi," + 1.5 Alt")
-    .replace(/\band\s*-2\.5 goals\b/gi," + 2.5 Alt")
+    .replace(
+      /^Combo Double chance\s*:\s*/i,
+      "Kombine Tahmin: "
+    )
+    .replace(
+      /^Double chance\s*:\s*/i,
+      "Çifte Şans: "
+    )
+    .replace(
+      /\bor draw\b/gi,
+      "veya Beraberlik"
+    )
+    .replace(
+      /\band\s*\+1\.5 goals\b/gi,
+      " + 1.5 Üst"
+    )
+    .replace(
+      /\band\s*\+2\.5 goals\b/gi,
+      " + 2.5 Üst"
+    )
+    .replace(
+      /\band\s*-1\.5 goals\b/gi,
+      " + 1.5 Alt"
+    )
+    .replace(
+      /\band\s*-2\.5 goals\b/gi,
+      " + 2.5 Alt"
+    )
     .replace(/\bhome\b/gi,"Ev Sahibi")
     .replace(/\baway\b/gi,"Deplasman")
     .replace(/\bdraw\b/gi,"Beraberlik")
@@ -1102,19 +1269,26 @@ function trAdvice(text){
 
 
 function strongStorageKey(){
-  return "macanaliz-strong-" + todayKey();
+
+  return (
+    "macanaliz-strong-" +
+    todayKey()
+  );
 }
 
 
 function getStrongPicks(){
 
   try{
+
     return JSON.parse(
       localStorage.getItem(
         strongStorageKey()
       ) || "[]"
     );
+
   }catch{
+
     return [];
   }
 }
@@ -1126,7 +1300,10 @@ function saveStrongPick(
   model
 ){
 
-  if(!match || !model){
+  if(
+    !match ||
+    !model
+  ){
     return;
   }
 
@@ -1143,20 +1320,42 @@ function saveStrongPick(
     getStrongPicks();
 
   const item = {
-    id:match.id,
-    kickoff:match.kickoff,
-    league:match.league,
-    home:match.home,
-    away:match.away,
-    advice:trAdvice(
-      prediction?.advice
-    ),
+
+    id:
+      match.id,
+
+    kickoff:
+      match.kickoff,
+
+    league:
+      match.league,
+
+    home:
+      match.home,
+
+    away:
+      match.away,
+
+    advice:
+      trAdvice(
+        prediction?.advice
+      ),
+
     model:{
-      over15:model.over15,
-      over25:model.over25,
-      btts:model.btts,
-      expectedGoals:model.expectedGoals,
-      dataCount:model.dataCount
+      over15:
+        model.over15,
+
+      over25:
+        model.over25,
+
+      btts:
+        model.btts,
+
+      expectedGoals:
+        model.expectedGoals,
+
+      dataCount:
+        model.dataCount
     }
   };
 
@@ -1168,7 +1367,8 @@ function saveStrongPick(
     );
 
   if(oldIndex >= 0){
-    picks[oldIndex] = item;
+    picks[oldIndex] =
+      item;
   }else{
     picks.push(item);
   }
@@ -1185,7 +1385,9 @@ function saveStrongPick(
 function matchCard(match){
 
   const live =
-    isLive(match.status);
+    isLive(
+      match.status
+    );
 
   const dt =
     fmtDateTime(
@@ -1238,6 +1440,7 @@ function matchCard(match){
 
       </div>
 
+
       <div class="match-date">
         ${esc(dt.date)}
         ·
@@ -1252,11 +1455,15 @@ function matchCard(match){
       <div class="team">
 
         <img
-          src="${esc(match.home?.logo || "")}"
+          src="${esc(
+            match.home?.logo || ""
+          )}"
           alt=""
         >
 
-        ${esc(match.home?.name)}
+        ${esc(
+          match.home?.name
+        )}
 
       </div>
 
@@ -1299,11 +1506,15 @@ function matchCard(match){
       <div class="team">
 
         <img
-          src="${esc(match.away?.logo || "")}"
+          src="${esc(
+            match.away?.logo || ""
+          )}"
           alt=""
         >
 
-        ${esc(match.away?.name)}
+        ${esc(
+          match.away?.name
+        )}
 
       </div>
 
@@ -1340,7 +1551,6 @@ function matchCard(match){
               : ""
           }"
           onclick="toggleFavorite(${Number(match.id)})"
-          title="Favori"
         >
           ${favorite ? "★" : "☆"}
         </button>
@@ -1387,12 +1597,14 @@ function matchCard(match){
 }
 
 
-/* ANA MAÇLAR */
+/* ANA SAYFA */
 
 function render(){
 
   activePage =
     "home";
+
+  showHero(true);
 
   const root =
     document.getElementById(
@@ -1437,12 +1649,15 @@ function render(){
 }
 
 
-/* FAVORİLER SAYFASI */
+/* FAVORİLER */
 
 function renderFavorites(){
 
   activePage =
     "favorites";
+
+  showHero(false);
+  showFilters(false);
 
   const root =
     document.getElementById(
@@ -1463,7 +1678,10 @@ function renderFavorites(){
               Number(favorite.id)
           );
 
-        return current || favorite;
+        return (
+          current ||
+          favorite
+        );
       }
     );
 
@@ -1478,16 +1696,23 @@ function renderFavorites(){
     favorites.length +
     " maç";
 
-  if(!favorites.length){
+  if(
+    !favorites.length
+  ){
 
     root.innerHTML =
       `
       <div class="empty">
+
         Henüz favori maç eklemedin.
+
         <br><br>
+
         Maç kartlarındaki
         <b>☆ yıldız</b>
-        simgesine basarak maç ekleyebilirsin.
+        simgesine basarak
+        maç ekleyebilirsin.
+
       </div>
       `;
 
@@ -1524,7 +1749,8 @@ async function loadPrediction(
   box.textContent =
     "Analiz hazırlanıyor...";
 
-  button.disabled = true;
+  button.disabled =
+    true;
 
   try{
 
@@ -1569,12 +1795,15 @@ async function loadPrediction(
     let html =
       `
       <div class="pred-title">
+
         ${esc(
           trAdvice(
             prediction.advice
           )
         )}
+
       </div>
+
 
       <div class="pred-grid">
 
@@ -1632,6 +1861,7 @@ async function loadPrediction(
           ? consensus.btts
           : model.btts;
 
+
       const best =
         [
           {
@@ -1657,11 +1887,13 @@ async function loadPrediction(
         <div class="model">
 
           <h4>
+
             ${
               hasPlayerElo
                 ? "MaçAnaliz AI Çoklu Kaynak Analizi"
                 : "MaçAnaliz AI Model Analizi"
             }
+
           </h4>
 
 
@@ -1669,9 +1901,7 @@ async function loadPrediction(
 
             <div class="model-card">
               1.5 Üst
-              <strong>
-                ${over15}%
-              </strong>
+              <strong>${over15}%</strong>
               <span class="conf">
                 ${
                   hasPlayerElo
@@ -1680,12 +1910,11 @@ async function loadPrediction(
                 }
               </span>
             </div>
+
 
             <div class="model-card">
               2.5 Üst
-              <strong>
-                ${over25}%
-              </strong>
+              <strong>${over25}%</strong>
               <span class="conf">
                 ${
                   hasPlayerElo
@@ -1695,11 +1924,10 @@ async function loadPrediction(
               </span>
             </div>
 
+
             <div class="model-card">
               KG Var
-              <strong>
-                ${btts}%
-              </strong>
+              <strong>${btts}%</strong>
               <span class="conf">
                 ${
                   hasPlayerElo
@@ -1715,25 +1943,31 @@ async function loadPrediction(
           <div class="consensus-box">
 
             <div class="consensus-title">
+
               ${
                 hasPlayerElo
                   ? "En Güçlü Konsensüs Sinyali"
                   : "En Güçlü Model Sinyali"
               }
+
             </div>
 
             <div class="consensus-value">
+
               ${esc(best.name)}
               ·
               ${best.value}%
+
             </div>
 
             <div class="consensus-sub">
+
               ${
                 hasPlayerElo
                   ? "2 bağımsız kaynak birlikte değerlendirildi."
                   : "Çoklu kaynak doğrulaması bu maç için mevcut değil."
               }
+
             </div>
 
           </div>
@@ -1746,18 +1980,33 @@ async function loadPrediction(
             </div>
 
             <div class="analysis-row">
-              <span>MaçAnaliz 1.5 Üst</span>
-              <b>${model.over15}%</b>
+              <span>
+                MaçAnaliz 1.5 Üst
+              </span>
+
+              <b>
+                ${model.over15}%
+              </b>
             </div>
 
             <div class="analysis-row">
-              <span>MaçAnaliz 2.5 Üst</span>
-              <b>${model.over25}%</b>
+              <span>
+                MaçAnaliz 2.5 Üst
+              </span>
+
+              <b>
+                ${model.over25}%
+              </b>
             </div>
 
             <div class="analysis-row">
-              <span>MaçAnaliz KG Var</span>
-              <b>${model.btts}%</b>
+              <span>
+                MaçAnaliz KG Var
+              </span>
+
+              <b>
+                ${model.btts}%
+              </b>
             </div>
 
           </div>
@@ -1780,14 +2029,17 @@ async function loadPrediction(
                   : "warn"
               }"
             >
+
               ${
                 hasPlayerElo
                   ? "✓ PlayerElo"
                   : "PlayerElo · Bu maçta veri yok"
               }
+
             </span>
 
           </div>
+
 
           <div class="note">
             Tahminler garanti değildir.
@@ -1863,21 +2115,21 @@ function statRow(
   }
 
   return `
-    <div class="stat-row">
+  <div class="stat-row">
 
-      <div class="stat-home">
-        ${showValue(home)}
-      </div>
-
-      <div class="stat-name">
-        ${esc(name)}
-      </div>
-
-      <div class="stat-away">
-        ${showValue(away)}
-      </div>
-
+    <div class="stat-home">
+      ${showValue(home)}
     </div>
+
+    <div class="stat-name">
+      ${esc(name)}
+    </div>
+
+    <div class="stat-away">
+      ${showValue(away)}
+    </div>
+
+  </div>
   `;
 }
 
@@ -1895,24 +2147,34 @@ function eventIcon(
     String(detail || "")
       .toLowerCase();
 
-  if(t.includes("goal")){
+  if(
+    t.includes("goal")
+  ){
     return "⚽";
   }
 
-  if(t.includes("card")){
+  if(
+    t.includes("card")
+  ){
 
-    if(d.includes("red")){
+    if(
+      d.includes("red")
+    ){
       return "🟥";
     }
 
     return "🟨";
   }
 
-  if(t.includes("subst")){
+  if(
+    t.includes("subst")
+  ){
     return "🔄";
   }
 
-  if(t.includes("var")){
+  if(
+    t.includes("var")
+  ){
     return "📺";
   }
 
@@ -1926,18 +2188,42 @@ function trEventDetail(value){
     String(value || "");
 
   const map = {
-    "Normal Goal":"Gol",
-    "Own Goal":"Kendi Kalesine Gol",
-    "Penalty":"Penaltı Golü",
-    "Missed Penalty":"Kaçan Penaltı",
-    "Yellow Card":"Sarı Kart",
-    "Red Card":"Kırmızı Kart",
-    "Second Yellow card":"İkinci Sarıdan Kırmızı",
-    "Goal cancelled":"Gol İptal",
-    "Penalty confirmed":"Penaltı Onaylandı",
-    "Var Goal Disallowed":"VAR: Gol İptal",
-    "Goal Disallowed - offside":"Ofsayt Nedeniyle Gol İptal",
-    "Goal Disallowed - handball":"Elle Oynama Nedeniyle Gol İptal"
+
+    "Normal Goal":
+      "Gol",
+
+    "Own Goal":
+      "Kendi Kalesine Gol",
+
+    "Penalty":
+      "Penaltı Golü",
+
+    "Missed Penalty":
+      "Kaçan Penaltı",
+
+    "Yellow Card":
+      "Sarı Kart",
+
+    "Red Card":
+      "Kırmızı Kart",
+
+    "Second Yellow card":
+      "İkinci Sarıdan Kırmızı",
+
+    "Goal cancelled":
+      "Gol İptal",
+
+    "Penalty confirmed":
+      "Penaltı Onaylandı",
+
+    "Var Goal Disallowed":
+      "VAR: Gol İptal",
+
+    "Goal Disallowed - offside":
+      "Ofsayt Nedeniyle Gol İptal",
+
+    "Goal Disallowed - handball":
+      "Elle Oynama Nedeniyle Gol İptal"
   };
 
   if(map[text]){
@@ -1986,12 +2272,14 @@ function buildEventSummary(events){
         const type =
           String(
             event.type || ""
-          ).toLowerCase();
+          )
+          .toLowerCase();
 
         const detail =
           String(
             event.detail || ""
-          ).toLowerCase();
+          )
+          .toLowerCase();
 
         return (
           type.includes("goal") &&
@@ -2002,6 +2290,7 @@ function buildEventSummary(events){
       }
     );
 
+
   const yellowCards =
     list.filter(
       event => {
@@ -2009,12 +2298,14 @@ function buildEventSummary(events){
         const type =
           String(
             event.type || ""
-          ).toLowerCase();
+          )
+          .toLowerCase();
 
         const detail =
           String(
             event.detail || ""
-          ).toLowerCase();
+          )
+          .toLowerCase();
 
         return (
           type.includes("card") &&
@@ -2024,6 +2315,7 @@ function buildEventSummary(events){
       }
     );
 
+
   const redCards =
     list.filter(
       event => {
@@ -2031,12 +2323,14 @@ function buildEventSummary(events){
         const type =
           String(
             event.type || ""
-          ).toLowerCase();
+          )
+          .toLowerCase();
 
         const detail =
           String(
             event.detail || ""
-          ).toLowerCase();
+          )
+          .toLowerCase();
 
         return (
           type.includes("card") &&
@@ -2050,6 +2344,7 @@ function buildEventSummary(events){
       }
     );
 
+
   const substitutions =
     list.filter(
       event =>
@@ -2060,10 +2355,12 @@ function buildEventSummary(events){
         .includes("subst")
     );
 
+
   const firstGoal =
     goals.length
       ? goals[0]
       : null;
+
 
   const lastGoal =
     goals.length
@@ -2072,6 +2369,7 @@ function buildEventSummary(events){
         ]
       : null;
 
+
   const lastEvent =
     list.length
       ? list[
@@ -2079,13 +2377,25 @@ function buildEventSummary(events){
         ]
       : null;
 
+
   return {
-    goals:goals.length,
-    yellowCards:yellowCards.length,
-    redCards:redCards.length,
-    substitutions:substitutions.length,
+
+    goals:
+      goals.length,
+
+    yellowCards:
+      yellowCards.length,
+
+    redCards:
+      redCards.length,
+
+    substitutions:
+      substitutions.length,
+
     firstGoal,
+
     lastGoal,
+
     lastEvent
   };
 }
@@ -2150,6 +2460,7 @@ function renderEventSummary(events){
       <div class="summary-card">
         İlk Gol
         <b>
+
           ${
             summary.firstGoal
               ? esc(
@@ -2159,12 +2470,14 @@ function renderEventSummary(events){
                 )
               : "-"
           }
+
         </b>
       </div>
 
       <div class="summary-card">
         Son Gol
         <b>
+
           ${
             summary.lastGoal
               ? esc(
@@ -2174,6 +2487,7 @@ function renderEventSummary(events){
                 )
               : "-"
           }
+
         </b>
       </div>
 
@@ -2190,16 +2504,20 @@ function renderEventSummary(events){
             </span>
 
             <b>
+
               ${esc(
                 eventMinute(
                   summary.lastEvent
                 )
               )}
+
               ·
+
               ${eventIcon(
                 summary.lastEvent.type,
                 summary.lastEvent.detail
               )}
+
               ${esc(
                 summary.lastEvent.team?.name ||
                 ""
@@ -2213,6 +2531,7 @@ function renderEventSummary(events){
                     )
                   : ""
               }
+
             </b>
 
           </div>
@@ -2395,15 +2714,19 @@ function renderLiveDetail(data){
                 <div class="event-main">
 
                   <b>
+
                     ${eventIcon(
                       event.type,
                       event.detail
                     )}
+
                     ${esc(
                       event.team?.name ||
                       ""
                     )}
+
                   </b>
+
 
                   ${
                     event.player
@@ -2416,6 +2739,7 @@ function renderLiveDetail(data){
                       `
                       : ""
                   }
+
 
                   ${
                     event.assist
@@ -2430,7 +2754,9 @@ function renderLiveDetail(data){
                       : ""
                   }
 
+
                   <div class="event-detail">
+
                     ${esc(
                       trEventDetail(
                         event.detail ||
@@ -2438,6 +2764,7 @@ function renderLiveDetail(data){
                         ""
                       )
                     )}
+
                   </div>
 
                 </div>
@@ -2461,13 +2788,19 @@ function renderLiveDetail(data){
     <div class="live-head">
 
       <div class="live-league">
-        ${esc(league.country || "")}
+
+        ${esc(
+          league.country || ""
+        )}
+
         ·
+
         ${esc(
           trLeagueText(
             league.name || ""
           )
         )}
+
       </div>
 
 
@@ -2496,6 +2829,7 @@ function renderLiveDetail(data){
           ${data.goals?.away ?? "-"}
 
           <div class="live-minute">
+
             ${
               minute
                 ? `${esc(minute)}'`
@@ -2505,6 +2839,7 @@ function renderLiveDetail(data){
                     ""
                   )
             }
+
           </div>
 
         </div>
@@ -2529,9 +2864,19 @@ function renderLiveDetail(data){
 
 
       <div class="detail-kickoff">
-        📅 ${esc(detailDate.date)}
+
+        📅
+        ${esc(
+          detailDate.date
+        )}
+
         &nbsp; · &nbsp;
-        🕒 ${esc(detailDate.time)}
+
+        🕒
+        ${esc(
+          detailDate.time
+        )}
+
       </div>
 
 
@@ -2547,10 +2892,12 @@ function renderLiveDetail(data){
             : ""
         }
 
+
         ${
           fixture.venue?.name
             ? `
               <br>
+
               ${esc(
                 fixture.venue.name
               )}
@@ -2566,6 +2913,7 @@ function renderLiveDetail(data){
             `
             : ""
         }
+
 
         ${
           fixture.referee
@@ -2586,10 +2934,13 @@ function renderLiveDetail(data){
 
     <div class="availability">
 
-      <div class="availability-item ok">
+      <div
+        class="availability-item ok"
+      >
         ✓ Maç Bilgisi
       </div>
 
+
       <div
         class="availability-item ${
           data.availability?.statistics
@@ -2597,13 +2948,17 @@ function renderLiveDetail(data){
             : "no"
         }"
       >
+
         ${
           data.availability?.statistics
             ? "✓"
             : "—"
         }
+
         İstatistik
+
       </div>
+
 
       <div
         class="availability-item ${
@@ -2612,12 +2967,15 @@ function renderLiveDetail(data){
             : "no"
         }"
       >
+
         ${
           data.availability?.events
             ? "✓"
             : "—"
         }
+
         Olaylar
+
       </div>
 
     </div>
@@ -2647,6 +3005,7 @@ function renderLiveDetail(data){
           ? statsHtml
           : `
             <div class="no-data">
+
               Bu maç için ayrıntılı
               istatistik verisi sağlanmıyor.
 
@@ -2655,6 +3014,7 @@ function renderLiveDetail(data){
               Yukarıdaki
               <b>Canlı Olay Özeti</b>
               maç olaylarından otomatik oluşturuldu.
+
             </div>
           `
       }
@@ -2680,10 +3040,17 @@ function renderLiveDetail(data){
       ${new Intl.DateTimeFormat(
         "tr-TR",
         {
-          timeZone:"Europe/Istanbul",
-          hour:"2-digit",
-          minute:"2-digit",
-          second:"2-digit"
+          timeZone:
+            "Europe/Istanbul",
+
+          hour:
+            "2-digit",
+
+          minute:
+            "2-digit",
+
+          second:
+            "2-digit"
         }
       ).format(
         new Date()
@@ -2708,9 +3075,12 @@ async function fetchLiveDetail(
       "refreshLiveBtn"
     );
 
-  button.disabled = true;
+  button.disabled =
+    true;
+
   button.textContent =
     "Yükleniyor...";
+
 
   try{
 
@@ -2744,6 +3114,7 @@ async function fetchLiveDetail(
     root.innerHTML =
       `
       <div class="error">
+
         <b>
           Maç detayı alınamadı.
         </b>
@@ -2754,12 +3125,15 @@ async function fetchLiveDetail(
           error.message ||
           ""
         )}
+
       </div>
       `;
 
   }finally{
 
-    button.disabled = false;
+    button.disabled =
+      false;
+
     button.textContent =
       "↻ Yenile";
   }
@@ -2799,7 +3173,9 @@ function openLiveDetail(
 
 function refreshLiveDetail(){
 
-  if(activeLiveFixture){
+  if(
+    activeLiveFixture
+  ){
 
     fetchLiveDetail(
       activeLiveFixture
@@ -2840,7 +3216,7 @@ document.getElementById(
 );
 
 
-/* ÜST FİLTRELER */
+/* FİLTRELER */
 
 document.querySelectorAll(
   ".bar button"
@@ -2901,10 +3277,8 @@ navButtons[0].onclick =
 
     setNavActive(0);
 
-    document.querySelector(
-      ".bar"
-    ).style.display =
-      "flex";
+    showHero(true);
+    showFilters(true);
 
     activeFilter =
       "all";
@@ -2918,10 +3292,8 @@ navButtons[1].onclick =
 
     setNavActive(1);
 
-    document.querySelector(
-      ".bar"
-    ).style.display =
-      "flex";
+    showHero(true);
+    showFilters(true);
 
     render();
   };
@@ -2935,10 +3307,8 @@ navButtons[2].onclick =
 
     setNavActive(2);
 
-    document.querySelector(
-      ".bar"
-    ).style.display =
-      "none";
+    showHero(false);
+    showFilters(false);
 
     const picks =
       getStrongPicks();
@@ -2954,6 +3324,7 @@ navButtons[2].onclick =
       picks.length +
       " maç";
 
+
     if(!picks.length){
 
       document.getElementById(
@@ -2961,12 +3332,15 @@ navButtons[2].onclick =
       ).innerHTML =
         `
         <div class="empty">
+
           Henüz güçlü tahmin bulunmadı.
+
         </div>
         `;
 
       return;
     }
+
 
     document.getElementById(
       "list"
@@ -2985,17 +3359,22 @@ navButtons[2].onclick =
             <div class="meta">
 
               <div class="league">
+
                 ${esc(
                   trLeagueText(
                     item.league?.name
                   )
                 )}
+
               </div>
 
+
               <div class="match-date">
+
                 ${esc(dt.date)}
                 ·
                 ${esc(dt.time)}
+
               </div>
 
             </div>
@@ -3004,10 +3383,13 @@ navButtons[2].onclick =
             <div class="teams">
 
               <div class="team">
+
                 ${esc(
                   item.home?.name
                 )}
+
               </div>
+
 
               <div class="score">
 
@@ -3023,10 +3405,13 @@ navButtons[2].onclick =
 
               </div>
 
+
               <div class="team">
+
                 ${esc(
                   item.away?.name
                 )}
+
               </div>
 
             </div>
@@ -3069,10 +3454,8 @@ navButtons[3].onclick =
 
     setNavActive(3);
 
-    document.querySelector(
-      ".bar"
-    ).style.display =
-      "none";
+    showHero(false);
+    showFilters(false);
 
     renderFavorites();
   };
@@ -3094,6 +3477,7 @@ navButtons[3].onclick =
     </div>
     `;
 
+
   try{
 
     const response =
@@ -3107,6 +3491,7 @@ navButtons[3].onclick =
     const data =
       await response.json();
 
+
     if(
       !response.ok ||
       !data.success
@@ -3117,11 +3502,13 @@ navButtons[3].onclick =
       );
     }
 
+
     matches =
       data.matches ||
       [];
 
     render();
+
 
   }catch(error){
 
@@ -3133,6 +3520,7 @@ navButtons[3].onclick =
     root.innerHTML =
       `
       <div class="error">
+
         Maç verileri yüklenemedi.
 
         <br><br>
@@ -3141,6 +3529,7 @@ navButtons[3].onclick =
           error.message ||
           ""
         )}
+
       </div>
       `;
   }
