@@ -567,7 +567,7 @@ async function fixtures(
             ...cors,
 
             "Cache-Control":
-              "public, max-age=1800"
+              "public, max-age=7200"
           }
         }
       );
