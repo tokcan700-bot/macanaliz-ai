@@ -3535,7 +3535,639 @@ navButtons[3].onclick =
   }
 
 })();
+<script>
+(() => {
 
+  /* TAHMİN FİLTRELERİ STİLİ */
+
+  const style =
+    document.createElement("style");
+
+  style.textContent = `
+    .pick-filters{
+      display:none;
+      gap:7px;
+      padding:0 14px 12px;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .pick-filters.show{
+      display:flex;
+    }
+
+    .pick-filter{
+      flex:none;
+      padding:8px 13px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--panel);
+      color:#c8d4e0;
+      font-size:10px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .pick-filter.active{
+      background:var(--gold);
+      border-color:var(--gold);
+      color:#171005;
+    }
+
+    .pick-best{
+      margin:0 0 9px;
+      padding:10px;
+      border:1px solid #7b6328;
+      border-radius:10px;
+      background:#1a180e;
+    }
+
+    .pick-best-title{
+      color:var(--gold);
+      font-size:9px;
+      font-weight:900;
+    }
+
+    .pick-best-value{
+      margin-top:3px;
+      color:var(--green);
+      font-size:17px;
+      font-weight:900;
+    }
+  `;
+
+  document.head.appendChild(
+    style
+  );
+
+
+  /* FİLTRE BUTONLARINI OLUŞTUR */
+
+  const pickFilters =
+    document.createElement("div");
+
+  pickFilters.id =
+    "pickFilters";
+
+  pickFilters.className =
+    "pick-filters";
+
+  pickFilters.innerHTML = `
+    <button
+      class="pick-filter active"
+      data-pick="all"
+    >
+      Tümü
+    </button>
+
+    <button
+      class="pick-filter"
+      data-pick="over15"
+    >
+      1.5 Üst
+    </button>
+
+    <button
+      class="pick-filter"
+      data-pick="over25"
+    >
+      2.5 Üst
+    </button>
+
+    <button
+      class="pick-filter"
+      data-pick="btts"
+    >
+      KG Var
+    </button>
+  `;
+
+
+  const filterBar =
+    document.getElementById(
+      "filterBar"
+    );
+
+  filterBar.insertAdjacentElement(
+    "afterend",
+    pickFilters
+  );
+
+
+  let predictionFilter =
+    "all";
+
+
+  function showPredictionFilters(
+    show
+  ){
+
+    pickFilters.classList.toggle(
+      "show",
+      show
+    );
+  }
+
+
+  function strongestPrediction(
+    item
+  ){
+
+    const values = [
+      {
+        key:"over15",
+        name:"1.5 Üst",
+        value:Number(
+          item.model?.over15
+        )
+      },
+      {
+        key:"over25",
+        name:"2.5 Üst",
+        value:Number(
+          item.model?.over25
+        )
+      },
+      {
+        key:"btts",
+        name:"KG Var",
+        value:Number(
+          item.model?.btts
+        )
+      }
+    ].filter(
+      item =>
+        Number.isFinite(
+          item.value
+        )
+    );
+
+
+    if(!values.length){
+      return null;
+    }
+
+
+    values.sort(
+      (a,b) =>
+        b.value -
+        a.value
+    );
+
+
+    return values[0];
+  }
+
+
+  function qualifies(
+    item,
+    filter
+  ){
+
+    if(
+      filter === "all"
+    ){
+      return true;
+    }
+
+
+    if(
+      filter === "over15"
+    ){
+      return (
+        Number(
+          item.model?.over15
+        ) >= 80
+      );
+    }
+
+
+    if(
+      filter === "over25"
+    ){
+      return (
+        Number(
+          item.model?.over25
+        ) >= 70
+      );
+    }
+
+
+    if(
+      filter === "btts"
+    ){
+      return (
+        Number(
+          item.model?.btts
+        ) >= 70
+      );
+    }
+
+
+    return true;
+  }
+
+
+  function filterScore(
+    item
+  ){
+
+    if(
+      predictionFilter ===
+      "over15"
+    ){
+      return Number(
+        item.model?.over15
+      ) || 0;
+    }
+
+
+    if(
+      predictionFilter ===
+      "over25"
+    ){
+      return Number(
+        item.model?.over25
+      ) || 0;
+    }
+
+
+    if(
+      predictionFilter ===
+      "btts"
+    ){
+      return Number(
+        item.model?.btts
+      ) || 0;
+    }
+
+
+    const best =
+      strongestPrediction(
+        item
+      );
+
+
+    return (
+      best?.value ||
+      0
+    );
+  }
+
+
+  function renderPredictionPage(){
+
+    activePage =
+      "picks";
+
+
+    showHero(false);
+    showFilters(false);
+    showPredictionFilters(true);
+
+
+    let picks =
+      getStrongPicks()
+        .filter(
+          item =>
+            qualifies(
+              item,
+              predictionFilter
+            )
+        );
+
+
+    picks.sort(
+      (a,b) =>
+        filterScore(b) -
+        filterScore(a)
+    );
+
+
+    document.querySelector(
+      ".section-title h2"
+    ).textContent =
+      "En Güçlü Tahminler";
+
+
+    document.getElementById(
+      "count"
+    ).textContent =
+      picks.length +
+      " maç";
+
+
+    if(
+      !picks.length
+    ){
+
+      document.getElementById(
+        "list"
+      ).innerHTML = `
+        <div class="empty">
+          Bu kategoride güçlü
+          tahmin bulunamadı.
+
+          <br><br>
+
+          Tahminlerin burada
+          görünmesi için önce
+          başlayacak maçlardan
+          <b>Analizi Gör</b>
+          seçeneğini kullan.
+        </div>
+      `;
+
+      return;
+    }
+
+
+    document.getElementById(
+      "list"
+    ).innerHTML =
+      picks.map(
+        item => {
+
+          const dt =
+            fmtDateTime(
+              item.kickoff
+            );
+
+
+          const best =
+            strongestPrediction(
+              item
+            );
+
+
+          return `
+          <article class="card">
+
+            <div class="meta">
+
+              <div class="league">
+
+                ${
+                  item.league?.logo
+                    ? `
+                      <img
+                        src="${esc(
+                          item.league.logo
+                        )}"
+                        alt=""
+                      >
+                    `
+                    : ""
+                }
+
+                <span>
+                  ${esc(
+                    item.league?.country ||
+                    ""
+                  )}
+
+                  ·
+
+                  ${esc(
+                    trLeagueText(
+                      item.league?.name
+                    )
+                  )}
+                </span>
+
+              </div>
+
+
+              <div class="match-date">
+                ${esc(dt.date)}
+                ·
+                ${esc(dt.time)}
+              </div>
+
+            </div>
+
+
+            <div class="teams">
+
+              <div class="team">
+
+                ${
+                  item.home?.logo
+                    ? `
+                      <img
+                        src="${esc(
+                          item.home.logo
+                        )}"
+                        alt=""
+                      >
+                    `
+                    : ""
+                }
+
+                ${esc(
+                  item.home?.name
+                )}
+
+              </div>
+
+
+              <div class="score">
+
+                VS
+
+                <div class="kickoff-time">
+                  ${esc(dt.time)}
+                </div>
+
+                <div class="kickoff-date">
+                  ${esc(dt.date)}
+                </div>
+
+              </div>
+
+
+              <div class="team">
+
+                ${
+                  item.away?.logo
+                    ? `
+                      <img
+                        src="${esc(
+                          item.away.logo
+                        )}"
+                        alt=""
+                      >
+                    `
+                    : ""
+                }
+
+                ${esc(
+                  item.away?.name
+                )}
+
+              </div>
+
+            </div>
+
+
+            ${
+              best
+                ? `
+                  <div class="pick-best">
+
+                    <div class="pick-best-title">
+                      En Güçlü Sinyal
+                    </div>
+
+                    <div class="pick-best-value">
+                      ${esc(best.name)}
+                      ·
+                      ${best.value}%
+                    </div>
+
+                  </div>
+                `
+                : ""
+            }
+
+
+            <div class="model-grid">
+
+              <div class="model-card">
+                1.5 Üst
+
+                <strong>
+                  ${
+                    item.model?.over15 ??
+                    "-"
+                  }%
+                </strong>
+              </div>
+
+
+              <div class="model-card">
+                2.5 Üst
+
+                <strong>
+                  ${
+                    item.model?.over25 ??
+                    "-"
+                  }%
+                </strong>
+              </div>
+
+
+              <div class="model-card">
+                KG Var
+
+                <strong>
+                  ${
+                    item.model?.btts ??
+                    "-"
+                  }%
+                </strong>
+              </div>
+
+            </div>
+
+          </article>
+          `;
+        }
+      ).join("");
+  }
+
+
+  /* FİLTRE TIKLAMALARI */
+
+  document.querySelectorAll(
+    ".pick-filter"
+  ).forEach(
+    button => {
+
+      button.onclick =
+        () => {
+
+          predictionFilter =
+            button.dataset.pick;
+
+
+          document.querySelectorAll(
+            ".pick-filter"
+          ).forEach(
+            item =>
+              item.classList.remove(
+                "active"
+              )
+          );
+
+
+          button.classList.add(
+            "active"
+          );
+
+
+          renderPredictionPage();
+        };
+    }
+  );
+
+
+  /* TAHMİNLER MENÜSÜ */
+
+  navButtons[2].onclick =
+    () => {
+
+      setNavActive(2);
+
+      predictionFilter =
+        "all";
+
+
+      document.querySelectorAll(
+        ".pick-filter"
+      ).forEach(
+        item =>
+          item.classList.toggle(
+            "active",
+            item.dataset.pick ===
+            "all"
+          )
+      );
+
+
+      renderPredictionPage();
+    };
+
+
+  /* DİĞER SAYFALARDA FİLTREYİ GİZLE */
+
+  navButtons[0].addEventListener(
+    "click",
+    () =>
+      showPredictionFilters(
+        false
+      )
+  );
+
+
+  navButtons[1].addEventListener(
+    "click",
+    () =>
+      showPredictionFilters(
+        false
+      )
+  );
+
+
+  navButtons[3].addEventListener(
+    "click",
+    () =>
+      showPredictionFilters(
+        false
+      )
+  );
+
+})();
 </script>
 
 </body>
