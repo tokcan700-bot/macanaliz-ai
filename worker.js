@@ -697,9 +697,13 @@ async function fixtures(
           "Maç verileri alınamadı."
       },
       {
-        status: 502,
-        headers: cors
-      }
+  status: 502,
+  headers: {
+    ...cors,
+    "Cache-Control":
+      "public, max-age=900"
+  }
+}
     );
   }
 }
