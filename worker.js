@@ -1,5 +1,6 @@
 export default {
   async fetch(request, env, ctx) {
+
     const cors = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -8,7 +9,10 @@ export default {
     };
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: cors });
+      return new Response(
+        null,
+        { headers: cors }
+      );
     }
 
     if (!env.API_FOOTBALL_KEY) {
@@ -24,24 +28,61 @@ export default {
       );
     }
 
-    const url = new URL(request.url);
+    const url =
+      new URL(request.url);
 
-    if (url.pathname === "/api/fixtures") {
-      return fixtures(env, ctx, cors, url);
+
+    if (
+      url.pathname ===
+      "/api/fixtures"
+    ) {
+      return fixtures(
+        env,
+        ctx,
+        cors,
+        url
+      );
     }
 
-    if (url.pathname === "/api/prediction") {
-      return prediction(env, ctx, cors, url);
+
+    if (
+      url.pathname ===
+      "/api/prediction"
+    ) {
+      return prediction(
+        env,
+        ctx,
+        cors,
+        url
+      );
     }
+
+
+    if (
+      url.pathname ===
+      "/api/live-detail"
+    ) {
+      return liveDetail(
+        env,
+        ctx,
+        cors,
+        url
+      );
+    }
+
 
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(
+        request
+      );
     }
+
 
     return Response.json(
       {
         success: false,
-        error: "Endpoint bulunamadı."
+        error:
+          "Endpoint bulunamadı."
       },
       {
         status: 404,
@@ -52,17 +93,31 @@ export default {
 };
 
 
-async function apiFetch(path, params, env) {
-  const u = new URL(
-    "https://v3.football.api-sports.io" + path
-  );
 
-  for (const [k, v] of Object.entries(params)) {
+async function apiFetch(
+  path,
+  params,
+  env
+) {
+
+  const u =
+    new URL(
+      "https://v3.football.api-sports.io" +
+      path
+    );
+
+
+  for (
+    const [k, v]
+    of Object.entries(params)
+  ) {
+
     if (
       v !== undefined &&
       v !== null &&
       v !== ""
     ) {
+
       u.searchParams.set(
         k,
         String(v)
@@ -70,44 +125,66 @@ async function apiFetch(path, params, env) {
     }
   }
 
-  const r = await fetch(
-    u.toString(),
-    {
-      headers: {
-        "x-apisports-key":
-          env.API_FOOTBALL_KEY
-      }
-    }
-  );
 
-  const data = await r.json();
+  const r =
+    await fetch(
+      u.toString(),
+      {
+        headers: {
+          "x-apisports-key":
+            env.API_FOOTBALL_KEY
+        }
+      }
+    );
+
+
+  const data =
+    await r.json();
+
 
   const errors =
     data.errors &&
     typeof data.errors === "object"
-      ? Object.keys(data.errors)
+
+      ? Object.keys(
+          data.errors
+        )
+
       : [];
 
-  if (!r.ok || errors.length) {
-    const e = new Error(
-      "API Football isteği başarısız."
-    );
 
-    e.status = r.status;
-    e.apiErrors = data.errors || {};
+  if (
+    !r.ok ||
+    errors.length
+  ) {
+
+    const e =
+      new Error(
+        "API Football isteği başarısız."
+      );
+
+    e.status =
+      r.status;
+
+    e.apiErrors =
+      data.errors || {};
 
     throw e;
   }
 
+
   return data;
 }
+
 
 
 async function playerEloFetch(
   fixture,
   env
 ) {
+
   if (!env.PLAYERELO_KEY) {
+
     return {
       available: false,
       reason:
@@ -115,18 +192,23 @@ async function playerEloFetch(
     };
   }
 
+
   try {
-    const r = await fetch(
-      `https://data-api.playerelo.football/v1/fixtures/${fixture}/prediction`,
-      {
-        headers: {
-          "Authorization":
-            `Bearer ${env.PLAYERELO_KEY}`
+
+    const r =
+      await fetch(
+        `https://data-api.playerelo.football/v1/fixtures/${fixture}/prediction`,
+        {
+          headers: {
+            "Authorization":
+              `Bearer ${env.PLAYERELO_KEY}`
+          }
         }
-      }
-    );
+      );
+
 
     if (!r.ok) {
+
       return {
         available: false,
         status: r.status,
@@ -135,15 +217,19 @@ async function playerEloFetch(
       };
     }
 
+
     const data =
       await r.json();
+
 
     return {
       available: true,
       data
     };
 
+
   } catch (e) {
+
     return {
       available: false,
       reason:
@@ -153,7 +239,9 @@ async function playerEloFetch(
 }
 
 
+
 function istanbulDate() {
+
   return new Intl.DateTimeFormat(
     "en-CA",
     {
@@ -169,8 +257,13 @@ function istanbulDate() {
       day:
         "2-digit"
     }
-  ).format(new Date());
+  )
+
+  .format(
+    new Date()
+  );
 }
+
 
 
 async function fixtures(
@@ -179,26 +272,37 @@ async function fixtures(
   cors,
   url
 ) {
+
   const date =
-    url.searchParams.get("date") ||
+    url.searchParams.get(
+      "date"
+    ) ||
     istanbulDate();
+
 
   const cache =
     caches.default;
 
+
   const cacheKey =
     new Request(
-      `${url.origin}/api/fixtures-v6?date=${encodeURIComponent(date)}`
+      `${url.origin}/api/fixtures-v7?date=${encodeURIComponent(date)}`
     );
 
+
   const hit =
-    await cache.match(cacheKey);
+    await cache.match(
+      cacheKey
+    );
+
 
   if (hit) {
     return hit;
   }
 
+
   try {
+
     const data =
       await apiFetch(
         "/fixtures",
@@ -210,70 +314,91 @@ async function fixtures(
         env
       );
 
+
     const matches =
       (data.response || [])
-      .map(m => ({
-        id:
-          m.fixture.id,
+      .map(
+        m => ({
 
-        kickoff:
-          m.fixture.date,
-
-        status:
-          m.fixture.status.short,
-
-        league: {
           id:
-            m.league.id,
+            m.fixture.id,
 
-          name:
-            m.league.name,
+          kickoff:
+            m.fixture.date,
 
-          country:
-            m.league.country,
+          status:
+            m.fixture.status.short,
 
-          logo:
-            m.league.logo
-        },
+          statusLong:
+            m.fixture.status.long,
 
-        home: {
-          id:
-            m.teams.home.id,
+          elapsed:
+            m.fixture.status.elapsed,
 
-          name:
-            m.teams.home.name,
+          extra:
+            m.fixture.status.extra,
 
-          logo:
-            m.teams.home.logo
-        },
+          league: {
 
-        away: {
-          id:
-            m.teams.away.id,
+            id:
+              m.league.id,
 
-          name:
-            m.teams.away.name,
+            name:
+              m.league.name,
 
-          logo:
-            m.teams.away.logo
-        },
+            country:
+              m.league.country,
 
-        score: {
-          home:
-            m.goals.home,
+            logo:
+              m.league.logo
+          },
 
-          away:
-            m.goals.away
-        }
-      }));
+          home: {
+
+            id:
+              m.teams.home.id,
+
+            name:
+              m.teams.home.name,
+
+            logo:
+              m.teams.home.logo
+          },
+
+          away: {
+
+            id:
+              m.teams.away.id,
+
+            name:
+              m.teams.away.name,
+
+            logo:
+              m.teams.away.logo
+          },
+
+          score: {
+
+            home:
+              m.goals.home,
+
+            away:
+              m.goals.away
+          }
+
+        })
+      );
+
 
     const result =
       Response.json(
         {
           success: true,
           date,
+
           count:
             matches.length,
+
           matches
         },
         {
@@ -281,10 +406,11 @@ async function fixtures(
             ...cors,
 
             "Cache-Control":
-              "public, max-age=600"
+              "public, max-age=60"
           }
         }
       );
+
 
     ctx.waitUntil(
       cache.put(
@@ -293,9 +419,12 @@ async function fixtures(
       )
     );
 
+
     return result;
 
+
   } catch (e) {
+
     return Response.json(
       {
         success: false,
@@ -318,7 +447,9 @@ async function fixtures(
 }
 
 
+
 function numberValue(value) {
+
   const n =
     Number(value);
 
@@ -328,7 +459,9 @@ function numberValue(value) {
 }
 
 
+
 function percentValue(value) {
+
   if (
     value === null ||
     value === undefined
@@ -336,11 +469,13 @@ function percentValue(value) {
     return null;
   }
 
+
   const n =
     Number(
       String(value)
       .replace("%", "")
     );
+
 
   return Number.isFinite(n)
     ? n
@@ -348,19 +483,25 @@ function percentValue(value) {
 }
 
 
+
 function average(values) {
+
   const valid =
     values.filter(
-      v => Number.isFinite(v)
+      v =>
+        Number.isFinite(v)
     );
+
 
   if (!valid.length) {
     return null;
   }
 
+
   return (
     valid.reduce(
-      (a, b) => a + b,
+      (a, b) =>
+        a + b,
       0
     ) /
     valid.length
@@ -368,11 +509,13 @@ function average(values) {
 }
 
 
+
 function clamp(
   value,
   min,
   max
 ) {
+
   return Math.max(
     min,
     Math.min(
@@ -383,34 +526,53 @@ function clamp(
 }
 
 
+
 function shrink(
   value,
   target,
   weight = 0.68
 ) {
-  if (!Number.isFinite(value)) {
+
+  if (
+    !Number.isFinite(value)
+  ) {
     return target;
   }
 
+
   return (
     value * weight +
-    target * (1 - weight)
+    target *
+    (1 - weight)
   );
 }
 
 
-function poissonOver15(lambda) {
+
+function poissonOver15(
+  lambda
+) {
+
   const p0 =
     Math.exp(-lambda);
 
   const p1 =
     p0 * lambda;
 
-  return 1 - p0 - p1;
+
+  return (
+    1 -
+    p0 -
+    p1
+  );
 }
 
 
-function poissonOver25(lambda) {
+
+function poissonOver25(
+  lambda
+) {
+
   const p0 =
     Math.exp(-lambda);
 
@@ -422,6 +584,7 @@ function poissonOver25(lambda) {
     Math.pow(lambda, 2) /
     2;
 
+
   return (
     1 -
     p0 -
@@ -431,27 +594,38 @@ function poissonOver25(lambda) {
 }
 
 
+
 function bttsProbability(
   lambdaHome,
   lambdaAway
 ) {
+
   return (
     1 -
-    Math.exp(-lambdaHome)
+    Math.exp(
+      -lambdaHome
+    )
   ) * (
     1 -
-    Math.exp(-lambdaAway)
+    Math.exp(
+      -lambdaAway
+    )
   );
 }
+
 
 
 function confidenceLabel(
   score,
   dataCount
 ) {
-  if (dataCount < 4) {
+
+  if (
+    dataCount < 4
+  ) {
     return "Düşük";
   }
+
 
   if (
     score >= 78 ||
@@ -460,6 +634,7 @@ function confidenceLabel(
     return "Orta";
   }
 
+
   if (
     score >= 62 ||
     score <= 38
@@ -467,11 +642,14 @@ function confidenceLabel(
     return "Orta";
   }
 
+
   return "Düşük";
 }
 
 
+
 function buildModel(item) {
+
   const home =
     item.teams?.home || {};
 
@@ -481,31 +659,45 @@ function buildModel(item) {
   const comparison =
     item.comparison || {};
 
+
   const hLast =
     home.last_5 || {};
 
   const aLast =
     away.last_5 || {};
 
+
   const hScored =
     numberValue(
-      hLast.goals?.for?.average
+      hLast.goals
+        ?.for
+        ?.average
     );
+
 
   const hConceded =
     numberValue(
-      hLast.goals?.against?.average
+      hLast.goals
+        ?.against
+        ?.average
     );
+
 
   const aScored =
     numberValue(
-      aLast.goals?.for?.average
+      aLast.goals
+        ?.for
+        ?.average
     );
+
 
   const aConceded =
     numberValue(
-      aLast.goals?.against?.average
+      aLast.goals
+        ?.against
+        ?.average
     );
+
 
   const hLeagueScored =
     numberValue(
@@ -516,6 +708,7 @@ function buildModel(item) {
         ?.home
     );
 
+
   const hLeagueConceded =
     numberValue(
       home.league
@@ -524,6 +717,7 @@ function buildModel(item) {
         ?.average
         ?.home
     );
+
 
   const aLeagueScored =
     numberValue(
@@ -534,6 +728,7 @@ function buildModel(item) {
         ?.away
     );
 
+
   const aLeagueConceded =
     numberValue(
       away.league
@@ -543,11 +738,13 @@ function buildModel(item) {
         ?.away
     );
 
+
   const homeAttackRaw =
     average([
       hScored,
       hLeagueScored
     ]);
+
 
   const homeDefRaw =
     average([
@@ -555,17 +752,20 @@ function buildModel(item) {
       aLeagueConceded
     ]);
 
+
   const awayAttackRaw =
     average([
       aScored,
       aLeagueScored
     ]);
 
+
   const awayDefRaw =
     average([
       hConceded,
       hLeagueConceded
     ]);
+
 
   let lambdaHome =
     average([
@@ -580,6 +780,7 @@ function buildModel(item) {
       )
     ]) ?? 1.30;
 
+
   let lambdaAway =
     average([
       shrink(
@@ -593,61 +794,90 @@ function buildModel(item) {
       )
     ]) ?? 1.10;
 
+
   const attHome =
     percentValue(
       comparison.att?.home
     );
+
 
   const attAway =
     percentValue(
       comparison.att?.away
     );
 
+
   const defHome =
     percentValue(
       comparison.def?.home
     );
+
 
   const defAway =
     percentValue(
       comparison.def?.away
     );
 
+
   if (
     attHome !== null &&
     attAway !== null
   ) {
+
     const diff =
       clamp(
-        (attHome - attAway) / 100,
+        (
+          attHome -
+          attAway
+        ) / 100,
+
         -0.6,
         0.6
       );
 
+
     lambdaHome *=
-      1 + diff * 0.07;
+      1 +
+      diff *
+      0.07;
+
 
     lambdaAway *=
-      1 - diff * 0.07;
+      1 -
+      diff *
+      0.07;
   }
+
 
   if (
     defHome !== null &&
     defAway !== null
   ) {
+
     const diff =
       clamp(
-        (defHome - defAway) / 100,
+        (
+          defHome -
+          defAway
+        ) / 100,
+
         -0.6,
         0.6
       );
 
+
     lambdaHome *=
-      1 - diff * 0.05;
+      1 -
+      diff *
+      0.05;
+
 
     lambdaAway *=
-      1 + diff * 0.05;
+      1 +
+      diff *
+      0.05;
   }
+
 
   lambdaHome =
     clamp(
@@ -656,6 +886,7 @@ function buildModel(item) {
       2.35
     );
 
+
   lambdaAway =
     clamp(
       lambdaAway,
@@ -663,9 +894,11 @@ function buildModel(item) {
       2.15
     );
 
+
   let totalLambda =
     lambdaHome +
     lambdaAway;
+
 
   totalLambda =
     clamp(
@@ -674,6 +907,7 @@ function buildModel(item) {
       4.00
     );
 
+
   const split =
     lambdaHome /
     (
@@ -681,29 +915,38 @@ function buildModel(item) {
       lambdaAway
     );
 
+
   lambdaHome =
     totalLambda *
     split;
 
+
   lambdaAway =
     totalLambda *
-    (1 - split);
+    (
+      1 -
+      split
+    );
+
 
   let over15 =
     poissonOver15(
       totalLambda
     );
 
+
   let over25 =
     poissonOver25(
       totalLambda
     );
+
 
   let btts =
     bttsProbability(
       lambdaHome,
       lambdaAway
     );
+
 
   const underOver =
     String(
@@ -712,6 +955,7 @@ function buildModel(item) {
     )
     .toLowerCase();
 
+
   const advice =
     String(
       item.predictions
@@ -719,37 +963,74 @@ function buildModel(item) {
     )
     .toLowerCase();
 
-  if (
-    underOver.includes("+1.5") ||
-    underOver.includes("over 1.5") ||
-    advice.includes("+1.5") ||
-    advice.includes("over 1.5")
-  ) {
-    over15 += 0.025;
-  }
 
   if (
-    underOver.includes("+2.5") ||
-    underOver.includes("over 2.5") ||
-    advice.includes("+2.5") ||
-    advice.includes("over 2.5")
+    underOver.includes(
+      "+1.5"
+    ) ||
+    underOver.includes(
+      "over 1.5"
+    ) ||
+    advice.includes(
+      "+1.5"
+    ) ||
+    advice.includes(
+      "over 1.5"
+    )
   ) {
-    over25 += 0.03;
+
+    over15 +=
+      0.025;
   }
 
-  if (
-    underOver.includes("-1.5") ||
-    underOver.includes("under 1.5")
-  ) {
-    over15 -= 0.03;
-  }
 
   if (
-    underOver.includes("-2.5") ||
-    underOver.includes("under 2.5")
+    underOver.includes(
+      "+2.5"
+    ) ||
+    underOver.includes(
+      "over 2.5"
+    ) ||
+    advice.includes(
+      "+2.5"
+    ) ||
+    advice.includes(
+      "over 2.5"
+    )
   ) {
-    over25 -= 0.03;
+
+    over25 +=
+      0.03;
   }
+
+
+  if (
+    underOver.includes(
+      "-1.5"
+    ) ||
+    underOver.includes(
+      "under 1.5"
+    )
+  ) {
+
+    over15 -=
+      0.03;
+  }
+
+
+  if (
+    underOver.includes(
+      "-2.5"
+    ) ||
+    underOver.includes(
+      "under 2.5"
+    )
+  ) {
+
+    over25 -=
+      0.03;
+  }
+
 
   over15 =
     clamp(
@@ -758,12 +1039,14 @@ function buildModel(item) {
       0.88
     );
 
+
   over25 =
     clamp(
       over25,
       0.12,
       0.78
     );
+
 
   btts =
     clamp(
@@ -772,20 +1055,27 @@ function buildModel(item) {
       0.75
     );
 
+
   const over15Pct =
     Math.round(
-      over15 * 100
+      over15 *
+      100
     );
+
 
   const over25Pct =
     Math.round(
-      over25 * 100
+      over25 *
+      100
     );
+
 
   const bttsPct =
     Math.round(
-      btts * 100
+      btts *
+      100
     );
+
 
   const recentDataCount =
     [
@@ -798,12 +1088,17 @@ function buildModel(item) {
       aLeagueScored,
       aLeagueConceded
     ]
+
     .filter(
-      v => v !== null
+      v =>
+        v !== null
     )
+
     .length;
 
+
   return {
+
     over15:
       over15Pct,
 
@@ -813,7 +1108,9 @@ function buildModel(item) {
     btts:
       bttsPct,
 
+
     confidence: {
+
       over15:
         confidenceLabel(
           over15Pct,
@@ -833,7 +1130,9 @@ function buildModel(item) {
         )
     },
 
+
     expectedGoals: {
+
       home:
         Number(
           lambdaHome
@@ -853,45 +1152,75 @@ function buildModel(item) {
         )
     },
 
+
     dataCount:
       recentDataCount
   };
 }
 
 
-function buildPlayerEloModel(data) {
+
+function buildPlayerEloModel(
+  data
+) {
+
   if (!data) {
     return null;
   }
 
+
   const scorelines =
-    data.scoreline_distribution || {};
+    data.scoreline_distribution ||
+    {};
+
 
   let mass = 0;
 
   let over15 = 0;
+
   let over25 = 0;
+
   let btts = 0;
 
+
   for (
-    const [score, rawProbability]
-    of Object.entries(scorelines)
+    const [
+      score,
+      rawProbability
+    ]
+    of Object.entries(
+      scorelines
+    )
   ) {
+
     const parts =
       score.split("-");
 
-    if (parts.length !== 2) {
+
+    if (
+      parts.length !== 2
+    ) {
       continue;
     }
 
+
     const h =
-      Number(parts[0]);
+      Number(
+        parts[0]
+      );
+
 
     const a =
-      Number(parts[1]);
+      Number(
+        parts[1]
+      );
+
 
     const p =
-      Number(rawProbability);
+      Number(
+        rawProbability
+      );
+
 
     if (
       !Number.isFinite(h) ||
@@ -902,30 +1231,49 @@ function buildPlayerEloModel(data) {
       continue;
     }
 
-    mass += p;
+
+    mass +=
+      p;
+
 
     const total =
       h + a;
 
-    if (total >= 2) {
-      over15 += p;
+
+    if (
+      total >= 2
+    ) {
+      over15 +=
+        p;
     }
 
-    if (total >= 3) {
-      over25 += p;
+
+    if (
+      total >= 3
+    ) {
+      over25 +=
+        p;
     }
+
 
     if (
       h > 0 &&
       a > 0
     ) {
-      btts += p;
+      btts +=
+        p;
     }
   }
 
-  if (mass <= 0) {
+
+  if (
+    mass <= 0
+  ) {
+
     return {
-      available: true,
+
+      available:
+        true,
 
       home:
         probabilityPercent(
@@ -942,9 +1290,14 @@ function buildPlayerEloModel(data) {
           data.p_away
         ),
 
-      over15: null,
-      over25: null,
-      btts: null,
+      over15:
+        null,
+
+      over25:
+        null,
+
+      btts:
+        null,
 
       homeElo:
         numberValue(
@@ -958,8 +1311,11 @@ function buildPlayerEloModel(data) {
     };
   }
 
+
   return {
-    available: true,
+
+    available:
+      true,
 
     home:
       probabilityPercent(
@@ -978,17 +1334,29 @@ function buildPlayerEloModel(data) {
 
     over15:
       Math.round(
-        (over15 / mass) * 100
+        (
+          over15 /
+          mass
+        ) *
+        100
       ),
 
     over25:
       Math.round(
-        (over25 / mass) * 100
+        (
+          over25 /
+          mass
+        ) *
+        100
       ),
 
     btts:
       Math.round(
-        (btts / mass) * 100
+        (
+          btts /
+          mass
+        ) *
+        100
       ),
 
     homeElo:
@@ -1004,37 +1372,59 @@ function buildPlayerEloModel(data) {
 }
 
 
-function probabilityPercent(value) {
+
+function probabilityPercent(
+  value
+) {
+
   const n =
     Number(value);
 
-  if (!Number.isFinite(n)) {
+
+  if (
+    !Number.isFinite(n)
+  ) {
     return null;
   }
 
-  if (n <= 1) {
+
+  if (
+    n <= 1
+  ) {
+
     return Math.round(
       n * 100
     );
   }
 
+
   return Math.round(n);
 }
 
 
-function numericAverage(values) {
+
+function numericAverage(
+  values
+) {
+
   const valid =
     values.filter(
-      v => Number.isFinite(v)
+      v =>
+        Number.isFinite(v)
     );
 
-  if (!valid.length) {
+
+  if (
+    !valid.length
+  ) {
     return null;
   }
 
+
   return Math.round(
     valid.reduce(
-      (a, b) => a + b,
+      (a, b) =>
+        a + b,
       0
     ) /
     valid.length
@@ -1042,17 +1432,20 @@ function numericAverage(values) {
 }
 
 
+
 function buildConsensus(
   apiPrediction,
   model,
   playerElo
 ) {
+
   const apiHome =
     percentValue(
       apiPrediction
         ?.percent
         ?.home
     );
+
 
   const apiDraw =
     percentValue(
@@ -1061,6 +1454,7 @@ function buildConsensus(
         ?.draw
     );
 
+
   const apiAway =
     percentValue(
       apiPrediction
@@ -1068,7 +1462,9 @@ function buildConsensus(
         ?.away
     );
 
+
   const result = {
+
     home:
       numericAverage([
         apiHome,
@@ -1106,22 +1502,31 @@ function buildConsensus(
       ])
   };
 
+
   const goalSources =
     playerElo?.over15 !== null &&
     playerElo?.over15 !== undefined
+
       ? 2
+
       : 1;
+
 
   const resultSources =
     playerElo?.home !== null &&
     playerElo?.home !== undefined
+
       ? 2
+
       : 1;
 
+
   return {
+
     ...result,
 
     sources: {
+
       goals:
         goalSources,
 
@@ -1132,21 +1537,25 @@ function buildConsensus(
 }
 
 
+
 async function prediction(
   env,
   ctx,
   cors,
   url
 ) {
+
   const fixture =
     url.searchParams.get(
       "fixture"
     );
 
+
   if (
     !fixture ||
     !/^\d+$/.test(fixture)
   ) {
+
     return Response.json(
       {
         success: false,
@@ -1160,24 +1569,30 @@ async function prediction(
     );
   }
 
+
   const cache =
     caches.default;
 
+
   const cacheKey =
     new Request(
-      `${url.origin}/api/prediction-v6?fixture=${fixture}`
+      `${url.origin}/api/prediction-v7?fixture=${fixture}`
     );
+
 
   const hit =
     await cache.match(
       cacheKey
     );
 
+
   if (hit) {
     return hit;
   }
 
+
   try {
+
     const [
       apiResult,
       playerEloResult
@@ -1197,24 +1612,29 @@ async function prediction(
         )
       ]);
 
+
     if (
       apiResult.status !==
       "fulfilled"
     ) {
+
       throw apiResult.reason;
     }
+
 
     const data =
       apiResult.value;
 
+
     const item =
       data.response?.[0];
 
+
     if (!item) {
+
       return Response.json(
         {
           success: false,
-
           error:
             "Bu maç için tahmin verisi yok."
         },
@@ -1225,43 +1645,60 @@ async function prediction(
       );
     }
 
+
     const p =
       item.predictions || {};
 
+
     const apiPrediction = {
+
       winner:
-        p.winner?.name || null,
+        p.winner?.name ||
+        null,
 
       winnerComment:
-        p.winner?.comment || null,
+        p.winner?.comment ||
+        null,
 
       winOrDraw:
-        p.win_or_draw ?? null,
+        p.win_or_draw ??
+        null,
 
       underOver:
-        p.under_over || null,
+        p.under_over ||
+        null,
 
       advice:
-        p.advice || null,
+        p.advice ||
+        null,
 
       percent: {
+
         home:
-          p.percent?.home || null,
+          p.percent?.home ||
+          null,
 
         draw:
-          p.percent?.draw || null,
+          p.percent?.draw ||
+          null,
 
         away:
-          p.percent?.away || null
+          p.percent?.away ||
+          null
       }
     };
 
+
     const model =
-      buildModel(item);
+      buildModel(
+        item
+      );
+
 
     let playerElo = {
       available: false
     };
+
 
     if (
       playerEloResult.status ===
@@ -1269,6 +1706,7 @@ async function prediction(
       playerEloResult.value
         ?.available
     ) {
+
       playerElo =
         buildPlayerEloModel(
           playerEloResult
@@ -1279,6 +1717,7 @@ async function prediction(
         };
     }
 
+
     const consensus =
       buildConsensus(
         apiPrediction,
@@ -1286,7 +1725,9 @@ async function prediction(
         playerElo
       );
 
+
     const payload = {
+
       success: true,
 
       fixture:
@@ -1302,9 +1743,12 @@ async function prediction(
       consensus,
 
       sources: {
-        apiFootball: true,
 
-        macAnalizModel: true,
+        apiFootball:
+          true,
+
+        macAnalizModel:
+          true,
 
         playerElo:
           Boolean(
@@ -1312,6 +1756,7 @@ async function prediction(
           )
       }
     };
+
 
     const result =
       Response.json(
@@ -1326,6 +1771,7 @@ async function prediction(
         }
       );
 
+
     ctx.waitUntil(
       cache.put(
         cacheKey,
@@ -1333,9 +1779,12 @@ async function prediction(
       )
     );
 
+
     return result;
 
+
   } catch (e) {
+
     return Response.json(
       {
         success: false,
@@ -1349,6 +1798,582 @@ async function prediction(
         error:
           e.message ||
           "Tahmin verisi alınamadı."
+      },
+      {
+        status: 502,
+        headers: cors
+      }
+    );
+  }
+}
+
+
+
+function statValue(
+  statistics,
+  type
+) {
+
+  const item =
+    statistics.find(
+      x =>
+        String(
+          x.type
+        ).toLowerCase() ===
+        String(
+          type
+        ).toLowerCase()
+    );
+
+
+  if (!item) {
+    return null;
+  }
+
+
+  return (
+    item.value ??
+    null
+  );
+}
+
+
+
+function normalizeTeamStats(
+  teamBlock
+) {
+
+  if (!teamBlock) {
+    return null;
+  }
+
+
+  const s =
+    teamBlock.statistics ||
+    [];
+
+
+  return {
+
+    team: {
+
+      id:
+        teamBlock.team?.id ||
+        null,
+
+      name:
+        teamBlock.team?.name ||
+        null,
+
+      logo:
+        teamBlock.team?.logo ||
+        null
+    },
+
+
+    shotsOnGoal:
+      statValue(
+        s,
+        "Shots on Goal"
+      ),
+
+
+    shotsOffGoal:
+      statValue(
+        s,
+        "Shots off Goal"
+      ),
+
+
+    totalShots:
+      statValue(
+        s,
+        "Total Shots"
+      ),
+
+
+    blockedShots:
+      statValue(
+        s,
+        "Blocked Shots"
+      ),
+
+
+    shotsInsideBox:
+      statValue(
+        s,
+        "Shots insidebox"
+      ),
+
+
+    shotsOutsideBox:
+      statValue(
+        s,
+        "Shots outsidebox"
+      ),
+
+
+    fouls:
+      statValue(
+        s,
+        "Fouls"
+      ),
+
+
+    corners:
+      statValue(
+        s,
+        "Corner Kicks"
+      ),
+
+
+    offsides:
+      statValue(
+        s,
+        "Offsides"
+      ),
+
+
+    possession:
+      statValue(
+        s,
+        "Ball Possession"
+      ),
+
+
+    yellowCards:
+      statValue(
+        s,
+        "Yellow Cards"
+      ),
+
+
+    redCards:
+      statValue(
+        s,
+        "Red Cards"
+      ),
+
+
+    saves:
+      statValue(
+        s,
+        "Goalkeeper Saves"
+      ),
+
+
+    totalPasses:
+      statValue(
+        s,
+        "Total passes"
+      ),
+
+
+    accuratePasses:
+      statValue(
+        s,
+        "Passes accurate"
+      ),
+
+
+    passAccuracy:
+      statValue(
+        s,
+        "Passes %"
+      )
+  };
+}
+
+
+
+function normalizeEvent(
+  event
+) {
+
+  return {
+
+    elapsed:
+      event.time?.elapsed ??
+      null,
+
+    extra:
+      event.time?.extra ??
+      null,
+
+
+    team: {
+
+      id:
+        event.team?.id ||
+        null,
+
+      name:
+        event.team?.name ||
+        null,
+
+      logo:
+        event.team?.logo ||
+        null
+    },
+
+
+    player:
+      event.player?.name ||
+      null,
+
+
+    assist:
+      event.assist?.name ||
+      null,
+
+
+    type:
+      event.type ||
+      null,
+
+
+    detail:
+      event.detail ||
+      null,
+
+
+    comments:
+      event.comments ||
+      null
+  };
+}
+
+
+
+async function liveDetail(
+  env,
+  ctx,
+  cors,
+  url
+) {
+
+  const fixture =
+    url.searchParams.get(
+      "fixture"
+    );
+
+
+  if (
+    !fixture ||
+    !/^\d+$/.test(fixture)
+  ) {
+
+    return Response.json(
+      {
+        success: false,
+        error:
+          "Geçerli fixture ID gerekli."
+      },
+      {
+        status: 400,
+        headers: cors
+      }
+    );
+  }
+
+
+  const cache =
+    caches.default;
+
+
+  const cacheKey =
+    new Request(
+      `${url.origin}/api/live-detail-v1?fixture=${fixture}`
+    );
+
+
+  const hit =
+    await cache.match(
+      cacheKey
+    );
+
+
+  if (hit) {
+    return hit;
+  }
+
+
+  try {
+
+    /*
+      Tek fixture çağrısı.
+
+      API-Football destekliyorsa
+      aynı cevapta:
+
+      events
+      statistics
+      lineups
+
+      gibi alanları da döndürür.
+    */
+
+    const data =
+      await apiFetch(
+        "/fixtures",
+        {
+          id:
+            fixture,
+
+          timezone:
+            "Europe/Istanbul"
+        },
+        env
+      );
+
+
+    const item =
+      data.response?.[0];
+
+
+    if (!item) {
+
+      return Response.json(
+        {
+          success: false,
+          error:
+            "Maç detayı bulunamadı."
+        },
+        {
+          status: 404,
+          headers: cors
+        }
+      );
+    }
+
+
+    const fixtureData =
+      item.fixture || {};
+
+
+    const stats =
+      item.statistics || [];
+
+
+    const homeStats =
+      normalizeTeamStats(
+        stats[0]
+      );
+
+
+    const awayStats =
+      normalizeTeamStats(
+        stats[1]
+      );
+
+
+    const events =
+      (item.events || [])
+      .map(
+        normalizeEvent
+      );
+
+
+    const payload = {
+
+      success: true,
+
+
+      fixture: {
+
+        id:
+          fixtureData.id,
+
+        date:
+          fixtureData.date,
+
+        referee:
+          fixtureData.referee ||
+          null,
+
+        venue: {
+
+          name:
+            fixtureData.venue?.name ||
+            null,
+
+          city:
+            fixtureData.venue?.city ||
+            null
+        },
+
+
+        status: {
+
+          long:
+            fixtureData.status?.long ||
+            null,
+
+          short:
+            fixtureData.status?.short ||
+            null,
+
+          elapsed:
+            fixtureData.status?.elapsed ??
+            null,
+
+          extra:
+            fixtureData.status?.extra ??
+            null
+        }
+      },
+
+
+      league: {
+
+        id:
+          item.league?.id ||
+          null,
+
+        name:
+          item.league?.name ||
+          null,
+
+        country:
+          item.league?.country ||
+          null,
+
+        logo:
+          item.league?.logo ||
+          null,
+
+        round:
+          item.league?.round ||
+          null
+      },
+
+
+      teams: {
+
+        home: {
+
+          id:
+            item.teams?.home?.id ||
+            null,
+
+          name:
+            item.teams?.home?.name ||
+            null,
+
+          logo:
+            item.teams?.home?.logo ||
+            null
+        },
+
+
+        away: {
+
+          id:
+            item.teams?.away?.id ||
+            null,
+
+          name:
+            item.teams?.away?.name ||
+            null,
+
+          logo:
+            item.teams?.away?.logo ||
+            null
+        }
+      },
+
+
+      goals: {
+
+        home:
+          item.goals?.home ??
+          null,
+
+        away:
+          item.goals?.away ??
+          null
+      },
+
+
+      score:
+        item.score || {},
+
+
+      statistics: {
+
+        available:
+          Boolean(
+            homeStats ||
+            awayStats
+          ),
+
+        home:
+          homeStats,
+
+        away:
+          awayStats
+      },
+
+
+      events: {
+
+        available:
+          events.length > 0,
+
+        count:
+          events.length,
+
+        items:
+          events
+      }
+    };
+
+
+    const result =
+      Response.json(
+        payload,
+        {
+          headers: {
+            ...cors,
+
+            /*
+              Canlı maç detayını
+              kısa süre cache'liyoruz.
+            */
+
+            "Cache-Control":
+              "public, max-age=30"
+          }
+        }
+      );
+
+
+    ctx.waitUntil(
+      cache.put(
+        cacheKey,
+        result.clone()
+      )
+    );
+
+
+    return result;
+
+
+  } catch (e) {
+
+    return Response.json(
+      {
+        success: false,
+
+        status:
+          e.status || 500,
+
+        errors:
+          e.apiErrors || {},
+
+        error:
+          e.message ||
+          "Canlı maç detayı alınamadı."
       },
       {
         status: 502,
