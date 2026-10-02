@@ -1,7 +1,9 @@
 <!doctype html>
 <html lang="tr">
 <head>
+
 <meta charset="utf-8">
+
 <meta
   name="viewport"
   content="width=device-width,initial-scale=1,viewport-fit=cover"
@@ -10,6 +12,7 @@
 <title>MaçAnaliz AI</title>
 
 <style>
+
 :root{
   --bg:#07111f;
   --panel:#0d1b2c;
@@ -27,13 +30,16 @@
 
 body{
   margin:0;
+
   background:
     linear-gradient(
       180deg,
       #07111f,
       #091626
     );
+
   color:var(--text);
+
   font-family:
     system-ui,
     -apple-system,
@@ -56,21 +62,21 @@ button{
 .top{
   position:sticky;
   top:0;
-  z-index:5;
+  z-index:10;
+
+  padding:13px 14px;
 
   background:
     rgba(7,17,31,.96);
 
   border-bottom:
     1px solid var(--line);
-
-  padding:13px 14px;
 }
 
 .brand{
   display:flex;
-  justify-content:space-between;
   align-items:center;
+  justify-content:space-between;
 }
 
 .logo{
@@ -83,16 +89,16 @@ button{
 }
 
 .live{
-  font-size:9px;
+  padding:5px 8px;
 
   border:
     1px solid #31506e;
 
-  padding:5px 8px;
-
   border-radius:999px;
 
   color:#b8c6d6;
+
+  font-size:9px;
 }
 
 .hero{
@@ -106,7 +112,6 @@ button{
     0 0 7px;
 
   font-size:25px;
-
   line-height:1.08;
 }
 
@@ -119,9 +124,8 @@ button{
 
   color:var(--muted);
 
-  font-size:11px;
-
-  line-height:1.45;
+  font-size:10px;
+  line-height:1.5;
 }
 
 .bar{
@@ -138,23 +142,23 @@ button{
 .bar button{
   flex:none;
 
-  background:var(--panel);
-
-  color:#c8d4e0;
+  padding:
+    8px 12px;
 
   border:
     1px solid var(--line);
 
-  padding:
-    8px 12px;
-
   border-radius:999px;
 
-  white-space:nowrap;
+  background:var(--panel);
+
+  color:#c8d4e0;
 
   font-size:11px;
 
   font-weight:800;
+
+  white-space:nowrap;
 }
 
 .bar button.active{
@@ -287,9 +291,7 @@ button{
 
 .actions{
   display:flex;
-
   align-items:center;
-
   justify-content:space-between;
 
   gap:8px;
@@ -311,6 +313,9 @@ button{
 }
 
 .pred-btn{
+  padding:
+    8px 10px;
+
   border:0;
 
   border-radius:9px;
@@ -318,9 +323,6 @@ button{
   background:var(--green);
 
   color:#06150e;
-
-  padding:
-    8px 10px;
 
   font-size:11px;
 
@@ -510,9 +512,18 @@ button{
   background:#0b1828;
 }
 
+.analysis-title{
+  margin-bottom:4px;
+
+  color:var(--gold);
+
+  font-size:9px;
+
+  font-weight:900;
+}
+
 .analysis-row{
   display:flex;
-
   justify-content:space-between;
 
   gap:12px;
@@ -536,7 +547,7 @@ button{
 }
 
 .analysis-row b{
-  max-width:60%;
+  max-width:64%;
 
   text-align:right;
 
@@ -545,7 +556,6 @@ button{
 
 .source-badges{
   display:flex;
-
   flex-wrap:wrap;
 
   gap:5px;
@@ -575,6 +585,12 @@ button{
   border-color:#176844;
 }
 
+.source-badge.warn{
+  color:var(--gold);
+
+  border-color:#755b25;
+}
+
 .note{
   margin-top:8px;
 
@@ -582,7 +598,7 @@ button{
 
   font-size:8px;
 
-  line-height:1.45;
+  line-height:1.5;
 }
 
 .loading,
@@ -614,7 +630,7 @@ button{
   right:0;
   bottom:0;
 
-  z-index:10;
+  z-index:20;
 
   padding:
     8px 9px;
@@ -658,12 +674,17 @@ button{
 .nav button.active{
   color:var(--green);
 }
+
 </style>
+
 </head>
+
 
 <body>
 
+
 <main class="app">
+
 
 <header class="top">
 
@@ -681,6 +702,7 @@ button{
 
 </header>
 
+
 <section class="hero">
 
   <h1>
@@ -689,12 +711,13 @@ button{
   </h1>
 
   <p>
-    API-Football verisi, form analizi,
-    lig istatistikleri ve Poisson tabanlı
-    MaçAnaliz modeli.
+    API-Football + MaçAnaliz istatistik modeli
+    + mevcut olduğunda PlayerElo verisi ile
+    çoklu kaynak analizi.
   </p>
 
 </section>
+
 
 <div class="bar">
 
@@ -719,6 +742,7 @@ button{
 
 </div>
 
+
 <section class="section">
 
   <div class="section-title">
@@ -737,7 +761,9 @@ button{
 
 </section>
 
+
 </main>
+
 
 <nav class="bottom">
 
@@ -768,41 +794,52 @@ button{
 </nav>
 
 
+
 <script>
+
 
 let matches = [];
 
 let activeFilter =
   "all";
 
+
 function esc(value){
+
   return String(
     value ?? ""
   )
+
   .replaceAll(
     "&",
     "&amp;"
   )
+
   .replaceAll(
     "<",
     "&lt;"
   )
+
   .replaceAll(
     ">",
     "&gt;"
   )
+
   .replaceAll(
     '"',
     "&quot;"
   )
+
   .replaceAll(
     "'",
     "&#039;"
   );
 }
 
+
 const fmtTime =
   iso =>
+
     new Intl.DateTimeFormat(
       "tr-TR",
       {
@@ -816,12 +853,15 @@ const fmtTime =
           "2-digit"
       }
     )
+
     .format(
       new Date(iso)
     );
 
+
 const group =
   status =>
+
     [
       "1H",
       "HT",
@@ -832,8 +872,11 @@ const group =
       "LIVE",
       "INT"
     ]
+
     .includes(status)
+
       ? "LIVE"
+
       : status;
 
 
@@ -855,6 +898,7 @@ function todayKey(){
         "2-digit"
     }
   )
+
   .format(
     new Date()
   );
@@ -960,7 +1004,6 @@ function getStrongPicks(){
   }catch(e){
 
     return [];
-
   }
 }
 
@@ -1057,7 +1100,9 @@ function saveStrongPick(
 
   const oldIndex =
     picks.findIndex(
-      x => x.id === match.id
+      x =>
+        Number(x.id) ===
+        Number(match.id)
     );
 
   if(oldIndex >= 0){
@@ -1139,68 +1184,6 @@ function strongestModelPick(m){
   );
 
   return picks[0];
-}
-
-
-function sourceAgreement(
-  prediction,
-  model
-){
-
-  const advice =
-    String(
-      prediction?.advice || ""
-    )
-    .toLowerCase();
-
-  let agrees = 0;
-  let checks = 0;
-
-  if(
-    advice.includes("+1.5") ||
-    advice.includes("over 1.5")
-  ){
-
-    checks++;
-
-    if(
-      model.over15 >= 65
-    ){
-      agrees++;
-    }
-  }
-
-  if(
-    advice.includes("+2.5") ||
-    advice.includes("over 2.5")
-  ){
-
-    checks++;
-
-    if(
-      model.over25 >= 60
-    ){
-      agrees++;
-    }
-  }
-
-  if(checks === 0){
-    return "Tarafsız";
-  }
-
-  if(
-    agrees === checks
-  ){
-    return "Yüksek Uyum";
-  }
-
-  if(
-    agrees > 0
-  ){
-    return "Kısmi Uyum";
-  }
-
-  return "Düşük Uyum";
 }
 
 
@@ -1304,6 +1287,7 @@ function render(){
 
             </div>
 
+
             <div class="teams">
 
               <div class="team">
@@ -1317,21 +1301,23 @@ function render(){
 
               </div>
 
+
               <div class="score">
 
                 ${
                   m.status === "NS"
-                    ?
-                    "VS"
-                    :
-                    `
-                    ${m.score?.home ?? "-"}
-                    -
-                    ${m.score?.away ?? "-"}
+
+                    ? "VS"
+
+                    : `
+                      ${m.score?.home ?? "-"}
+                      -
+                      ${m.score?.away ?? "-"}
                     `
                 }
 
               </div>
+
 
               <div class="team">
 
@@ -1346,6 +1332,7 @@ function render(){
 
             </div>
 
+
             <div class="actions">
 
               <div class="status">
@@ -1355,20 +1342,21 @@ function render(){
 
               ${
                 m.status === "NS"
-                  ?
+
+                  ? `
+                    <button
+                      class="pred-btn"
+                      onclick="loadPrediction(${Number(m.id)},this)"
+                    >
+                      Analizi Gör
+                    </button>
                   `
-                  <button
-                    class="pred-btn"
-                    onclick="loadPrediction(${Number(m.id)},this)"
-                  >
-                    Analizi Gör
-                  </button>
-                  `
-                  :
-                  ""
+
+                  : ""
               }
 
             </div>
+
 
             <div
               class="pred"
@@ -1379,6 +1367,7 @@ function render(){
         `;
       }
     )
+
     .join("");
 }
 
@@ -1402,15 +1391,13 @@ function strongBadges(model){
         </strong>
 
         <span class="conf">
-          ${
-            model.confidence?.over15 ||
-            ""
-          }
+          Güçlü
         </span>
 
       </div>
     `;
   }
+
 
   if(
     model.over25 >= 70
@@ -1426,15 +1413,13 @@ function strongBadges(model){
         </strong>
 
         <span class="conf">
-          ${
-            model.confidence?.over25 ||
-            ""
-          }
+          Güçlü
         </span>
 
       </div>
     `;
   }
+
 
   if(
     model.btts >= 70
@@ -1450,10 +1435,7 @@ function strongBadges(model){
         </strong>
 
         <span class="conf">
-          ${
-            model.confidence?.btts ||
-            ""
-          }
+          Güçlü
         </span>
 
       </div>
@@ -1472,7 +1454,9 @@ function renderStrongPicks(){
     );
 
   document
-    .querySelector(".section-title h2")
+    .querySelector(
+      ".section-title h2"
+    )
     .textContent =
       "En Güçlü Tahminler";
 
@@ -1497,11 +1481,11 @@ function renderStrongPicks(){
 
         <br><br>
 
-        Bugünün maçlarında
+        Maçlarda
         <b>Analizi Gör</b>
-        butonuna bastıkça güçlü çıkan
-        sonuçlar burada otomatik
-        toplanacak.
+        butonuna bastıkça yüksek
+        konsensüs değerleri burada
+        otomatik toplanacak.
 
       </div>
       `;
@@ -1545,6 +1529,7 @@ function renderStrongPicks(){
 
           </div>
 
+
           <div class="teams">
 
             <div class="team">
@@ -1575,6 +1560,7 @@ function renderStrongPicks(){
 
           </div>
 
+
           <div class="pred show">
 
             <div class="pred-title">
@@ -1584,7 +1570,7 @@ function renderStrongPicks(){
             <div class="model">
 
               <h4>
-                Güçlü Model Sinyalleri
+                Güçlü Konsensüs Sinyalleri
               </h4>
 
               <div class="model-grid">
@@ -1592,6 +1578,7 @@ function renderStrongPicks(){
                 ${strongBadges(p.model)}
 
               </div>
+
 
               <div class="analysis-details">
 
@@ -1621,18 +1608,6 @@ function renderStrongPicks(){
 
                 </div>
 
-                <div class="analysis-row">
-
-                  <span>
-                    Veri Alanı
-                  </span>
-
-                  <b>
-                    ${p.model.dataCount ?? "-"}/8
-                  </b>
-
-                </div>
-
               </div>
 
             </div>
@@ -1642,6 +1617,7 @@ function renderStrongPicks(){
         </article>
       `
     )
+
     .join("");
 }
 
@@ -1689,20 +1665,24 @@ async function loadPrediction(
   );
 
   box.textContent =
-    "Analiz hazırlanıyor...";
+    "Çoklu kaynak analizi hazırlanıyor...";
 
   btn.disabled =
     true;
 
+
   try{
+
 
     const response =
       await fetch(
         `/api/prediction?fixture=${fixture}`
       );
 
+
     const data =
       await response.json();
+
 
     if(
       !data.success
@@ -1710,16 +1690,34 @@ async function loadPrediction(
       throw new Error();
     }
 
+
     const p =
-      data.prediction;
+      data.prediction || {};
+
 
     const m =
-      data.model;
+      data.model || null;
+
+
+    const pe =
+      data.playerElo || {
+        available:false
+      };
+
+
+    const consensus =
+      data.consensus || {};
+
+
+    const sources =
+      data.sources || {};
+
 
     let html = `
       <div class="pred-title">
         ${esc(trAdvice(p?.advice))}
       </div>
+
 
       <div class="pred-grid">
 
@@ -1733,6 +1731,7 @@ async function loadPrediction(
 
         </div>
 
+
         <div class="pill">
 
           Beraberlik
@@ -1742,6 +1741,7 @@ async function loadPrediction(
           </b>
 
         </div>
+
 
         <div class="pill">
 
@@ -1756,105 +1756,446 @@ async function loadPrediction(
       </div>
     `;
 
+
     if(m){
 
-      const strongest =
+
+      const modelStrongest =
         strongestModelPick(m);
 
-      const agreement =
-        sourceAgreement(
-          p,
-          m
-        );
+
+      const consensusValues = [
+
+        {
+          name:
+            "1.5 Üst",
+
+          value:
+            Number(consensus.over15)
+        },
+
+        {
+          name:
+            "2.5 Üst",
+
+          value:
+            Number(consensus.over25)
+        },
+
+        {
+          name:
+            "KG Var",
+
+          value:
+            Number(consensus.btts)
+        }
+
+      ]
+
+      .filter(
+        item =>
+          Number.isFinite(
+            item.value
+          )
+      );
+
+
+      consensusValues.sort(
+        (a,b) =>
+          b.value -
+          a.value
+      );
+
+
+      const bestConsensus =
+        consensusValues[0] ||
+        modelStrongest;
+
 
       const dataQuality =
         m.dataCount >= 7
-          ?
-          "Yüksek"
-          :
-          m.dataCount >= 4
-            ?
-            "Orta"
-            :
-            "Düşük";
+
+          ? "Yüksek"
+
+          : m.dataCount >= 4
+
+            ? "Orta"
+
+            : "Düşük";
+
+
+      const finalOver15 =
+        Number.isFinite(
+          Number(consensus.over15)
+        )
+
+          ? Number(
+              consensus.over15
+            )
+
+          : m.over15;
+
+
+      const finalOver25 =
+        Number.isFinite(
+          Number(consensus.over25)
+        )
+
+          ? Number(
+              consensus.over25
+            )
+
+          : m.over25;
+
+
+      const finalBtts =
+        Number.isFinite(
+          Number(consensus.btts)
+        )
+
+          ? Number(
+              consensus.btts
+            )
+
+          : m.btts;
+
 
       html += `
+
         <div class="model">
 
+
           <h4>
-            MaçAnaliz AI Detaylı Analiz
+            MaçAnaliz AI Çoklu Kaynak Analizi
           </h4>
 
+
           <div class="model-grid">
+
 
             <div class="model-card">
 
               1.5 Üst
 
               <strong>
-                ${m.over15}%
+                ${finalOver15}%
               </strong>
 
               <span class="conf">
-                ${esc(m.confidence?.over15)}
+                Konsensüs
               </span>
 
             </div>
+
 
             <div class="model-card">
 
               2.5 Üst
 
               <strong>
-                ${m.over25}%
+                ${finalOver25}%
               </strong>
 
               <span class="conf">
-                ${esc(m.confidence?.over25)}
+                Konsensüs
               </span>
 
             </div>
+
 
             <div class="model-card">
 
               KG Var
 
               <strong>
-                ${m.btts}%
+                ${finalBtts}%
               </strong>
 
               <span class="conf">
-                ${esc(m.confidence?.btts)}
+                Konsensüs
               </span>
 
             </div>
 
+
           </div>
+
 
           <div class="consensus-box">
 
             <div class="consensus-title">
-              En Güçlü Model Sinyali
+              En Güçlü Konsensüs Sinyali
             </div>
 
             <div class="consensus-value">
 
-              ${esc(strongest.name)}
+              ${esc(bestConsensus.name)}
               ·
-              ${strongest.value}%
+              ${bestConsensus.value}%
 
             </div>
 
             <div class="consensus-sub">
 
-              API tahmini ile model uyumu:
-              ${esc(agreement)}
+              Gol analizinde kullanılan
+              bağımsız kaynak:
+              ${consensus.sources?.goals || 1}
 
             </div>
 
           </div>
 
+
           <div class="analysis-details">
+
+            <div class="analysis-title">
+              Gol Analizi
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                MaçAnaliz 1.5 Üst
+              </span>
+
+              <b>
+                ${m.over15}%
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                PlayerElo 1.5 Üst
+              </span>
+
+              <b>
+
+                ${
+                  pe.available &&
+                  Number.isFinite(
+                    Number(pe.over15)
+                  )
+
+                    ? Number(pe.over15) + "%"
+
+                    : "Veri yok"
+                }
+
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                Konsensüs 1.5 Üst
+              </span>
+
+              <b>
+                ${finalOver15}%
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                MaçAnaliz 2.5 Üst
+              </span>
+
+              <b>
+                ${m.over25}%
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                PlayerElo 2.5 Üst
+              </span>
+
+              <b>
+
+                ${
+                  pe.available &&
+                  Number.isFinite(
+                    Number(pe.over25)
+                  )
+
+                    ? Number(pe.over25) + "%"
+
+                    : "Veri yok"
+                }
+
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                Konsensüs 2.5 Üst
+              </span>
+
+              <b>
+                ${finalOver25}%
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                MaçAnaliz KG Var
+              </span>
+
+              <b>
+                ${m.btts}%
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                PlayerElo KG Var
+              </span>
+
+              <b>
+
+                ${
+                  pe.available &&
+                  Number.isFinite(
+                    Number(pe.btts)
+                  )
+
+                    ? Number(pe.btts) + "%"
+
+                    : "Veri yok"
+                }
+
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                Konsensüs KG Var
+              </span>
+
+              <b>
+                ${finalBtts}%
+              </b>
+
+            </div>
+
+          </div>
+
+
+          <div class="analysis-details">
+
+            <div class="analysis-title">
+              Maç Sonucu Analizi
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                API-Football
+              </span>
+
+              <b>
+                Ev ${esc(p?.percent?.home || "-")}
+                ·
+                X ${esc(p?.percent?.draw || "-")}
+                ·
+                Dep ${esc(p?.percent?.away || "-")}
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                PlayerElo
+              </span>
+
+              <b>
+
+                ${
+                  pe.available
+
+                    ? `
+                      Ev ${pe.home ?? "-"}%
+                      ·
+                      X ${pe.draw ?? "-"}%
+                      ·
+                      Dep ${pe.away ?? "-"}%
+                    `
+
+                    : "Veri yok"
+                }
+
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                Konsensüs
+              </span>
+
+              <b>
+
+                Ev ${consensus.home ?? "-"}%
+                ·
+                X ${consensus.draw ?? "-"}%
+                ·
+                Dep ${consensus.away ?? "-"}%
+
+              </b>
+
+            </div>
+
+
+            <div class="analysis-row">
+
+              <span>
+                API Görüşü
+              </span>
+
+              <b>
+                ${esc(trAdvice(p?.advice))}
+              </b>
+
+            </div>
+
+          </div>
+
+
+          <div class="analysis-details">
+
+            <div class="analysis-title">
+              Model Detayları
+            </div>
+
 
             <div class="analysis-row">
 
@@ -1870,6 +2211,7 @@ async function loadPrediction(
 
             </div>
 
+
             <div class="analysis-row">
 
               <span>
@@ -1881,6 +2223,7 @@ async function loadPrediction(
               </b>
 
             </div>
+
 
             <div class="analysis-row">
 
@@ -1894,6 +2237,7 @@ async function loadPrediction(
 
             </div>
 
+
             <div class="analysis-row">
 
               <span>
@@ -1906,65 +2250,90 @@ async function loadPrediction(
 
             </div>
 
-            <div class="analysis-row">
 
-              <span>
-                API Görüşü
-              </span>
+            ${
+              pe.available &&
+              pe.homeElo !== null &&
+              pe.homeElo !== undefined
 
-              <b>
-                ${esc(trAdvice(p?.advice))}
-              </b>
+                ? `
 
-            </div>
+                  <div class="analysis-row">
 
-            <div class="analysis-row">
+                    <span>
+                      PlayerElo Rating
+                    </span>
 
-              <span>
-                Hesaplama
-              </span>
+                    <b>
+                      ${pe.homeElo ?? "-"}
+                      -
+                      ${pe.awayElo ?? "-"}
+                    </b>
 
-              <b>
-                Poisson + form + lig verisi
-              </b>
+                  </div>
 
-            </div>
+                `
+
+                : ""
+            }
 
           </div>
 
+
           <div class="source-badges">
+
 
             <span class="source-badge active">
               ✓ API-Football
             </span>
 
+
             <span class="source-badge active">
               ✓ MaçAnaliz Model
             </span>
 
-            <span class="source-badge">
-              Sportmonks · Yakında
+
+            <span
+              class="source-badge ${
+                sources.playerElo
+                  ? "active"
+                  : "warn"
+              }"
+            >
+
+              ${
+                sources.playerElo
+
+                  ? "✓ PlayerElo"
+
+                  : "PlayerElo · Veri yok"
+              }
+
             </span>
 
-            <span class="source-badge">
-              Dış Uzman Konsensüsü · Yakında
-            </span>
 
           </div>
+
 
           <div class="note">
 
-            Aktif sonuç hesabında şu anda
-            API-Football verisi ve MaçAnaliz
-            modeli kullanılır.
+            Konsensüs değerleri yalnızca
+            gerçekten veri sağlayan kaynaklardan
+            hesaplanır.
 
-            Henüz bağlanmamış kaynaklar
-            skora dahil edilmez.
+            PlayerElo bu maçı desteklemiyorsa
+            sistem MaçAnaliz modeli ve
+            API-Football verisiyle çalışmaya
+            devam eder.
+
+            Tahminler garanti değildir.
 
           </div>
 
+
         </div>
       `;
+
 
       const match =
         matches.find(
@@ -1973,31 +2342,52 @@ async function loadPrediction(
             Number(fixture)
         );
 
+
       saveStrongPick(
         match,
         p,
-        m
+        {
+          ...m,
+
+          over15:
+            finalOver15,
+
+          over25:
+            finalOver25,
+
+          btts:
+            finalBtts
+        }
       );
+
     }
+
 
     box.innerHTML =
       html;
 
+
   }catch(e){
+
 
     box.textContent =
       "Bu maç için analiz verisi alınamadı veya API kotası doldu.";
 
+
     btn.disabled =
       false;
+
   }
+
 }
+
 
 
 document
   .querySelectorAll(
     ".bar button"
   )
+
   .forEach(
     btn => {
 
@@ -2008,6 +2398,7 @@ document
             .querySelectorAll(
               ".bar button"
             )
+
             .forEach(
               x =>
                 x.classList.remove(
@@ -2015,17 +2406,23 @@ document
                 )
             );
 
+
           btn.classList.add(
             "active"
           );
 
+
           activeFilter =
             btn.dataset.filter;
 
+
           render();
+
         };
+
     }
   );
+
 
 
 const navButtons =
@@ -2048,6 +2445,7 @@ function setNavActive(index){
       "active"
     );
 }
+
 
 
 navButtons[0].onclick =
@@ -2074,11 +2472,14 @@ navButtons[0].onclick =
             "active",
             index === 0
           );
+
         }
       );
 
     render();
+
   };
+
 
 
 navButtons[1].onclick =
@@ -2092,7 +2493,9 @@ navButtons[1].onclick =
         "flex";
 
     render();
+
   };
+
 
 
 navButtons[2].onclick =
@@ -2106,7 +2509,9 @@ navButtons[2].onclick =
         "none";
 
     renderStrongPicks();
+
   };
+
 
 
 navButtons[3].onclick =
@@ -2121,17 +2526,21 @@ navButtons[3].onclick =
 
     showPlaceholder(
       "Favoriler",
-      "Favorilere maç ekleme özelliğini bir sonraki geliştirmede aktif edeceğiz."
+      "Favorilere maç ekleme özelliğini sonraki geliştirmede aktif edeceğiz."
     );
+
   };
 
 
+
 (async()=>{
+
 
   const root =
     document.getElementById(
       "list"
     );
+
 
   root.innerHTML =
     `
@@ -2140,7 +2549,9 @@ navButtons[3].onclick =
     </div>
     `;
 
+
   try{
+
 
     const response =
       await fetch(
@@ -2151,8 +2562,10 @@ navButtons[3].onclick =
         }
       );
 
+
     const data =
       await response.json();
+
 
     if(
       !data.success
@@ -2160,17 +2573,22 @@ navButtons[3].onclick =
       throw new Error();
     }
 
+
     matches =
       data.matches || [];
 
+
     render();
 
+
   }catch(e){
+
 
     document
       .getElementById("count")
       .textContent =
         "hata";
+
 
     root.innerHTML =
       `
@@ -2178,11 +2596,15 @@ navButtons[3].onclick =
         Maç verileri yüklenemedi.
       </div>
       `;
+
   }
+
 
 })();
 
+
 </script>
+
 
 </body>
 </html>
