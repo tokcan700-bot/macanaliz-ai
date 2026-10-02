@@ -2,103 +2,529 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,viewport-fit=cover"
+>
+
 <title>MaçAnaliz AI</title>
+
 <style>
-:root{--bg:#07111f;--panel:#0d1b2c;--text:#f5f7fb;--muted:#91a2b7;--green:#19e58c;--line:#20334b;--gold:#f6c453}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#07111f,#091626);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-.app{max-width:760px;margin:auto;min-height:100vh;padding-bottom:90px}.top{position:sticky;top:0;background:rgba(7,17,31,.95);border-bottom:1px solid var(--line);padding:15px 16px;z-index:5}
-.brand{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:900;font-size:20px}.logo b{color:var(--green)}.live{font-size:11px;border:1px solid #31506e;padding:5px 8px;border-radius:999px;color:#b8c6d6}
-.hero{padding:24px 16px 14px}.hero h1{font-size:30px;line-height:1.08;margin:0 0 10px}.hero h1 span{color:var(--green)}.hero p{margin:0;color:var(--muted)}
-.bar{display:flex;gap:8px;padding:0 16px 14px;overflow:auto}.bar button{background:var(--panel);color:#c8d4e0;border:1px solid var(--line);padding:10px 14px;border-radius:999px;white-space:nowrap;font-weight:700}.bar button.active{background:var(--green);color:#06150e}
-.section{padding:0 16px}.section-title{display:flex;justify-content:space-between;margin:8px 0 12px}.section-title h2{font-size:18px;margin:0}.section-title small{color:var(--muted)}
-.card{background:linear-gradient(145deg,var(--panel),#0b1726);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
-.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;gap:8px}.league{display:flex;align-items:center;gap:8px;min-width:0}.league img{width:18px;height:18px;object-fit:contain}.league span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.teams{display:grid;grid-template-columns:1fr 56px 1fr;gap:10px;align-items:center;margin:16px 0}.team{text-align:center;font-weight:800;font-size:14px}.team img{width:46px;height:46px;object-fit:contain;display:block;margin:0 auto 7px}.score{text-align:center;font-size:18px;font-weight:900}
-.actions{display:flex;justify-content:space-between;align-items:center;gap:8px}.status{display:inline-block;padding:7px 9px;border-radius:10px;background:#13283d;color:#cbd6e1;font-size:12px}
-.pred-btn{border:0;background:var(--green);color:#06150e;font-weight:900;padding:9px 12px;border-radius:10px}
-.pred{margin-top:12px;padding:12px;border-radius:12px;background:#091524;border:1px solid var(--line);display:none}.pred.show{display:block}
-.pred-title{font-weight:900;margin-bottom:10px}.pred-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pill{background:#12243a;padding:10px 6px;border-radius:10px;text-align:center;font-size:12px}.pill b{display:block;color:var(--green);font-size:18px;margin-top:3px}
-.model{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.model h4{margin:0 0 9px;color:var(--gold)}.model-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.model-card{background:#101f32;border:1px solid #263b55;border-radius:10px;padding:9px;text-align:center;font-size:11px}.model-card strong{display:block;color:var(--green);font-size:18px;margin:3px 0}.conf{color:var(--muted);font-size:10px}.note{margin-top:9px;color:var(--muted);font-size:11px;line-height:1.45}
-.loading,.error,.empty{margin:20px 0;padding:16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);color:var(--muted)}
-.bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(7,17,31,.97);border-top:1px solid var(--line);padding:9px 10px}.nav{max-width:760px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr)}.nav button{background:none;border:0;color:#7f91a7;font-size:11px}.nav button span{display:block;font-size:20px}.nav button.active{color:var(--green)}
-  /* PROFESYONEL ANALIZ GORUNUMU */
+:root{
+  --bg:#07111f;
+  --panel:#0d1b2c;
+  --panel2:#101f32;
+  --text:#f5f7fb;
+  --muted:#91a2b7;
+  --green:#19e58c;
+  --line:#20334b;
+  --gold:#f6c453;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:
+    linear-gradient(
+      180deg,
+      #07111f,
+      #091626
+    );
+  color:var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+}
+
+button{
+  font-family:inherit;
+}
+
+.app{
+  max-width:760px;
+  margin:auto;
+  min-height:100vh;
+  padding-bottom:90px;
+}
+
+.top{
+  position:sticky;
+  top:0;
+  z-index:5;
+
+  background:
+    rgba(7,17,31,.96);
+
+  border-bottom:
+    1px solid var(--line);
+
+  padding:13px 14px;
+}
+
+.brand{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.logo{
+  font-size:18px;
+  font-weight:900;
+}
+
+.logo b{
+  color:var(--green);
+}
+
+.live{
+  font-size:9px;
+
+  border:
+    1px solid #31506e;
+
+  padding:5px 8px;
+
+  border-radius:999px;
+
+  color:#b8c6d6;
+}
+
+.hero{
+  padding:
+    18px 14px
+    12px;
+}
+
+.hero h1{
+  margin:
+    0 0 7px;
+
+  font-size:25px;
+
+  line-height:1.08;
+}
+
+.hero h1 span{
+  color:var(--green);
+}
+
+.hero p{
+  margin:0;
+
+  color:var(--muted);
+
+  font-size:11px;
+
+  line-height:1.45;
+}
+
+.bar{
+  display:flex;
+  gap:7px;
+
+  padding:
+    0 14px
+    12px;
+
+  overflow:auto;
+}
+
+.bar button{
+  flex:none;
+
+  background:var(--panel);
+
+  color:#c8d4e0;
+
+  border:
+    1px solid var(--line);
+
+  padding:
+    8px 12px;
+
+  border-radius:999px;
+
+  white-space:nowrap;
+
+  font-size:11px;
+
+  font-weight:800;
+}
+
+.bar button.active{
+  background:var(--green);
+  color:#06150e;
+}
+
+.section{
+  padding:
+    0 14px;
+}
+
+.section-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  margin:
+    6px 0
+    10px;
+}
+
+.section-title h2{
+  margin:0;
+
+  font-size:16px;
+}
+
+.section-title small{
+  color:var(--muted);
+
+  font-size:10px;
+}
 
 .card{
+  margin-bottom:10px;
+
   padding:12px;
+
+  background:
+    linear-gradient(
+      145deg,
+      var(--panel),
+      #0b1726
+    );
+
+  border:
+    1px solid var(--line);
+
   border-radius:14px;
 }
 
 .meta{
-  font-size:11px;
+  display:flex;
+  justify-content:space-between;
+
+  gap:8px;
+
+  color:var(--muted);
+
+  font-size:10px;
+}
+
+.league{
+  display:flex;
+  align-items:center;
+
+  gap:6px;
+
+  min-width:0;
+}
+
+.league img{
+  width:16px;
+  height:16px;
+
+  object-fit:contain;
+}
+
+.league span{
+  overflow:hidden;
+
+  white-space:nowrap;
+
+  text-overflow:ellipsis;
+}
+
+.teams{
+  display:grid;
+
+  grid-template-columns:
+    1fr 48px 1fr;
+
+  gap:7px;
+
+  align-items:center;
+
+  margin:
+    13px 0;
 }
 
 .team{
-  font-size:13px;
+  text-align:center;
+
+  font-size:12px;
+
+  font-weight:800;
 }
 
 .team img{
-  width:40px;
-  height:40px;
+  display:block;
+
+  width:38px;
+  height:38px;
+
+  margin:
+    0 auto
+    6px;
+
+  object-fit:contain;
 }
 
 .score{
-  font-size:16px;
+  text-align:center;
+
+  font-size:15px;
+
+  font-weight:900;
+}
+
+.actions{
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+  gap:8px;
+}
+
+.status{
+  display:inline-block;
+
+  padding:
+    6px 8px;
+
+  border-radius:9px;
+
+  background:#13283d;
+
+  color:#cbd6e1;
+
+  font-size:10px;
+}
+
+.pred-btn{
+  border:0;
+
+  border-radius:9px;
+
+  background:var(--green);
+
+  color:#06150e;
+
+  padding:
+    8px 10px;
+
+  font-size:11px;
+
+  font-weight:900;
+}
+
+.pred-btn:disabled{
+  opacity:.55;
+}
+
+.pred{
+  display:none;
+
+  margin-top:10px;
+
+  padding:10px;
+
+  border:
+    1px solid var(--line);
+
+  border-radius:11px;
+
+  background:#091524;
+}
+
+.pred.show{
+  display:block;
 }
 
 .pred-title{
-  font-size:14px;
-  line-height:1.35;
-  margin-bottom:9px;
+  margin-bottom:8px;
+
+  font-size:12px;
+
+  font-weight:900;
+
+  line-height:1.4;
+}
+
+.pred-grid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap:6px;
 }
 
 .pill{
-  font-size:10px;
-  padding:8px 4px;
-}
+  padding:
+    7px 4px;
 
-.pill b{
-  font-size:16px;
-}
+  border-radius:9px;
 
-.model h4{
-  font-size:14px;
-  margin-bottom:8px;
-}
+  background:#12243a;
 
-.model-card{
-  padding:8px 5px;
-  font-size:10px;
-}
+  text-align:center;
 
-.model-card strong{
-  font-size:17px;
-}
-
-.conf{
   font-size:9px;
 }
 
-.note{
-  font-size:10px;
-  line-height:1.5;
+.pill b{
+  display:block;
+
+  margin-top:2px;
+
+  color:var(--green);
+
+  font-size:15px;
+}
+
+.model{
+  margin-top:10px;
+
+  padding-top:10px;
+
+  border-top:
+    1px solid var(--line);
+}
+
+.model h4{
+  margin:
+    0 0
+    8px;
+
+  color:var(--gold);
+
+  font-size:12px;
+}
+
+.model-grid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(3,1fr);
+
+  gap:6px;
+}
+
+.model-card{
+  padding:
+    7px 4px;
+
+  border:
+    1px solid #263b55;
+
+  border-radius:9px;
+
+  background:var(--panel2);
+
+  text-align:center;
+
+  font-size:9px;
+}
+
+.model-card strong{
+  display:block;
+
+  margin:
+    2px 0;
+
+  color:var(--green);
+
+  font-size:16px;
+}
+
+.conf{
+  color:var(--muted);
+
+  font-size:8px;
+}
+
+.consensus-box{
+  margin-top:9px;
+
+  padding:9px;
+
+  border:
+    1px solid #29445f;
+
+  border-radius:9px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0c1d2e,
+      #10253a
+    );
+}
+
+.consensus-title{
+  color:var(--gold);
+
+  font-size:9px;
+
+  font-weight:800;
+}
+
+.consensus-value{
+  margin-top:2px;
+
+  color:var(--green);
+
+  font-size:17px;
+
+  font-weight:900;
+}
+
+.consensus-sub{
+  margin-top:3px;
+
+  color:var(--muted);
+
+  font-size:8px;
 }
 
 .analysis-details{
-  margin-top:10px;
-  padding:10px;
+  margin-top:9px;
+
+  padding:9px;
+
+  border:
+    1px solid var(--line);
+
+  border-radius:9px;
+
   background:#0b1828;
-  border:1px solid #20334b;
-  border-radius:10px;
 }
 
 .analysis-row{
   display:flex;
+
   justify-content:space-between;
-  gap:10px;
-  padding:5px 0;
-  border-bottom:1px solid rgba(145,162,183,.12);
-  font-size:10px;
+
+  gap:12px;
+
+  padding:
+    5px 0;
+
+  border-bottom:
+    1px solid
+    rgba(145,162,183,.12);
+
+  font-size:9px;
 }
 
 .analysis-row:last-child{
@@ -106,240 +532,569 @@
 }
 
 .analysis-row span{
-  color:#91a2b7;
+  color:var(--muted);
 }
 
 .analysis-row b{
-  color:#f5f7fb;
+  max-width:60%;
+
   text-align:right;
+
+  color:var(--text);
 }
 
 .source-badges{
   display:flex;
+
   flex-wrap:wrap;
+
   gap:5px;
+
   margin-top:8px;
 }
 
 .source-badge{
-  background:#11263a;
-  border:1px solid #28415c;
-  color:#9fb1c6;
+  padding:
+    4px 6px;
+
+  border:
+    1px solid #28415c;
+
   border-radius:999px;
-  padding:4px 7px;
-  font-size:9px;
+
+  background:#11263a;
+
+  color:#9fb1c6;
+
+  font-size:8px;
 }
 
 .source-badge.active{
-  color:#19e58c;
+  color:var(--green);
+
   border-color:#176844;
 }
 
-.consensus-box{
-  margin-top:10px;
-  padding:10px;
-  background:linear-gradient(135deg,#0c1d2e,#10253a);
-  border:1px solid #29445f;
-  border-radius:10px;
+.note{
+  margin-top:8px;
+
+  color:var(--muted);
+
+  font-size:8px;
+
+  line-height:1.45;
 }
 
-.consensus-title{
-  color:#f6c453;
+.loading,
+.error,
+.empty{
+  margin:
+    18px 0;
+
+  padding:14px;
+
+  border:
+    1px solid var(--line);
+
+  border-radius:12px;
+
+  background:var(--panel);
+
+  color:var(--muted);
+
   font-size:11px;
-  font-weight:800;
+
+  line-height:1.5;
 }
 
-.consensus-value{
-  font-size:20px;
-  font-weight:900;
-  color:#19e58c;
-  margin-top:3px;
+.bottom{
+  position:fixed;
+
+  left:0;
+  right:0;
+  bottom:0;
+
+  z-index:10;
+
+  padding:
+    8px 9px;
+
+  border-top:
+    1px solid var(--line);
+
+  background:
+    rgba(7,17,31,.97);
 }
 
-.consensus-sub{
-  color:#91a2b7;
+.nav{
+  display:grid;
+
+  grid-template-columns:
+    repeat(4,1fr);
+
+  max-width:760px;
+
+  margin:auto;
+}
+
+.nav button{
+  border:0;
+
+  background:none;
+
+  color:#7f91a7;
+
   font-size:9px;
-  margin-top:3px;
+}
+
+.nav button span{
+  display:block;
+
+  margin-bottom:2px;
+
+  font-size:18px;
+}
+
+.nav button.active{
+  color:var(--green);
 }
 </style>
 </head>
+
 <body>
+
 <main class="app">
-<header class="top"><div class="brand"><div class="logo">⚽ MaçAnaliz <b>AI</b></div><div class="live">CANLI VERİ</div></div></header>
-<section class="hero"><h1>Bugünün <span>gerçek maçları</span></h1><p>Hazır API tahmini + son maçlardan kendi istatistik modelimiz.</p></section>
-<div class="bar"><button class="active" data-filter="all">Tümü</button><button data-filter="NS">Başlamadı</button><button data-filter="LIVE">Canlı</button><button data-filter="FT">Biten</button></div>
-<section class="section"><div class="section-title"><h2>Bugünün Maçları</h2><small id="count">yükleniyor...</small></div><div id="list"></div></section>
+
+<header class="top">
+
+  <div class="brand">
+
+    <div class="logo">
+      ⚽ MaçAnaliz <b>AI</b>
+    </div>
+
+    <div class="live">
+      CANLI VERİ
+    </div>
+
+  </div>
+
+</header>
+
+<section class="hero">
+
+  <h1>
+    Bugünün
+    <span>gerçek maçları</span>
+  </h1>
+
+  <p>
+    API-Football verisi, form analizi,
+    lig istatistikleri ve Poisson tabanlı
+    MaçAnaliz modeli.
+  </p>
+
+</section>
+
+<div class="bar">
+
+  <button
+    class="active"
+    data-filter="all"
+  >
+    Tümü
+  </button>
+
+  <button data-filter="NS">
+    Başlamadı
+  </button>
+
+  <button data-filter="LIVE">
+    Canlı
+  </button>
+
+  <button data-filter="FT">
+    Biten
+  </button>
+
+</div>
+
+<section class="section">
+
+  <div class="section-title">
+
+    <h2>
+      Bugünün Maçları
+    </h2>
+
+    <small id="count">
+      yükleniyor...
+    </small>
+
+  </div>
+
+  <div id="list"></div>
+
+</section>
+
 </main>
-<nav class="bottom"><div class="nav"><button class="active"><span>⌂</span>Ana Sayfa</button><button><span>⚽</span>Maçlar</button><button><span>▥</span>Tahminler</button><button><span>☆</span>Favoriler</button></div></nav>
+
+<nav class="bottom">
+
+  <div class="nav">
+
+    <button class="active">
+      <span>⌂</span>
+      Ana Sayfa
+    </button>
+
+    <button>
+      <span>⚽</span>
+      Maçlar
+    </button>
+
+    <button>
+      <span>▥</span>
+      Tahminler
+    </button>
+
+    <button>
+      <span>☆</span>
+      Favoriler
+    </button>
+
+  </div>
+
+</nav>
+
 
 <script>
+
 let matches = [];
-let activeFilter = "all";
-let currentView = "home";
 
-const fmtTime = iso =>
-  new Intl.DateTimeFormat("tr-TR", {
-    timeZone: "Europe/Istanbul",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(iso));
+let activeFilter =
+  "all";
 
-const group = s =>
-  ["1H","HT","2H","ET","BT","P","LIVE","INT"].includes(s)
-    ? "LIVE"
-    : s;
-
-function todayKey(){
-  return new Intl.DateTimeFormat("en-CA",{
-    timeZone:"Europe/Istanbul",
-    year:"numeric",
-    month:"2-digit",
-    day:"2-digit"
-  }).format(new Date());
+function esc(value){
+  return String(
+    value ?? ""
+  )
+  .replaceAll(
+    "&",
+    "&amp;"
+  )
+  .replaceAll(
+    "<",
+    "&lt;"
+  )
+  .replaceAll(
+    ">",
+    "&gt;"
+  )
+  .replaceAll(
+    '"',
+    "&quot;"
+  )
+  .replaceAll(
+    "'",
+    "&#039;"
+  );
 }
 
-function trAdvice(text){
-  if(!text) return "API Tahmini";
+const fmtTime =
+  iso =>
+    new Intl.DateTimeFormat(
+      "tr-TR",
+      {
+        timeZone:
+          "Europe/Istanbul",
 
-  return text
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit"
+      }
+    )
+    .format(
+      new Date(iso)
+    );
+
+const group =
+  status =>
+    [
+      "1H",
+      "HT",
+      "2H",
+      "ET",
+      "BT",
+      "P",
+      "LIVE",
+      "INT"
+    ]
+    .includes(status)
+      ? "LIVE"
+      : status;
+
+
+function todayKey(){
+
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone:
+        "Europe/Istanbul",
+
+      year:
+        "numeric",
+
+      month:
+        "2-digit",
+
+      day:
+        "2-digit"
+    }
+  )
+  .format(
+    new Date()
+  );
+}
+
+
+function trAdvice(text){
+
+  if(!text){
+    return "API Tahmini";
+  }
+
+  return String(text)
+
     .replace(
       /^Combo Double chance\s*:\s*/i,
       "Kombine Tahmin: "
     )
+
     .replace(
       /^Double chance\s*:\s*/i,
       "Çifte Şans: "
     )
+
     .replace(
       /\bor draw\b/gi,
       "veya Beraberlik"
     )
+
     .replace(
       /\band\s*\+1\.5 goals\b/gi,
       " + 1.5 Üst"
     )
+
     .replace(
       /\band\s*\+2\.5 goals\b/gi,
       " + 2.5 Üst"
     )
+
     .replace(
       /\band\s*-1\.5 goals\b/gi,
       " + 1.5 Alt"
     )
+
     .replace(
       /\band\s*-2\.5 goals\b/gi,
       " + 2.5 Alt"
     )
+
     .replace(
       /\bhome\b/gi,
       "Ev Sahibi"
     )
+
     .replace(
       /\baway\b/gi,
       "Deplasman"
     )
+
     .replace(
       /\bdraw\b/gi,
       "Beraberlik"
     )
+
     .replace(
       /\bor\b/gi,
       "veya"
     )
+
     .replace(
       /\band\b/gi,
       "+"
     )
+
     .replace(
       /\s+/g,
       " "
     )
+
     .trim();
 }
 
+
 function strongStorageKey(){
-  return "macanaliz-strong-" + todayKey();
+
+  return (
+    "macanaliz-strong-" +
+    todayKey()
+  );
 }
 
+
 function getStrongPicks(){
+
   try{
+
     return JSON.parse(
-      localStorage.getItem(strongStorageKey()) || "[]"
+      localStorage.getItem(
+        strongStorageKey()
+      ) || "[]"
     );
+
   }catch(e){
+
     return [];
+
   }
 }
 
-function saveStrongPick(match, prediction, model){
-  if(!match || !model) return;
+
+function saveStrongPick(
+  match,
+  prediction,
+  model
+){
+
+  if(
+    !match ||
+    !model
+  ){
+    return;
+  }
 
   const strong =
     model.over15 >= 80 ||
     model.over25 >= 70 ||
     model.btts >= 70;
 
-  if(!strong) return;
+  if(!strong){
+    return;
+  }
 
-  const picks = getStrongPicks();
+  const picks =
+    getStrongPicks();
 
   const item = {
-    id: match.id,
-    kickoff: match.kickoff,
+
+    id:
+      match.id,
+
+    kickoff:
+      match.kickoff,
 
     league: {
-      name: match.league?.name || "",
-      country: match.league?.country || "",
-      logo: match.league?.logo || ""
+
+      name:
+        match.league?.name || "",
+
+      country:
+        match.league?.country || "",
+
+      logo:
+        match.league?.logo || ""
     },
 
     home: {
-      name: match.home?.name || "",
-      logo: match.home?.logo || ""
+
+      name:
+        match.home?.name || "",
+
+      logo:
+        match.home?.logo || ""
     },
 
     away: {
-      name: match.away?.name || "",
-      logo: match.away?.logo || ""
+
+      name:
+        match.away?.name || "",
+
+      logo:
+        match.away?.logo || ""
     },
 
-    advice: trAdvice(prediction?.advice),
+    advice:
+      trAdvice(
+        prediction?.advice
+      ),
 
     model: {
-      over15: model.over15,
-      over25: model.over25,
-      btts: model.btts,
 
-      confidence: model.confidence,
+      over15:
+        model.over15,
 
-      expectedGoals: model.expectedGoals
+      over25:
+        model.over25,
+
+      btts:
+        model.btts,
+
+      confidence:
+        model.confidence,
+
+      expectedGoals:
+        model.expectedGoals,
+
+      dataCount:
+        model.dataCount
     }
   };
 
   const oldIndex =
-    picks.findIndex(x => x.id === match.id);
+    picks.findIndex(
+      x => x.id === match.id
+    );
 
   if(oldIndex >= 0){
-    picks[oldIndex] = item;
+
+    picks[oldIndex] =
+      item;
+
   }else{
-    picks.push(item);
+
+    picks.push(
+      item
+    );
   }
 
-  picks.sort((a,b)=>{
-    const aBest = Math.max(
-      a.model.over15,
-      a.model.over25,
-      a.model.btts
-    );
+  picks.sort(
+    (a,b) => {
 
-    const bBest = Math.max(
-      b.model.over15,
-      b.model.over25,
-      b.model.btts
-    );
+      const aBest =
+        Math.max(
+          a.model.over15,
+          a.model.over25,
+          a.model.btts
+        );
 
-    return bBest - aBest;
-  });
+      const bBest =
+        Math.max(
+          b.model.over15,
+          b.model.over25,
+          b.model.btts
+        );
+
+      return (
+        bBest -
+        aBest
+      );
+    }
+  );
 
   localStorage.setItem(
     strongStorageKey(),
@@ -347,14 +1102,119 @@ function saveStrongPick(match, prediction, model){
   );
 }
 
+
+function strongestModelPick(m){
+
+  const picks = [
+
+    {
+      name:
+        "1.5 Üst",
+
+      value:
+        m.over15
+    },
+
+    {
+      name:
+        "2.5 Üst",
+
+      value:
+        m.over25
+    },
+
+    {
+      name:
+        "KG Var",
+
+      value:
+        m.btts
+    }
+  ];
+
+  picks.sort(
+    (a,b) =>
+      b.value -
+      a.value
+  );
+
+  return picks[0];
+}
+
+
+function sourceAgreement(
+  prediction,
+  model
+){
+
+  const advice =
+    String(
+      prediction?.advice || ""
+    )
+    .toLowerCase();
+
+  let agrees = 0;
+  let checks = 0;
+
+  if(
+    advice.includes("+1.5") ||
+    advice.includes("over 1.5")
+  ){
+
+    checks++;
+
+    if(
+      model.over15 >= 65
+    ){
+      agrees++;
+    }
+  }
+
+  if(
+    advice.includes("+2.5") ||
+    advice.includes("over 2.5")
+  ){
+
+    checks++;
+
+    if(
+      model.over25 >= 60
+    ){
+      agrees++;
+    }
+  }
+
+  if(checks === 0){
+    return "Tarafsız";
+  }
+
+  if(
+    agrees === checks
+  ){
+    return "Yüksek Uyum";
+  }
+
+  if(
+    agrees > 0
+  ){
+    return "Kısmi Uyum";
+  }
+
+  return "Düşük Uyum";
+}
+
+
 function render(){
-  currentView = "home";
 
   const root =
-    document.getElementById("list");
+    document.getElementById(
+      "list"
+    );
 
   const title =
-    document.querySelector(".section-title h2");
+    document.querySelector(
+      ".section-title h2"
+    );
 
   title.textContent =
     "Bugünün Maçları";
@@ -366,138 +1226,236 @@ function render(){
         group(m.status) === activeFilter
     );
 
-  document.getElementById("count")
+  document
+    .getElementById("count")
     .textContent =
-      filtered.length + " maç";
+      filtered.length +
+      " maç";
 
-  if(!filtered.length){
+  if(
+    !filtered.length
+  ){
+
     root.innerHTML =
-      '<div class="empty">Bu filtrede maç bulunamadı.</div>';
+      `
+      <div class="empty">
+        Bu filtrede maç bulunamadı.
+      </div>
+      `;
 
     return;
   }
 
   root.innerHTML =
-    filtered.map(m => `
-      <article class="card">
+    filtered.map(
+      m => {
 
-        <div class="meta">
+        const homeName =
+          esc(
+            m.home?.name
+          );
 
-          <div class="league">
+        const awayName =
+          esc(
+            m.away?.name
+          );
 
-            ${
-              m.league?.logo
-                ? `<img src="${m.league.logo}" alt="">`
-                : ""
-            }
+        const country =
+          esc(
+            m.league?.country
+          );
 
-            <span>
-              ${m.league?.country || ""}
-              ·
-              ${m.league?.name || ""}
-            </span>
+        const league =
+          esc(
+            m.league?.name
+          );
 
-          </div>
+        return `
+          <article class="card">
 
-          <span>
-            ${fmtTime(m.kickoff)}
-          </span>
+            <div class="meta">
 
-        </div>
+              <div class="league">
 
-        <div class="teams">
+                ${
+                  m.league?.logo
+                    ?
+                    `
+                    <img
+                      src="${esc(m.league.logo)}"
+                      alt=""
+                    >
+                    `
+                    :
+                    ""
+                }
 
-          <div class="team">
-            <img
-              src="${m.home?.logo || ""}"
-              alt=""
-            >
-            ${m.home?.name || ""}
-          </div>
+                <span>
+                  ${country}
+                  ·
+                  ${league}
+                </span>
 
-          <div class="score">
-            ${
-              m.status === "NS"
-                ? "VS"
-                : `${m.score?.home ?? "-"} - ${m.score?.away ?? "-"}`
-            }
-          </div>
+              </div>
 
-          <div class="team">
-            <img
-              src="${m.away?.logo || ""}"
-              alt=""
-            >
-            ${m.away?.name || ""}
-          </div>
+              <span>
+                ${fmtTime(m.kickoff)}
+              </span>
 
-        </div>
+            </div>
 
-        <div class="actions">
+            <div class="teams">
 
-          <div class="status">
-            Durum: ${m.status}
-          </div>
+              <div class="team">
 
-          ${
-            m.status === "NS"
-              ? `
-                <button
-                  class="pred-btn"
-                  onclick="loadPrediction(${m.id},this)"
+                <img
+                  src="${esc(m.home?.logo || "")}"
+                  alt=""
                 >
-                  Analizi Gör
-                </button>
-              `
-              : ""
-          }
 
-        </div>
+                ${homeName}
 
-        <div
-          class="pred"
-          id="pred-${m.id}"
-        ></div>
+              </div>
 
-      </article>
-    `).join("");
+              <div class="score">
+
+                ${
+                  m.status === "NS"
+                    ?
+                    "VS"
+                    :
+                    `
+                    ${m.score?.home ?? "-"}
+                    -
+                    ${m.score?.away ?? "-"}
+                    `
+                }
+
+              </div>
+
+              <div class="team">
+
+                <img
+                  src="${esc(m.away?.logo || "")}"
+                  alt=""
+                >
+
+                ${awayName}
+
+              </div>
+
+            </div>
+
+            <div class="actions">
+
+              <div class="status">
+                Durum:
+                ${esc(m.status)}
+              </div>
+
+              ${
+                m.status === "NS"
+                  ?
+                  `
+                  <button
+                    class="pred-btn"
+                    onclick="loadPrediction(${Number(m.id)},this)"
+                  >
+                    Analizi Gör
+                  </button>
+                  `
+                  :
+                  ""
+              }
+
+            </div>
+
+            <div
+              class="pred"
+              id="pred-${Number(m.id)}"
+            ></div>
+
+          </article>
+        `;
+      }
+    )
+    .join("");
 }
 
+
 function strongBadges(model){
-  let html = "";
 
-  if(model.over15 >= 80){
+  let html =
+    "";
+
+  if(
+    model.over15 >= 80
+  ){
+
     html += `
       <div class="model-card">
+
         1.5 Üst
-        <strong>${model.over15}%</strong>
+
+        <strong>
+          ${model.over15}%
+        </strong>
+
         <span class="conf">
-          ${model.confidence?.over15 || ""}
+          ${
+            model.confidence?.over15 ||
+            ""
+          }
         </span>
+
       </div>
     `;
   }
 
-  if(model.over25 >= 70){
+  if(
+    model.over25 >= 70
+  ){
+
     html += `
       <div class="model-card">
+
         2.5 Üst
-        <strong>${model.over25}%</strong>
+
+        <strong>
+          ${model.over25}%
+        </strong>
+
         <span class="conf">
-          ${model.confidence?.over25 || ""}
+          ${
+            model.confidence?.over25 ||
+            ""
+          }
         </span>
+
       </div>
     `;
   }
 
-  if(model.btts >= 70){
+  if(
+    model.btts >= 70
+  ){
+
     html += `
       <div class="model-card">
+
         KG Var
-        <strong>${model.btts}%</strong>
+
+        <strong>
+          ${model.btts}%
+        </strong>
+
         <span class="conf">
-          ${model.confidence?.btts || ""}
+          ${
+            model.confidence?.btts ||
+            ""
+          }
         </span>
+
       </div>
     `;
   }
@@ -505,519 +1463,705 @@ function strongBadges(model){
   return html;
 }
 
+
 function renderStrongPicks(){
-  currentView = "predictions";
 
   const root =
-    document.getElementById("list");
+    document.getElementById(
+      "list"
+    );
 
-  const title =
-    document.querySelector(".section-title h2");
-
-  title.textContent =
-    "En Güçlü Tahminler";
+  document
+    .querySelector(".section-title h2")
+    .textContent =
+      "En Güçlü Tahminler";
 
   const picks =
     getStrongPicks();
 
-  document.getElementById("count")
+  document
+    .getElementById("count")
     .textContent =
-      picks.length + " maç";
+      picks.length +
+      " maç";
 
-  if(!picks.length){
-    root.innerHTML = `
+  if(
+    !picks.length
+  ){
+
+    root.innerHTML =
+      `
       <div class="empty">
+
         Henüz güçlü tahmin bulunmadı.
+
         <br><br>
+
         Bugünün maçlarında
         <b>Analizi Gör</b>
         butonuna bastıkça güçlü çıkan
-        tahminler burada otomatik toplanacak.
+        sonuçlar burada otomatik
+        toplanacak.
+
       </div>
-    `;
+      `;
 
     return;
   }
 
   root.innerHTML =
-    picks.map(p => `
-      <article class="card">
+    picks.map(
+      p => `
+        <article class="card">
 
-        <div class="meta">
+          <div class="meta">
 
-          <div class="league">
+            <div class="league">
 
-            ${
-              p.league?.logo
-                ? `<img src="${p.league.logo}" alt="">`
-                : ""
-            }
+              ${
+                p.league?.logo
+                  ?
+                  `
+                  <img
+                    src="${esc(p.league.logo)}"
+                    alt=""
+                  >
+                  `
+                  :
+                  ""
+              }
+
+              <span>
+                ${esc(p.league?.country)}
+                ·
+                ${esc(p.league?.name)}
+              </span>
+
+            </div>
 
             <span>
-              ${p.league?.country || ""}
-              ·
-              ${p.league?.name || ""}
+              ${fmtTime(p.kickoff)}
             </span>
 
           </div>
 
-          <span>
-            ${fmtTime(p.kickoff)}
-          </span>
+          <div class="teams">
 
-        </div>
+            <div class="team">
 
-        <div class="teams">
+              <img
+                src="${esc(p.home?.logo || "")}"
+                alt=""
+              >
 
-          <div class="team">
-            <img
-              src="${p.home?.logo || ""}"
-              alt=""
-            >
-            ${p.home?.name || ""}
-          </div>
+              ${esc(p.home?.name)}
 
-          <div class="score">
-            VS
-          </div>
-
-          <div class="team">
-            <img
-              src="${p.away?.logo || ""}"
-              alt=""
-            >
-            ${p.away?.name || ""}
-          </div>
-
-        </div>
-
-        <div class="pred show">
-
-          <div class="pred-title">
-            ${p.advice}
-          </div>
-
-          <div class="model">
-
-            <h4>
-              Güçlü Model Tahminleri
-            </h4>
-
-            <div class="model-grid">
-              ${strongBadges(p.model)}
             </div>
 
-            <div class="note">
-              Model Gol Beklentisi:
-              Ev ${p.model.expectedGoals?.home ?? "-"}
-              -
-              Deplasman ${p.model.expectedGoals?.away ?? "-"}
-              <br>
+            <div class="score">
+              VS
+            </div>
 
-              Toplam:
-              ${p.model.expectedGoals?.total ?? "-"}
+            <div class="team">
+
+              <img
+                src="${esc(p.away?.logo || "")}"
+                alt=""
+              >
+
+              ${esc(p.away?.name)}
+
             </div>
 
           </div>
 
-        </div>
+          <div class="pred show">
 
-      </article>
-    `).join("");
-}
-  function strongestModelPick(m){
-  const picks = [
-    {name:"1.5 Üst", value:m.over15},
-    {name:"2.5 Üst", value:m.over25},
-    {name:"KG Var", value:m.btts}
-  ];
+            <div class="pred-title">
+              ${esc(p.advice)}
+            </div>
 
-  picks.sort((a,b)=>b.value-a.value);
+            <div class="model">
 
-  return picks[0];
-}
+              <h4>
+                Güçlü Model Sinyalleri
+              </h4>
 
-function sourceAgreement(p,m){
-  const advice =
-    String(p?.advice || "").toLowerCase();
+              <div class="model-grid">
 
-  let agrees = 0;
-  let checks = 0;
+                ${strongBadges(p.model)}
 
-  if(
-    advice.includes("+1.5") ||
-    advice.includes("over 1.5")
-  ){
-    checks++;
+              </div>
 
-    if(m.over15 >= 65){
-      agrees++;
-    }
-  }
+              <div class="analysis-details">
 
-  if(
-    advice.includes("+2.5") ||
-    advice.includes("over 2.5")
-  ){
-    checks++;
+                <div class="analysis-row">
 
-    if(m.over25 >= 60){
-      agrees++;
-    }
-  }
+                  <span>
+                    Gol Beklentisi
+                  </span>
 
-  if(checks === 0){
-    return "Tarafsız";
-  }
+                  <b>
+                    ${p.model.expectedGoals?.home ?? "-"}
+                    -
+                    ${p.model.expectedGoals?.away ?? "-"}
+                  </b>
 
-  if(agrees === checks){
-    return "Yüksek Uyum";
-  }
+                </div>
 
-  if(agrees > 0){
-    return "Kısmi Uyum";
-  }
+                <div class="analysis-row">
 
-  return "Düşük Uyum";
-}
-function strongestModelPick(m){
-  const picks = [
-    {name:"1.5 Üst", value:m.over15},
-    {name:"2.5 Üst", value:m.over25},
-    {name:"KG Var", value:m.btts}
-  ];
+                  <span>
+                    Toplam Gol
+                  </span>
 
-  picks.sort((a,b)=>b.value-a.value);
+                  <b>
+                    ${p.model.expectedGoals?.total ?? "-"}
+                  </b>
 
-  return picks[0];
+                </div>
+
+                <div class="analysis-row">
+
+                  <span>
+                    Veri Alanı
+                  </span>
+
+                  <b>
+                    ${p.model.dataCount ?? "-"}/8
+                  </b>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </article>
+      `
+    )
+    .join("");
 }
 
-function sourceAgreement(p,m){
-  const advice =
-    String(p?.advice || "").toLowerCase();
 
-  let agrees = 0;
-  let checks = 0;
+function showPlaceholder(
+  title,
+  text
+){
 
-  if(
-    advice.includes("+1.5") ||
-    advice.includes("over 1.5")
-  ){
-    checks++;
-    if(m.over15 >= 65) agrees++;
-  }
+  document
+    .querySelector(
+      ".section-title h2"
+    )
+    .textContent =
+      title;
 
-  if(
-    advice.includes("+2.5") ||
-    advice.includes("over 2.5")
-  ){
-    checks++;
-    if(m.over25 >= 60) agrees++;
-  }
+  document
+    .getElementById("count")
+    .textContent =
+      "";
 
-  if(checks === 0){
-    return "Tarafsız";
-  }
-
-  if(agrees === checks){
-    return "Yüksek Uyum";
-  }
-
-  if(agrees > 0){
-    return "Kısmi Uyum";
-  }
-
-  return "Düşük Uyum";
+  document
+    .getElementById("list")
+    .innerHTML =
+      `
+      <div class="empty">
+        ${text}
+      </div>
+      `;
 }
-async function loadPrediction(fixture,btn){
+
+
+async function loadPrediction(
+  fixture,
+  btn
+){
+
   const box =
     document.getElementById(
       "pred-" + fixture
     );
 
-  box.classList.add("show");
+  box.classList.add(
+    "show"
+  );
 
   box.textContent =
     "Analiz hazırlanıyor...";
 
-  btn.disabled = true;
+  btn.disabled =
+    true;
 
   try{
-    const r =
+
+    const response =
       await fetch(
         `/api/prediction?fixture=${fixture}`
       );
 
-    const d =
-      await r.json();
+    const data =
+      await response.json();
 
-    if(!d.success){
+    if(
+      !data.success
+    ){
       throw new Error();
     }
 
     const p =
-      d.prediction;
+      data.prediction;
 
     const m =
-      d.model;
-const strongest =
-  strongestModelPick(m);
+      data.model;
 
-const agreement =
-  sourceAgreement(p,m);
-
-const dataQuality =
-  m.dataCount >= 7
-    ? "Yüksek"
-    : m.dataCount >= 4
-      ? "Orta"
-      : "Düşük";
     let html = `
       <div class="pred-title">
-        ${trAdvice(p.advice)}
+        ${esc(trAdvice(p?.advice))}
       </div>
 
       <div class="pred-grid">
 
         <div class="pill">
+
           Ev Sahibi
+
           <b>
-            ${p.percent.home || "-"}
+            ${esc(p?.percent?.home || "-")}
           </b>
+
         </div>
 
         <div class="pill">
+
           Beraberlik
+
           <b>
-            ${p.percent.draw || "-"}
+            ${esc(p?.percent?.draw || "-")}
           </b>
+
         </div>
 
         <div class="pill">
+
           Deplasman
+
           <b>
-            ${p.percent.away || "-"}
+            ${esc(p?.percent?.away || "-")}
           </b>
+
         </div>
 
       </div>
     `;
 
-   if(m){
-  html += `
-    <div class="model">
+    if(m){
 
-      <h4>
-        MaçAnaliz AI Detaylı Analiz
-      </h4>
+      const strongest =
+        strongestModelPick(m);
 
-      <div class="model-grid">
+      const agreement =
+        sourceAgreement(
+          p,
+          m
+        );
 
-        <div class="model-card">
-          1.5 Üst
-          <strong>${m.over15}%</strong>
-          <span class="conf">
-            ${m.confidence.over15}
-          </span>
+      const dataQuality =
+        m.dataCount >= 7
+          ?
+          "Yüksek"
+          :
+          m.dataCount >= 4
+            ?
+            "Orta"
+            :
+            "Düşük";
+
+      html += `
+        <div class="model">
+
+          <h4>
+            MaçAnaliz AI Detaylı Analiz
+          </h4>
+
+          <div class="model-grid">
+
+            <div class="model-card">
+
+              1.5 Üst
+
+              <strong>
+                ${m.over15}%
+              </strong>
+
+              <span class="conf">
+                ${esc(m.confidence?.over15)}
+              </span>
+
+            </div>
+
+            <div class="model-card">
+
+              2.5 Üst
+
+              <strong>
+                ${m.over25}%
+              </strong>
+
+              <span class="conf">
+                ${esc(m.confidence?.over25)}
+              </span>
+
+            </div>
+
+            <div class="model-card">
+
+              KG Var
+
+              <strong>
+                ${m.btts}%
+              </strong>
+
+              <span class="conf">
+                ${esc(m.confidence?.btts)}
+              </span>
+
+            </div>
+
+          </div>
+
+          <div class="consensus-box">
+
+            <div class="consensus-title">
+              En Güçlü Model Sinyali
+            </div>
+
+            <div class="consensus-value">
+
+              ${esc(strongest.name)}
+              ·
+              ${strongest.value}%
+
+            </div>
+
+            <div class="consensus-sub">
+
+              API tahmini ile model uyumu:
+              ${esc(agreement)}
+
+            </div>
+
+          </div>
+
+          <div class="analysis-details">
+
+            <div class="analysis-row">
+
+              <span>
+                Model Gol Beklentisi
+              </span>
+
+              <b>
+                ${m.expectedGoals?.home ?? "-"}
+                -
+                ${m.expectedGoals?.away ?? "-"}
+              </b>
+
+            </div>
+
+            <div class="analysis-row">
+
+              <span>
+                Toplam Gol Beklentisi
+              </span>
+
+              <b>
+                ${m.expectedGoals?.total ?? "-"}
+              </b>
+
+            </div>
+
+            <div class="analysis-row">
+
+              <span>
+                Veri Kalitesi
+              </span>
+
+              <b>
+                ${dataQuality}
+              </b>
+
+            </div>
+
+            <div class="analysis-row">
+
+              <span>
+                Kullanılan Veri Alanı
+              </span>
+
+              <b>
+                ${m.dataCount ?? 0}/8
+              </b>
+
+            </div>
+
+            <div class="analysis-row">
+
+              <span>
+                API Görüşü
+              </span>
+
+              <b>
+                ${esc(trAdvice(p?.advice))}
+              </b>
+
+            </div>
+
+            <div class="analysis-row">
+
+              <span>
+                Hesaplama
+              </span>
+
+              <b>
+                Poisson + form + lig verisi
+              </b>
+
+            </div>
+
+          </div>
+
+          <div class="source-badges">
+
+            <span class="source-badge active">
+              ✓ API-Football
+            </span>
+
+            <span class="source-badge active">
+              ✓ MaçAnaliz Model
+            </span>
+
+            <span class="source-badge">
+              Sportmonks · Yakında
+            </span>
+
+            <span class="source-badge">
+              Dış Uzman Konsensüsü · Yakında
+            </span>
+
+          </div>
+
+          <div class="note">
+
+            Aktif sonuç hesabında şu anda
+            API-Football verisi ve MaçAnaliz
+            modeli kullanılır.
+
+            Henüz bağlanmamış kaynaklar
+            skora dahil edilmez.
+
+          </div>
+
         </div>
+      `;
 
-        <div class="model-card">
-          2.5 Üst
-          <strong>${m.over25}%</strong>
-          <span class="conf">
-            ${m.confidence.over25}
-          </span>
-        </div>
+      const match =
+        matches.find(
+          item =>
+            Number(item.id) ===
+            Number(fixture)
+        );
 
-        <div class="model-card">
-          KG Var
-          <strong>${m.btts}%</strong>
-          <span class="conf">
-            ${m.confidence.btts}
-          </span>
-        </div>
+      saveStrongPick(
+        match,
+        p,
+        m
+      );
+    }
 
-      </div>
+    box.innerHTML =
+      html;
 
-      <div class="consensus-box">
+  }catch(e){
 
-        <div class="consensus-title">
-          En Güçlü Model Sinyali
-        </div>
+    box.textContent =
+      "Bu maç için analiz verisi alınamadı veya API kotası doldu.";
 
-        <div class="consensus-value">
-          ${strongest.name} · ${strongest.value}%
-        </div>
-
-        <div class="consensus-sub">
-          API tahmini ile model uyumu:
-          ${agreement}
-        </div>
-
-      </div>
-
-      <div class="analysis-details">
-
-        <div class="analysis-row">
-          <span>Model Gol Beklentisi</span>
-          <b>
-            ${m.expectedGoals.home}
-            -
-            ${m.expectedGoals.away}
-          </b>
-        </div>
-
-        <div class="analysis-row">
-          <span>Toplam Gol Beklentisi</span>
-          <b>
-            ${m.expectedGoals.total}
-          </b>
-        </div>
-
-        <div class="analysis-row">
-          <span>Veri Kalitesi</span>
-          <b>
-            ${dataQuality}
-          </b>
-        </div>
-
-        <div class="analysis-row">
-          <span>Kullanılan Veri Alanı</span>
-          <b>
-            ${m.dataCount}/8
-          </b>
-        </div>
-
-        <div class="analysis-row">
-          <span>API Görüşü</span>
-          <b>
-            ${trAdvice(p.advice)}
-          </b>
-        </div>
-
-        <div class="analysis-row">
-          <span>Hesaplama</span>
-          <b>
-            Poisson + form + lig verisi
-          </b>
-        </div>
-
-      </div>
-
-      <div class="source-badges">
-
-        <span class="source-badge active">
-          ✓ API-Football
-        </span>
-
-        <span class="source-badge active">
-          ✓ MaçAnaliz Model
-        </span>
-
-        <span class="source-badge">
-          Sportmonks · Yakında
-        </span>
-
-        <span class="source-badge">
-          Dış Uzman Konsensüsü · Yakında
-        </span>
-
-      </div>
-
-      <div class="note">
-        Aktif hesaplama şu anda API-Football verisi
-        ve MaçAnaliz Poisson modelini kullanır.
-        Henüz bağlanmamış dış kaynaklar sonuç
-        hesabına dahil edilmez.
-      </div>
-
-    </div>
-  `;
+    btn.disabled =
+      false;
+  }
 }
+
+
+document
+  .querySelectorAll(
+    ".bar button"
+  )
+  .forEach(
+    btn => {
+
+      btn.onclick =
+        () => {
+
+          document
+            .querySelectorAll(
+              ".bar button"
+            )
+            .forEach(
+              x =>
+                x.classList.remove(
+                  "active"
+                )
+            );
+
+          btn.classList.add(
+            "active"
+          );
+
+          activeFilter =
+            btn.dataset.filter;
+
+          render();
+        };
+    }
+  );
+
 
 const navButtons =
   document.querySelectorAll(
     ".nav button"
   );
 
-navButtons.forEach(
-  btn =>
-    btn.classList.remove("active")
-);
 
-navButtons[0]
-  .classList.add("active");
-
-navButtons[0].onclick = () => {
+function setNavActive(index){
 
   navButtons.forEach(
-    x => x.classList.remove("active")
+    button =>
+      button.classList.remove(
+        "active"
+      )
   );
 
-  navButtons[0]
-    .classList.add("active");
+  navButtons[index]
+    .classList.add(
+      "active"
+    );
+}
 
-  document.querySelector(".bar")
-    .style.display = "flex";
 
-  render();
-};
+navButtons[0].onclick =
+  () => {
 
-navButtons[1].onclick = () => {
+    setNavActive(0);
 
-  navButtons.forEach(
-    x => x.classList.remove("active")
-  );
+    document
+      .querySelector(".bar")
+      .style.display =
+        "flex";
 
-  navButtons[1]
-    .classList.add("active");
+    activeFilter =
+      "all";
 
-  document.querySelector(".bar")
-    .style.display = "flex";
+    document
+      .querySelectorAll(
+        ".bar button"
+      )
+      .forEach(
+        (button,index) => {
 
-  render();
-};
+          button.classList.toggle(
+            "active",
+            index === 0
+          );
+        }
+      );
 
-navButtons[2].onclick = () => {
+    render();
+  };
 
-  navButtons.forEach(
-    x => x.classList.remove("active")
-  );
 
-  navButtons[2]
-    .classList.add("active");
+navButtons[1].onclick =
+  () => {
 
-  document.querySelector(".bar")
-    .style.display = "none";
+    setNavActive(1);
 
-  renderStrongPicks();
-};
+    document
+      .querySelector(".bar")
+      .style.display =
+        "flex";
+
+    render();
+  };
+
+
+navButtons[2].onclick =
+  () => {
+
+    setNavActive(2);
+
+    document
+      .querySelector(".bar")
+      .style.display =
+        "none";
+
+    renderStrongPicks();
+  };
+
+
+navButtons[3].onclick =
+  () => {
+
+    setNavActive(3);
+
+    document
+      .querySelector(".bar")
+      .style.display =
+        "none";
+
+    showPlaceholder(
+      "Favoriler",
+      "Favorilere maç ekleme özelliğini bir sonraki geliştirmede aktif edeceğiz."
+    );
+  };
+
 
 (async()=>{
 
   const root =
-    document.getElementById("list");
+    document.getElementById(
+      "list"
+    );
 
   root.innerHTML =
-    '<div class="loading">Gerçek maç verileri yükleniyor...</div>';
+    `
+    <div class="loading">
+      Gerçek maç verileri yükleniyor...
+    </div>
+    `;
 
   try{
 
-    const r =
+    const response =
       await fetch(
         "/api/fixtures",
-        {cache:"no-store"}
+        {
+          cache:
+            "no-store"
+        }
       );
 
-    const d =
-      await r.json();
+    const data =
+      await response.json();
 
-    if(!d.success){
+    if(
+      !data.success
+    ){
       throw new Error();
     }
 
     matches =
-      d.matches || [];
+      data.matches || [];
 
     render();
 
@@ -1029,10 +2173,16 @@ navButtons[2].onclick = () => {
         "hata";
 
     root.innerHTML =
-      '<div class="error">Maç verileri yüklenemedi.</div>';
+      `
+      <div class="error">
+        Maç verileri yüklenemedi.
+      </div>
+      `;
   }
 
 })();
+
 </script>
+
 </body>
 </html>
