@@ -686,7 +686,9 @@ async function fixtures(
 
         errors:
           e.apiErrors || {},
-
+        rateLimit:
+        e.rateLimit || null,
+  
         stale:
           false,
 
