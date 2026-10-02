@@ -2878,7 +2878,11 @@ async function apiStatus(
     return Response.json(
       {
         success:
-          response.ok,
+          response.ok &&
+          !(
+            data?.errors &&
+            object.keys(data.errors).length > 0
+            ),
 
         httpStatus:
           response.status,
