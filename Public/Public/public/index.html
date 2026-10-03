@@ -1213,6 +1213,127 @@ button:disabled{opacity:.55}
   font-size:8px;
   text-align:right;
 }
+/* =========================
+   TAKIM MERKEZİ
+   ========================= */
+
+.team-center-card{
+  padding:18px 16px 22px;
+}
+
+.team-center-hero{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  padding:16px;
+  background:linear-gradient(
+    145deg,
+    #101f32,
+    #0b1726
+  );
+  border:1px solid var(--line);
+  border-radius:18px;
+}
+
+.team-center-logo{
+  width:76px;
+  height:76px;
+  flex:0 0 76px;
+  object-fit:contain;
+}
+
+.team-center-info{
+  min-width:0;
+  flex:1;
+}
+
+.team-center-name{
+  color:var(--text);
+  font-size:19px;
+  font-weight:900;
+}
+
+.team-center-league{
+  margin-top:5px;
+  color:var(--green);
+  font-size:11px;
+  font-weight:800;
+}
+
+.team-center-country{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.team-center-grid{
+  display:grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+.team-center-stat{
+  padding:13px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+
+.team-center-stat small{
+  display:block;
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.team-center-stat strong{
+  display:block;
+  overflow:hidden;
+  color:var(--text);
+  font-size:11px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.team-center-tabs{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  margin-top:14px;
+  padding-bottom:4px;
+  scrollbar-width:none;
+}
+
+.team-center-tabs::-webkit-scrollbar{
+  display:none;
+}
+
+.team-center-tab{
+  flex:0 0 auto;
+  padding:9px 13px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#0d1b2a;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+}
+
+.team-center-tab.active{
+  background:var(--green);
+  border-color:var(--green);
+  color:#06120d;
+}
+
+.team-center-section{
+  margin-top:12px;
+  padding:14px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:16px;
+}
 </style>
 </head>
 
