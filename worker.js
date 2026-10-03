@@ -37,6 +37,15 @@ if (
     cors
   );
 }
+ if (
+  url.pathname ===
+  "/api/football-data-test"
+) {
+  return footballDataTest(
+    env,
+    cors
+  );
+}
     if (
       url.pathname ===
       "/api/fixtures"
@@ -3030,6 +3039,97 @@ async function apiStatus(
           "Cache-Control":
             "no-store"
         }
+      }
+    );
+  }
+}
+/* =========================
+   FOOTBALL-DATA.ORG
+   ========================= */
+
+async function footballDataTest(
+  env,
+  cors
+) {
+  if (!env.FOOTBALL_DATA_KEY) {
+    return Response.json(
+      {
+        success: false,
+        error: "FOOTBALL_DATA_KEY bulunamadı."
+      },
+      {
+        status: 500,
+        headers: cors
+      }
+    );
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.football-data.org/v4/competitions",
+      {
+        headers: {
+          "X-Auth-Token":
+            env.FOOTBALL_DATA_KEY
+        }
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      return Response.json(
+        {
+          success: false,
+          status: response.status,
+          error:
+            data?.message ||
+            "Football-Data isteği başarısız."
+        },
+        {
+          status: response.status,
+          headers: cors
+        }
+      );
+    }
+
+    return Response.json(
+      {
+        success: true,
+        source: "football-data.org",
+        competitions:
+          (data.competitions || []).map(
+            competition => ({
+              id: competition.id,
+              name: competition.name,
+              code: competition.code,
+              area:
+                competition.area?.name ||
+                null
+            })
+          )
+      },
+      {
+        headers: {
+          ...cors,
+          "Cache-Control":
+            "public, max-age=3600"
+        }
+      }
+    );
+
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          error.message ||
+          "Football-Data bağlantı hatası."
+      },
+      {
+        status: 500,
+        headers: cors
       }
     );
   }
