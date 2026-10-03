@@ -8915,16 +8915,7 @@ loadFixtures();
       openMatchCenterTab(
         button.dataset.mcTab
       );
-
-    }
-  );
-
-
-  window.openMatchCenterTab =
-    openMatchCenterTab;
-
-})();
-   if(
+if(
   button.dataset.mcTab ===
     "standings"
 ){
@@ -8942,6 +8933,23 @@ loadFixtures();
 
   }
 }
+    }
+  );
+
+
+  window.openMatchCenterTab =
+    openMatchCenterTab;
+
+})();
+   if(
+  button.dataset.mcTab ===
+    "standings"
+){
+
+  const match =
+    window.matchCenterCurrentMatch;
+
+  
 </script>
 </body>
 </html>
