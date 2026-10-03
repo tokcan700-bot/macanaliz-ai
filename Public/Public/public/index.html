@@ -8515,5 +8515,72 @@ loadFixtures();
 
 })();
 </script>
+<script id="match-center-tabs-v1">
+(function(){
+
+  function openMatchCenterTab(
+    tabName
+  ){
+
+    document
+      .querySelectorAll(
+        ".mc-tab"
+      )
+      .forEach(
+        button => {
+
+          button.classList.toggle(
+            "active",
+            button.dataset.mcTab ===
+              tabName
+          );
+
+        }
+      );
+
+    document
+      .querySelectorAll(
+        ".mc-panel"
+      )
+      .forEach(
+        panel => {
+
+          panel.classList.toggle(
+            "active",
+            panel.id ===
+              `mc-${tabName}`
+          );
+
+        }
+      );
+  }
+
+
+  document.addEventListener(
+    "click",
+    event => {
+
+      const button =
+        event.target.closest(
+          ".mc-tab"
+        );
+
+      if (!button) {
+        return;
+      }
+
+      openMatchCenterTab(
+        button.dataset.mcTab
+      );
+
+    }
+  );
+
+
+  window.openMatchCenterTab =
+    openMatchCenterTab;
+
+})();
+</script>
 </body>
 </html>
