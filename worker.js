@@ -65,6 +65,16 @@ if (
     cors
   );
 }
+if (
+  url.pathname ===
+  "/api/team-players"
+) {
+  return sportsDbTeamPlayers(
+    ctx,
+    cors,
+    url
+  );
+}
     if (
       url.pathname ===
       "/api/fixtures"
@@ -3463,6 +3473,213 @@ async function sportsDbTest(
         error:
           error.message ||
           "TheSportsDB bağlantı hatası."
+      },
+      {
+        status: 500,
+        headers: cors
+      }
+    );
+  }
+}
+/* =========================
+   THESPORTSDB TEAM PLAYERS
+   ========================= */
+
+async function sportsDbTeamPlayers(
+  ctx,
+  cors,
+  url
+) {
+  const team =
+    (
+      url.searchParams.get("team") ||
+      ""
+    ).trim();
+
+  if (!team) {
+    return Response.json(
+      {
+        success: false,
+        error: "Takım adı gerekli."
+      },
+      {
+        status: 400,
+        headers: cors
+      }
+    );
+  }
+
+  const cache =
+    caches.default;
+
+  const cacheKey =
+    new Request(
+      `${url.origin}/api/team-players-v1?team=${encodeURIComponent(
+        team.toLowerCase()
+      )}`
+    );
+
+  const cached =
+    await cache.match(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+
+    /* Önce takım ID'sini bul */
+    const teamResponse =
+      await fetch(
+        `https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=${encodeURIComponent(
+          team
+        )}`
+      );
+
+    const teamData =
+      await teamResponse.json();
+
+    const foundTeam =
+      teamData?.teams?.[0];
+
+    if (!foundTeam?.idTeam) {
+      return Response.json(
+        {
+          success: false,
+          source: "TheSportsDB",
+          error: "Takım bulunamadı."
+        },
+        {
+          status: 404,
+          headers: cors
+        }
+      );
+    }
+
+    /* Takım oyuncularını getir */
+    const playersResponse =
+      await fetch(
+        `https://www.thesportsdb.com/api/v1/json/123/lookup_all_players.php?id=${foundTeam.idTeam}`
+      );
+
+    const playersData =
+      await playersResponse.json();
+
+    const players =
+      (
+        playersData?.player ||
+        playersData?.players ||
+        []
+      ).map(
+        player => ({
+          id:
+            player.idPlayer ||
+            null,
+
+          name:
+            player.strPlayer ||
+            "",
+
+          number:
+            player.strNumber ||
+            null,
+
+          position:
+            player.strPosition ||
+            null,
+
+          nationality:
+            player.strNationality ||
+            null,
+
+          birthDate:
+            player.dateBorn ||
+            null,
+
+          height:
+            player.strHeight ||
+            null,
+
+          weight:
+            player.strWeight ||
+            null,
+
+          photo:
+            player.strCutout ||
+            player.strThumb ||
+            null
+        })
+      );
+
+    const result =
+      Response.json(
+        {
+          success: true,
+
+          source:
+            "TheSportsDB",
+
+          team: {
+            id:
+              foundTeam.idTeam,
+
+            name:
+              foundTeam.strTeam,
+
+            shortName:
+              foundTeam.strTeamShort ||
+              null,
+
+            badge:
+              foundTeam.strBadge ||
+              null,
+
+            stadium:
+              foundTeam.strStadium ||
+              null,
+
+            league:
+              foundTeam.strLeague ||
+              null
+          },
+
+          playerCount:
+            players.length,
+
+          players
+        },
+        {
+          headers: {
+            ...cors,
+
+            /*
+              Kadro bilgisi sık değişmez.
+              12 saat cache.
+            */
+            "Cache-Control":
+              "public, max-age=43200"
+          }
+        }
+      );
+
+    ctx.waitUntil(
+      cache.put(
+        cacheKey,
+        result.clone()
+      )
+    );
+
+    return result;
+
+  } catch (error) {
+
+    return Response.json(
+      {
+        success: false,
+        source: "TheSportsDB",
+        error:
+          error.message ||
+          "Oyuncu bilgileri alınamadı."
       },
       {
         status: 500,
