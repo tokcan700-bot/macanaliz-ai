@@ -57,6 +57,14 @@ if (
     url
   );
 }
+if (
+  url.pathname ===
+  "/api/sportsdb-test"
+) {
+  return sportsDbTest(
+    cors
+  );
+}
     if (
       url.pathname ===
       "/api/fixtures"
@@ -3372,6 +3380,89 @@ async function footballDataStandings(
         error:
           error.message ||
           "Puan durumu bağlantı hatası."
+      },
+      {
+        status: 500,
+        headers: cors
+      }
+    );
+  }
+}
+/* =========================
+   THESPORTSDB TEST
+   ========================= */
+
+async function sportsDbTest(
+  cors
+) {
+  try {
+    const response =
+      await fetch(
+        "https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=Arsenal"
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      return Response.json(
+        {
+          success: false,
+          source: "TheSportsDB",
+          status: response.status,
+          error:
+            "TheSportsDB isteği başarısız."
+        },
+        {
+          status: response.status,
+          headers: cors
+        }
+      );
+    }
+
+    const teams =
+      (data.teams || []).map(
+        team => ({
+          id: team.idTeam || null,
+          name: team.strTeam || "",
+          shortName:
+            team.strTeamShort || null,
+          league:
+            team.strLeague || null,
+          stadium:
+            team.strStadium || null,
+          country:
+            team.strCountry || null,
+          badge:
+            team.strBadge || null,
+          formedYear:
+            team.intFormedYear || null
+        })
+      );
+
+    return Response.json(
+      {
+        success: true,
+        source: "TheSportsDB",
+        teams
+      },
+      {
+        headers: {
+          ...cors,
+          "Cache-Control":
+            "public, max-age=86400"
+        }
+      }
+    );
+
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        source: "TheSportsDB",
+        error:
+          error.message ||
+          "TheSportsDB bağlantı hatası."
       },
       {
         status: 500,
