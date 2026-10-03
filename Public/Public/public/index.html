@@ -6,6 +6,64 @@
 <title>MaçAnaliz AI</title>
 
 <style>
+/* =========================
+   MAÇ ARAMA
+   ========================= */
+
+.match-search{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin:12px 14px;
+  padding:0 12px;
+  height:48px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:15px;
+}
+
+.match-search:focus-within{
+  border-color:var(--green);
+}
+
+.match-search-icon{
+  color:var(--muted);
+  font-size:21px;
+  line-height:1;
+}
+
+.match-search input{
+  flex:1;
+  min-width:0;
+  height:100%;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--text);
+  font-size:13px;
+  font-weight:700;
+}
+
+.match-search input::placeholder{
+  color:var(--muted);
+  font-weight:600;
+}
+
+.match-search button{
+  width:30px;
+  height:30px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.06);
+  color:var(--muted);
+  font-size:20px;
+  line-height:28px;
+}
+
+.match-search button:active{
+  transform:scale(.94);
+}
 :root{
   --bg:#07111f;
   --panel:#0d1b2c;
@@ -1195,6 +1253,24 @@ button:disabled{opacity:.55}
     <small>Güçlü Tahmin</small>
   </div>
 </section>
+<div class="match-search" id="matchSearch">
+  <span class="match-search-icon">⌕</span>
+
+  <input
+    type="search"
+    id="matchSearchInput"
+    placeholder="Takım veya lig ara..."
+    autocomplete="off"
+  >
+
+  <button
+    type="button"
+    id="matchSearchClear"
+    aria-label="Aramayı temizle"
+  >
+    ×
+  </button>
+</div>
 <div class="filter-bar" id="filterBar">
   <button class="active" data-filter="all">Tümü</button>
   <button data-filter="NS">Başlamadı</button>
@@ -2387,7 +2463,20 @@ function matchCard(match){
 
 
 /* MAÇLAR */
+let matchSearchQuery = "";
 
+function normalizeMatchSearch(
+  value
+){
+  return String(value || "")
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .trim();
+}
 function renderMatches(){
 
   activePage =
@@ -2430,13 +2519,50 @@ function renderMatches(){
     summaryStrong.textContent =
       getStrongPicks().length;
   }
-  const filtered =
-    matches.filter(
-      match =>
+ const searchQuery =
+  normalizeMatchSearch(
+    matchSearchQuery
+  );
+
+const filtered =
+  matches.filter(
+    match => {
+
+      const statusMatch =
         activeFilter === "all" ||
         group(match.status) ===
-        activeFilter
-    );
+          activeFilter;
+
+      if(!statusMatch){
+        return false;
+      }
+
+      if(!searchQuery){
+        return true;
+      }
+
+      const searchable =
+        normalizeMatchSearch(
+          [
+            match.home?.name ||
+              match.home ||
+              "",
+            match.away?.name ||
+              match.away ||
+              "",
+            match.league?.name ||
+              match.league ||
+              "",
+            match.league?.country ||
+              ""
+          ].join(" ")
+        );
+
+      return searchable.includes(
+        searchQuery
+      );
+    }
+  );
 
   document.querySelector(
     ".section-title h2"
@@ -8855,6 +8981,55 @@ loadFixtures();
     },
     1200
   );
+
+})();
+</script>
+<script id="match-search-v1">
+(function(){
+
+  const input =
+    document.getElementById(
+      "matchSearchInput"
+    );
+
+  const clearButton =
+    document.getElementById(
+      "matchSearchClear"
+    );
+
+  if(!input){
+    return;
+  }
+
+  input.addEventListener(
+    "input",
+    () => {
+
+      matchSearchQuery =
+        input.value || "";
+
+      renderMatches();
+
+    }
+  );
+
+  if(clearButton){
+
+    clearButton.addEventListener(
+      "click",
+      () => {
+
+        input.value = "";
+        matchSearchQuery = "";
+
+        renderMatches();
+
+        input.focus();
+
+      }
+    );
+
+  }
 
 })();
 </script>
