@@ -75,6 +75,16 @@ if (
     url
   );
 }
+if (
+  url.pathname ===
+  "/api/team-search"
+) {
+  return sportsDbTeamSearch(
+    ctx,
+    cors,
+    url
+  );
+}
     if (
       url.pathname ===
       "/api/fixtures"
@@ -3686,5 +3696,181 @@ async function sportsDbTeamPlayers(
         headers: cors
       }
     );
+  }
+}
+async function sportsDbTeamSearch(
+  ctx,
+  cors,
+  url
+) {
+
+  const name =
+    String(
+      url.searchParams.get("name") || ""
+    ).trim();
+
+  if (!name) {
+    return Response.json(
+      {
+        success: false,
+        error: "Takım adı gerekli."
+      },
+      {
+        status: 400,
+        headers: cors
+      }
+    );
+  }
+
+  const cache =
+    caches.default;
+
+  const cacheUrl =
+    new URL(url.origin);
+
+  cacheUrl.pathname =
+    "/api/team-search-v1";
+
+  cacheUrl.searchParams.set(
+    "name",
+    name.toLowerCase()
+  );
+
+  const cacheRequest =
+    new Request(
+      cacheUrl.toString(),
+      {
+        method: "GET"
+      }
+    );
+
+  const cached =
+    await cache.match(
+      cacheRequest
+    );
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+
+    const apiUrl =
+      "https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=" +
+      encodeURIComponent(name);
+
+    const response =
+      await fetch(apiUrl);
+
+    if (!response.ok) {
+      throw new Error(
+        "Takım kaynağına ulaşılamadı."
+      );
+    }
+
+    const data =
+      await response.json();
+
+    const teams =
+      Array.isArray(data?.teams)
+        ? data.teams
+        : [];
+
+    const result =
+      teams.map(
+        team => ({
+          id:
+            team.idTeam || null,
+
+          name:
+            team.strTeam || "",
+
+          shortName:
+            team.strTeamShort || "",
+
+          alternateName:
+            team.strAlternate || "",
+
+          formedYear:
+            team.intFormedYear || null,
+
+          country:
+            team.strCountry || "",
+
+          league:
+            team.strLeague || "",
+
+          leagueId:
+            team.idLeague || null,
+
+          stadium:
+            team.strStadium || "",
+
+          stadiumLocation:
+            team.strStadiumLocation || "",
+
+          stadiumCapacity:
+            team.intStadiumCapacity || null,
+
+          badge:
+            team.strBadge || "",
+
+          logo:
+            team.strLogo || "",
+
+          jersey:
+            team.strEquipment || "",
+
+          website:
+            team.strWebsite || "",
+
+          description:
+            team.strDescriptionEN || ""
+        })
+      );
+
+    const body = {
+      success: true,
+      query: name,
+      count: result.length,
+      teams: result
+    };
+
+    const resultResponse =
+      Response.json(
+        body,
+        {
+          headers: {
+            ...cors,
+            "Cache-Control":
+              "public, max-age=86400"
+          }
+        }
+      );
+
+    ctx.waitUntil(
+      cache.put(
+        cacheRequest,
+        resultResponse.clone()
+      )
+    );
+
+    return resultResponse;
+
+  } catch (error) {
+
+    return Response.json(
+      {
+        success: false,
+        error:
+          error.message ||
+          "Takım aranamadı."
+      },
+      {
+        status: 500,
+        headers: cors
+      }
+    );
+
   }
 }
