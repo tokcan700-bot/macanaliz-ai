@@ -4309,7 +4309,27 @@ async function loadMatchCenterStandings(
   home,
   away
 ){
+const competition =
+  getFootballDataCompetition(
+    league
+  );
 
+const cacheKey =
+  [
+    competition || "none",
+    home?.name || "",
+    away?.name || ""
+  ].join("|");
+
+if(
+  window.matchCenterStandingsKey ===
+    cacheKey
+){
+  return;
+}
+
+window.matchCenterStandingsKey =
+  cacheKey;
   const content =
     document.getElementById(
       "mcStandingsContent"
@@ -4319,11 +4339,7 @@ async function loadMatchCenterStandings(
     return;
   }
 
-  const competition =
-    getFootballDataCompetition(
-      league
-    );
-
+  
   if(!competition){
 
     content.innerHTML = `
@@ -4559,11 +4575,11 @@ function renderLiveDetail(data){
   const league =
     data.league ||
     {};
-    loadMatchCenterStandings(
+    window.matchCenterCurrentMatch = {
   league,
   home,
   away
-);
+};
   const homeStats =
     data.statistics?.home ||
     {};
@@ -8908,6 +8924,24 @@ loadFixtures();
     openMatchCenterTab;
 
 })();
+   if(
+  button.dataset.mcTab ===
+    "standings"
+){
+
+  const match =
+    window.matchCenterCurrentMatch;
+
+  if(match){
+
+    loadMatchCenterStandings(
+      match.league,
+      match.home,
+      match.away
+    );
+
+  }
+}
 </script>
 </body>
 </html>
