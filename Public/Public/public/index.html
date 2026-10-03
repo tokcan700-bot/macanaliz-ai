@@ -4218,7 +4218,330 @@ function renderEventSummary(events){
   `;
 }
 
+function getFootballDataCompetition(
+  league
+){
 
+  const name =
+    String(
+      league?.name || ""
+    )
+      .toLowerCase()
+      .trim();
+
+  const country =
+    String(
+      league?.country || ""
+    )
+      .toLowerCase()
+      .trim();
+
+
+  if(
+    name.includes(
+      "premier league"
+    ) &&
+    country.includes(
+      "england"
+    )
+  ){
+    return "PL";
+  }
+
+
+  if(
+    name.includes("la liga") ||
+    name.includes("primera division")
+  ){
+    return "PD";
+  }
+
+
+  if(
+    name.includes("bundesliga") &&
+    country.includes("germany")
+  ){
+    return "BL1";
+  }
+
+
+  if(
+    name === "serie a" &&
+    country.includes("italy")
+  ){
+    return "SA";
+  }
+
+
+  if(
+    name.includes("ligue 1")
+  ){
+    return "FL1";
+  }
+
+
+  if(
+    name.includes("eredivisie")
+  ){
+    return "DED";
+  }
+
+
+  if(
+    name.includes("primeira liga")
+  ){
+    return "PPL";
+  }
+
+
+  if(
+    name === "serie a" &&
+    country.includes("brazil")
+  ){
+    return "BSA";
+  }
+
+
+  return null;
+}
+async function loadMatchCenterStandings(
+  league,
+  home,
+  away
+){
+
+  const content =
+    document.getElementById(
+      "mcStandingsContent"
+    );
+
+  if(!content){
+    return;
+  }
+
+  const competition =
+    getFootballDataCompetition(
+      league
+    );
+
+  if(!competition){
+
+    content.innerHTML = `
+      <div class="mc-empty">
+        Bu lig için puan durumu
+        kaynağı henüz bağlı değil.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  content.innerHTML = `
+    <div class="mc-loading">
+      Puan durumu yükleniyor...
+    </div>
+  `;
+
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/standings?competition=${encodeURIComponent(
+          competition
+        )}`
+      );
+
+    const data =
+      await response.json();
+
+
+    if(
+      !response.ok ||
+      !data.success ||
+      !Array.isArray(data.table)
+    ){
+      throw new Error(
+        data.error ||
+        "Puan durumu alınamadı."
+      );
+    }
+
+
+    const normalize =
+      value =>
+        String(value || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(
+            /[\u0300-\u036f]/g,
+            ""
+          )
+          .replace(
+            /[^a-z0-9]/g,
+            ""
+          );
+
+
+    const homeName =
+      normalize(home?.name);
+
+    const awayName =
+      normalize(away?.name);
+
+
+    const rows =
+      data.table.map(
+        row => {
+
+          const teamName =
+            normalize(
+              row.team?.name
+            );
+
+          const shortName =
+            normalize(
+              row.team?.shortName
+            );
+
+          const highlight =
+            teamName === homeName ||
+            teamName === awayName ||
+            (
+              shortName &&
+              (
+                homeName.includes(
+                  shortName
+                ) ||
+                awayName.includes(
+                  shortName
+                )
+              )
+            );
+
+          return `
+            <tr
+              ${
+                highlight
+                  ? 'style="background:rgba(34,197,94,.10)"'
+                  : ""
+              }>
+
+              <td>
+                ${row.position ?? "-"}
+              </td>
+
+              <td>
+                <div class="mc-table-team">
+
+                  ${
+                    row.team?.crest
+                      ? `
+                        <img
+                          src="${escapeHtml(row.team.crest)}"
+                          alt=""
+                          loading="lazy"
+                        >
+                      `
+                      : ""
+                  }
+
+                  <span>
+                    ${escapeHtml(
+                      row.team?.shortName ||
+                      row.team?.name ||
+                      "-"
+                    )}
+                  </span>
+
+                </div>
+              </td>
+
+              <td>
+                ${row.played ?? 0}
+              </td>
+
+              <td>
+                ${row.won ?? 0}
+              </td>
+
+              <td>
+                ${row.draw ?? 0}
+              </td>
+
+              <td>
+                ${row.lost ?? 0}
+              </td>
+
+              <td>
+                ${row.goalDifference ?? 0}
+              </td>
+
+              <td>
+                <strong>
+                  ${row.points ?? 0}
+                </strong>
+              </td>
+
+            </tr>
+          `;
+        }
+      )
+      .join("");
+
+
+    content.innerHTML = `
+
+      <div
+        style="
+          overflow-x:auto;
+          -webkit-overflow-scrolling:touch;
+        "
+      >
+
+        <table class="mc-table">
+
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Takım</th>
+              <th>O</th>
+              <th>G</th>
+              <th>B</th>
+              <th>M</th>
+              <th>AV</th>
+              <th>P</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${rows}
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div class="mc-source">
+        Kaynak: football-data.org
+      </div>
+    `;
+
+
+  }catch(error){
+
+    content.innerHTML = `
+      <div class="mc-empty">
+        ${escapeHtml(
+          error.message ||
+          "Puan durumu yüklenemedi."
+        )}
+      </div>
+    `;
+
+  }
+}
 function renderLiveDetail(data){
 
   const home =
@@ -4236,7 +4559,11 @@ function renderLiveDetail(data){
   const league =
     data.league ||
     {};
-
+    loadMatchCenterStandings(
+  league,
+  home,
+  away
+);
   const homeStats =
     data.statistics?.home ||
     {};
