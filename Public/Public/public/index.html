@@ -1163,7 +1163,22 @@ function showFilters(show){
         : "none";
 }
 
+function showDailySummary(show){
 
+  const summary =
+    document.getElementById(
+      "dailySummary"
+    );
+
+  if(!summary){
+    return;
+  }
+
+  summary.style.display =
+    show
+      ? "grid"
+      : "none";
+}
 function showPickFilters(show){
 
   document
@@ -2006,6 +2021,7 @@ function renderMatches(){
   showHero(true);
   showFilters(true);
   showPickFilters(false);
+  showDailySummary(true);
   const summaryMatches =
     document.getElementById(
       "summaryMatches"
@@ -2091,6 +2107,7 @@ function renderFavorites(){
   showHero(false);
   showFilters(false);
   showPickFilters(false);
+  showDailySummary(false);
 
   const saved =
     getFavorites();
@@ -2163,6 +2180,7 @@ function renderPredictionPage(){
   showHero(false);
   showFilters(false);
   showPickFilters(true);
+  showDailySummary(false);
 
   let picks =
     getStrongPicks()
