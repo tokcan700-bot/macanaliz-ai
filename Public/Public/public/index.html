@@ -9001,17 +9001,29 @@ loadFixtures();
     return;
   }
 
-  input.addEventListener(
-    "input",
-    () => {
+ let searchTimer = null;
 
-      matchSearchQuery =
-        input.value || "";
+input.addEventListener(
+  "input",
+  () => {
 
-      renderMatches();
+    matchSearchQuery =
+      input.value || "";
 
-    }
-  );
+    clearTimeout(
+      searchTimer
+    );
+
+    searchTimer =
+      setTimeout(
+        () => {
+          renderMatches();
+        },
+        200
+      );
+
+  }
+);
 
   if(clearButton){
 
