@@ -4,7 +4,127 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>MaçAnaliz AI</title>
+/* =========================
+   TAKIM MERKEZİ
+   ========================= */
 
+.team-center-card{
+  padding:18px 16px 22px;
+}
+
+.team-center-hero{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  padding:16px;
+  background:linear-gradient(
+    145deg,
+    #101f32,
+    #0b1726
+  );
+  border:1px solid var(--line);
+  border-radius:18px;
+}
+
+.team-center-logo{
+  width:76px;
+  height:76px;
+  flex:0 0 76px;
+  object-fit:contain;
+}
+
+.team-center-info{
+  min-width:0;
+  flex:1;
+}
+
+.team-center-name{
+  color:var(--text);
+  font-size:19px;
+  font-weight:900;
+}
+
+.team-center-league{
+  margin-top:5px;
+  color:var(--green);
+  font-size:11px;
+  font-weight:800;
+}
+
+.team-center-country{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.team-center-grid{
+  display:grid;
+  grid-template-columns:
+    repeat(2, minmax(0,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+
+.team-center-stat{
+  padding:13px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+
+.team-center-stat small{
+  display:block;
+  margin-bottom:5px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.team-center-stat strong{
+  display:block;
+  overflow:hidden;
+  color:var(--text);
+  font-size:11px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.team-center-tabs{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  margin-top:14px;
+  padding-bottom:4px;
+  scrollbar-width:none;
+}
+
+.team-center-tabs::-webkit-scrollbar{
+  display:none;
+}
+
+.team-center-tab{
+  flex:0 0 auto;
+  padding:9px 13px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#0d1b2a;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+}
+
+.team-center-tab.active{
+  background:var(--green);
+  border-color:var(--green);
+  color:#06120d;
+}
+
+.team-center-section{
+  margin-top:12px;
+  padding:14px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:16px;
+}
 <style>
 /* =========================
    MAÇ ARAMA
@@ -1308,7 +1428,45 @@ button:disabled{opacity:.55}
     <button><span>☆</span>Favoriler</button>
   </div>
 </nav>
+<!-- TAKIM MERKEZİ MODALI -->
 
+<div
+  class="modal"
+  id="teamCenterModal"
+>
+
+  <div class="modal-sheet">
+
+    <div class="modal-head">
+
+      <div>
+        <strong>Takım Merkezi</strong>
+        <small id="teamCenterSubtitle">
+          Takım bilgileri
+        </small>
+      </div>
+
+      <button
+        type="button"
+        id="teamCenterClose"
+        aria-label="Kapat"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div id="teamCenterContent">
+
+      <div class="mc-loading">
+        Takım bilgileri yükleniyor...
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
 
 <!-- CANLI MAÇ MODALI -->
 
@@ -8986,7 +9144,327 @@ loadFixtures();
   );
 
 })();
+<script id="team-search-v1">
+(function(){
 
+  const input =
+    document.getElementById(
+      "matchSearchInput"
+    );
+
+  const button =
+    document.getElementById(
+      "teamSearchButton"
+    );
+
+  const modal =
+    document.getElementById(
+      "teamCenterModal"
+    );
+
+  const content =
+    document.getElementById(
+      "teamCenterContent"
+    );
+
+  const subtitle =
+    document.getElementById(
+      "teamCenterSubtitle"
+    );
+
+  const closeButton =
+    document.getElementById(
+      "teamCenterClose"
+    );
+
+
+  if(
+    !input ||
+    !button ||
+    !modal ||
+    !content
+  ){
+    return;
+  }
+
+
+  function closeTeamCenter(){
+
+    modal.classList.remove(
+      "show"
+    );
+
+  }
+
+
+  async function searchTeam(){
+
+    const name =
+      input.value.trim();
+
+    if(!name){
+      input.focus();
+      return;
+    }
+
+
+    button.disabled = true;
+    button.textContent =
+      "ARANIYOR...";
+
+    content.innerHTML = `
+      <div class="mc-loading">
+        ${escapeHtml(name)}
+        aranıyor...
+      </div>
+    `;
+
+    modal.classList.add(
+      "show"
+    );
+
+
+    try{
+
+      const response =
+        await fetch(
+          `/api/team-search?name=${encodeURIComponent(
+            name
+          )}`
+        );
+
+      const data =
+        await response.json();
+
+
+      if(
+        !response.ok ||
+        !data.success
+      ){
+        throw new Error(
+          data.error ||
+          "Takım aranamadı."
+        );
+      }
+
+
+      const team =
+        data.teams?.[0];
+
+
+      if(!team){
+
+        content.innerHTML = `
+          <div class="mc-empty">
+            "${escapeHtml(name)}"
+            için takım bulunamadı.
+          </div>
+        `;
+
+        return;
+      }
+
+
+      if(subtitle){
+
+        subtitle.textContent =
+          team.league ||
+          team.country ||
+          "Takım bilgileri";
+
+      }
+
+
+      content.innerHTML = `
+
+        <div class="team-center-card">
+
+          <div class="team-center-hero">
+
+            ${
+              team.badge
+                ? `
+                  <img
+                    class="team-center-logo"
+                    src="${escapeHtml(
+                      team.badge
+                    )}"
+                    alt=""
+                  >
+                `
+                : ""
+            }
+
+            <div class="team-center-info">
+
+              <div class="team-center-name">
+                ${escapeHtml(
+                  team.name ||
+                  name
+                )}
+              </div>
+
+              <div class="team-center-league">
+                ${escapeHtml(
+                  team.league ||
+                  "Lig bilgisi yok"
+                )}
+              </div>
+
+              <div class="team-center-country">
+                ${escapeHtml(
+                  team.country ||
+                  ""
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="team-center-grid">
+
+            <div class="team-center-stat">
+              <small>Kuruluş</small>
+              <strong>
+                ${escapeHtml(
+                  team.formedYear ||
+                  "-"
+                )}
+              </strong>
+            </div>
+
+            <div class="team-center-stat">
+              <small>Stadyum</small>
+              <strong>
+                ${escapeHtml(
+                  team.stadium ||
+                  "-"
+                )}
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div class="team-center-tabs">
+
+            <button
+              class="team-center-tab active"
+              type="button">
+              Genel
+            </button>
+
+            <button
+              class="team-center-tab"
+              type="button">
+              Maçlar
+            </button>
+
+            <button
+              class="team-center-tab"
+              type="button">
+              Kadro
+            </button>
+
+            <button
+              class="team-center-tab"
+              type="button">
+              Puan Durumu
+            </button>
+
+          </div>
+
+
+          <div class="team-center-section">
+
+            <div class="mc-section-title">
+              Takım Bilgileri
+            </div>
+
+            <div class="mc-player-meta">
+              Takım Merkezi hazır.
+              Maçlar, kadro ve puan
+              durumu kaynakları sırayla
+              bağlanacak.
+            </div>
+
+          </div>
+
+          <div class="mc-source">
+            Kaynak: TheSportsDB
+          </div>
+
+        </div>
+      `;
+
+
+    }catch(error){
+
+      content.innerHTML = `
+        <div class="mc-empty">
+          ${escapeHtml(
+            error.message ||
+            "Takım aranamadı."
+          )}
+        </div>
+      `;
+
+    }finally{
+
+      button.disabled = false;
+      button.textContent = "ARA";
+
+    }
+
+  }
+
+
+  button.addEventListener(
+    "click",
+    searchTeam
+  );
+
+
+  input.addEventListener(
+    "keydown",
+    event => {
+
+      if(event.key === "Enter"){
+
+        event.preventDefault();
+        searchTeam();
+
+      }
+
+    }
+  );
+
+
+  if(closeButton){
+
+    closeButton.addEventListener(
+      "click",
+      closeTeamCenter
+    );
+
+  }
+
+
+  modal.addEventListener(
+    "click",
+    event => {
+
+      if(event.target === modal){
+        closeTeamCenter();
+      }
+
+    }
+  );
+
+})();
+</script>
 <script id="match-center-tabs-v1">
 (function(){
 
