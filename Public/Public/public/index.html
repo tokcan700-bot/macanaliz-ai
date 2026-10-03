@@ -913,6 +913,58 @@ button:disabled{opacity:.55}
   color:var(--muted);
   font-size:8px;
 }
+ /* GÜNLÜK ÖZET */
+
+.daily-summary{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  padding:0 14px 15px;
+}
+
+.summary-card{
+  min-width:0;
+  padding:13px 7px 11px;
+  text-align:center;
+  background:linear-gradient(145deg,#101f32,#0b1726);
+  border:1px solid var(--line);
+  border-radius:15px;
+  box-shadow:0 8px 24px rgba(0,0,0,.14);
+}
+
+.summary-icon{
+  display:block;
+  height:18px;
+  margin-bottom:4px;
+  color:var(--green);
+  font-size:13px;
+  line-height:18px;
+}
+
+.summary-card strong{
+  display:block;
+  color:var(--text);
+  font-size:20px;
+  font-weight:900;
+  line-height:1.1;
+}
+
+.summary-card small{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:700;
+  white-space:nowrap;
+}
+
+.summary-card:nth-child(2) .summary-icon{
+  color:var(--red);
+}
+
+.summary-card:nth-child(3) .summary-icon{
+  color:var(--gold);
+}
 </style>
 </head>
 
@@ -934,7 +986,25 @@ button:disabled{opacity:.55}
     canlı skor, olaylar ve MaçAnaliz AI tahminleri.
   </p>
 </section>
+<section class="daily-summary" id="dailySummary">
+  <div class="summary-card">
+    <span class="summary-icon">⚽</span>
+    <strong id="summaryMatches">0</strong>
+    <small>Maç</small>
+  </div>
 
+  <div class="summary-card">
+    <span class="summary-icon">●</span>
+    <strong id="summaryLive">0</strong>
+    <small>Canlı</small>
+  </div>
+
+  <div class="summary-card">
+    <span class="summary-icon">★</span>
+    <strong id="summaryStrong">0</strong>
+    <small>Güçlü Tahmin</small>
+  </div>
+</section>
 <div class="filter-bar" id="filterBar">
   <button class="active" data-filter="all">Tümü</button>
   <button data-filter="NS">Başlamadı</button>
@@ -1936,7 +2006,39 @@ function renderMatches(){
   showHero(true);
   showFilters(true);
   showPickFilters(false);
+  const summaryMatches =
+    document.getElementById(
+      "summaryMatches"
+    );
 
+  const summaryLive =
+    document.getElementById(
+      "summaryLive"
+    );
+
+  const summaryStrong =
+    document.getElementById(
+      "summaryStrong"
+    );
+
+  if(summaryMatches){
+    summaryMatches.textContent =
+      matches.length;
+  }
+
+  if(summaryLive){
+    summaryLive.textContent =
+      matches.filter(
+        match =>
+          group(match.status) ===
+          "LIVE"
+      ).length;
+  }
+
+  if(summaryStrong){
+    summaryStrong.textContent =
+      getStrongPicks().length;
+  }
   const filtered =
     matches.filter(
       match =>
