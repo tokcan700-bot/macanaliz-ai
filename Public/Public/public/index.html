@@ -1952,7 +1952,7 @@ function todayKey(){
     }
   ).format(new Date());
 }
-
+let selectedMatchDate = todayKey();
 
 function trLeagueText(value){
 
@@ -5726,6 +5726,135 @@ navButtons[3].onclick =
     renderFavorites();
   };
 
+/* =========================
+   TARİH SEÇİCİ
+   ========================= */
+
+function matchDateFromKey(dateKey){
+  const parts = String(dateKey).split("-");
+
+  return new Date(
+    Number(parts[0]),
+    Number(parts[1]) - 1,
+    Number(parts[2]),
+    12,
+    0,
+    0
+  );
+}
+
+function changeMatchDate(days){
+  const date =
+    matchDateFromKey(selectedMatchDate);
+
+  date.setDate(
+    date.getDate() + days
+  );
+
+  selectedMatchDate =
+    [
+      date.getFullYear(),
+      String(
+        date.getMonth() + 1
+      ).padStart(2,"0"),
+      String(
+        date.getDate()
+      ).padStart(2,"0")
+    ].join("-");
+
+  updateDateNavigator();
+  loadFixtures();
+}
+
+function updateDateNavigator(){
+  const dayLabel =
+    document.getElementById(
+      "currentDateDay"
+    );
+
+  const dateText =
+    document.getElementById(
+      "currentDateText"
+    );
+
+  if(!dayLabel || !dateText){
+    return;
+  }
+
+  const date =
+    matchDateFromKey(selectedMatchDate);
+
+  const difference =
+    Math.round(
+      (
+        date -
+        matchDateFromKey(todayKey())
+      ) /
+      86400000
+    );
+
+  if(difference === 0){
+    dayLabel.textContent = "BUGÜN";
+  }else if(difference === -1){
+    dayLabel.textContent = "DÜN";
+  }else if(difference === 1){
+    dayLabel.textContent = "YARIN";
+  }else{
+    dayLabel.textContent =
+      new Intl.DateTimeFormat(
+        "tr-TR",
+        {
+          weekday:"short"
+        }
+      )
+      .format(date)
+      .toLocaleUpperCase("tr-TR");
+  }
+
+  dateText.textContent =
+    new Intl.DateTimeFormat(
+      "tr-TR",
+      {
+        day:"numeric",
+        month:"long"
+      }
+    ).format(date);
+}
+
+document
+  .getElementById(
+    "previousDateButton"
+  )
+  ?.addEventListener(
+    "click",
+    () => changeMatchDate(-1)
+  );
+
+document
+  .getElementById(
+    "nextDateButton"
+  )
+  ?.addEventListener(
+    "click",
+    () => changeMatchDate(1)
+  );
+
+document
+  .getElementById(
+    "currentDateButton"
+  )
+  ?.addEventListener(
+    "click",
+    () => {
+      selectedMatchDate =
+        todayKey();
+
+      updateDateNavigator();
+      loadFixtures();
+    }
+  );
+
+updateDateNavigator();
 
 /* MAÇLARI YÜKLE */
 
@@ -5746,7 +5875,7 @@ async function loadFixtures(){
 
     const response =
       await fetch(
-        `/api/fixtures?t=${Date.now()}`,
+        `/api/fixtures?date=${encodeURIComponent(selectedMatchDate)}&t=${Date.now()}`,
         {
           cache:"no-store"
         }
