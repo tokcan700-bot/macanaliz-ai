@@ -3272,6 +3272,7 @@ async function footballDataTest(
       }
     );
   }
+  }
   async function smartLeagueStandings(
   env,
   ctx,
