@@ -1,3 +1,55 @@
+const LEAGUE_MAP = {
+  "super-lig": {
+    name: "Süper Lig",
+    country: "Turkey",
+    apiFootballId: 203,
+    footballDataCode: null
+  },
+
+  "premier-league": {
+    name: "Premier League",
+    country: "England",
+    apiFootballId: 39,
+    footballDataCode: "PL"
+  },
+
+  "la-liga": {
+    name: "La Liga",
+    country: "Spain",
+    apiFootballId: 140,
+    footballDataCode: "PD"
+  },
+
+  "serie-a": {
+    name: "Serie A",
+    country: "Italy",
+    apiFootballId: 135,
+    footballDataCode: "SA"
+  },
+
+  "bundesliga": {
+    name: "Bundesliga",
+    country: "Germany",
+    apiFootballId: 78,
+    footballDataCode: "BL1"
+  },
+
+  "ligue-1": {
+    name: "Ligue 1",
+    country: "France",
+    apiFootballId: 61,
+    footballDataCode: "FL1"
+  }
+};
+function getLeagueConfig(leagueKey) {
+  if (!leagueKey) return null;
+
+  const key = String(leagueKey)
+    .toLowerCase()
+    .trim();
+
+  return LEAGUE_MAP[key] || null;
+}
 export default {
   async fetch(request, env, ctx) {
     const cors = {
@@ -3898,7 +3950,10 @@ async function apiFootballStandings(
 
   const league =
     url.searchParams.get("league");
+    const leagueConfig = getLeagueConfig(league);
 
+const resolvedLeague =
+  leagueConfig?.apiFootballId || league;
   const season =
     url.searchParams.get("season");
 
