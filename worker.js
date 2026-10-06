@@ -3591,6 +3591,179 @@ async function footballDataStandings(
     );
   }
 }
+   async function sportsDbStandings(
+  ctx,
+  cors,
+  url
+) {
+  const league =
+    url.searchParams.get("league");
+
+  const season =
+    url.searchParams.get("season") ||
+    "2026-2027";
+
+  if (!league) {
+    return Response.json(
+      {
+        success: false,
+        source: "TheSportsDB",
+        error: "League gerekli."
+      },
+      {
+        status: 400,
+        headers: cors
+      }
+    );
+  }
+
+  const cache =
+    caches.default;
+
+  const cacheKey =
+    new Request(
+      `${url.origin}/api/sportsdb-standings-v1?league=${league}&season=${season}`
+    );
+
+  const cached =
+    await cache.match(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const response =
+      await fetch(
+        `https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=${encodeURIComponent(league)}&s=${encodeURIComponent(season)}`
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        "TheSportsDB isteği başarısız."
+      );
+    }
+
+    const rawTable =
+      Array.isArray(data?.table)
+        ? data.table
+        : [];
+
+    if (!rawTable.length) {
+      throw new Error(
+        "Puan durumu verisi bulunamadı."
+      );
+    }
+
+    const table =
+      rawTable.map(row => ({
+        position:
+          Number(row.intRank) || null,
+
+        team: {
+          id:
+            row.idTeam || null,
+
+          name:
+            row.strTeam || "",
+
+          shortName:
+            row.strTeam || "",
+
+          crest:
+            row.strBadge || null
+        },
+
+        played:
+          Number(row.intPlayed) || 0,
+
+        won:
+          Number(row.intWin) || 0,
+
+        draw:
+          Number(row.intDraw) || 0,
+
+        lost:
+          Number(row.intLoss) || 0,
+
+        goalsFor:
+          Number(row.intGoalsFor) || 0,
+
+        goalsAgainst:
+          Number(row.intGoalsAgainst) || 0,
+
+        goalDifference:
+          Number(row.intGoalDifference) || 0,
+
+        points:
+          Number(row.intPoints) || 0,
+
+        form:
+          row.strForm || null
+      }));
+
+    const result =
+      Response.json(
+        {
+          success: true,
+          source: "TheSportsDB",
+
+          competition: {
+            id:
+              Number(league),
+
+            name:
+              rawTable[0]?.strLeague ||
+              "Süper Lig",
+
+            code: null,
+
+            emblem: null
+          },
+
+          season: {
+            year: season
+          },
+
+          table
+        },
+        {
+          headers: {
+            ...cors,
+            "Cache-Control":
+              "public, max-age=21600"
+          }
+        }
+      );
+
+    ctx.waitUntil(
+      cache.put(
+        cacheKey,
+        result.clone()
+      )
+    );
+
+    return result;
+
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        source: "TheSportsDB",
+        error:
+          error.message ||
+          "Puan durumu alınamadı."
+      },
+      {
+        status: 500,
+        headers: cors
+      }
+    );
+  }
+}
 /* =========================
    THESPORTSDB TEST
    ========================= */
