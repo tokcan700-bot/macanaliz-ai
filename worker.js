@@ -3997,7 +3997,7 @@ const resolvedLeague =
       await apiFetch(
         "/standings",
         {
-          league,
+          league: resolvedLeague,
           season
         },
         env
