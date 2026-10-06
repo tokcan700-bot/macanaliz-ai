@@ -6200,7 +6200,23 @@ loadFixtures();
           }
         );
 
+const summaryMatches =
+  document.getElementById("summaryMatches");
 
+const summaryLive =
+  document.getElementById("summaryLive");
+
+if(summaryMatches){
+  summaryMatches.textContent =
+    matches.length;
+}
+
+if(summaryLive){
+  summaryLive.textContent =
+    matches.filter(
+      match => isLive(match.status)
+    ).length;
+}
       document
         .querySelector(
           ".section-title h2"
@@ -6238,12 +6254,53 @@ loadFixtures();
       }
 
 
-      root.innerHTML =
-        filtered
-          .map(
-            matchCard
-          )
+      const leagueGroups =
+  groupMatchesByLeague(filtered);
+
+root.innerHTML =
+  leagueGroups
+    .map(group => {
+
+      const cards =
+        group.matches
+          .map(matchCard)
           .join("");
+
+      return `
+        <section class="league-group">
+
+          <div class="league-group-head">
+
+            <div class="league-group-title">
+
+              <small>
+                ${esc(group.country)}
+              </small>
+
+              <strong>
+                ${esc(
+                  trLeagueText(
+                    group.league
+                  )
+                )}
+              </strong>
+
+            </div>
+
+            <span class="league-match-count">
+              ${group.matches.length} maç
+            </span>
+
+          </div>
+
+          <div class="league-group-matches">
+            ${cards}
+          </div>
+
+        </section>
+      `;
+    })
+    .join("");
     };
 
 
