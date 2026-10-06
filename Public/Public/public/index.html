@@ -1450,6 +1450,138 @@ button:disabled{opacity:.55}
   display:grid;
   gap:10px;
 }
+/* =========================
+   KOMPAKT MAÇ KARTI
+   ========================= */
+
+.compact-match{
+  margin-bottom:7px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:13px;
+  overflow:hidden;
+  cursor:pointer;
+}
+
+.compact-match:active{
+  transform:scale(.99);
+}
+
+.compact-match-main{
+  display:grid;
+  grid-template-columns:58px 1fr 64px;
+  align-items:center;
+  min-height:70px;
+  padding:8px 10px;
+}
+
+.compact-status{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+}
+
+.compact-time{
+  color:var(--text);
+  font-size:13px;
+  font-weight:900;
+}
+
+.compact-score{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  color:var(--text);
+  font-size:14px;
+}
+
+.compact-score strong{
+  font-size:16px;
+  font-weight:900;
+}
+
+.compact-score span{
+  color:var(--muted);
+}
+
+.compact-live{
+  margin-top:4px;
+  color:#ff6678;
+  font-size:9px;
+  font-weight:900;
+}
+
+.compact-teams{
+  display:grid;
+  gap:7px;
+  min-width:0;
+}
+
+.compact-team{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.compact-team img,
+.compact-logo-placeholder{
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+}
+
+.compact-team img{
+  object-fit:contain;
+}
+
+.compact-logo-placeholder{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+}
+
+.compact-team > span:last-child{
+  overflow:hidden;
+  color:var(--text);
+  font-size:12px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.compact-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+}
+
+.compact-fav{
+  width:34px;
+  height:34px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:24px;
+}
+
+.compact-fav.active{
+  color:#ffd45a;
+}
+
+.compact-arrow{
+  color:var(--muted);
+  font-size:26px;
+  font-weight:400;
+}
+
+.league-group-matches{
+  gap:0;
+}
 </style>
 </head>
 
@@ -2526,255 +2658,164 @@ function predictionScore(item){
 
 /* MAÇ KARTI */
 
+
 function matchCard(match){
 
   const live =
-    isLive(
-      match.status
-    );
+    isLive(match.status);
 
   const dt =
-    fmtDateTime(
-      match.kickoff
-    );
+    fmtDateTime(match.kickoff);
 
   const favorite =
-    isFavorite(
-      match.id
-    );
+    isFavorite(match.id);
 
   const minute =
     match.elapsed
       ? `${match.elapsed}'`
       : "";
 
-  return `
-  <article
-    class="card ${
-      live
-        ? "live-card"
-        : ""
-    }"
-  >
+  const homeName =
+    match.home?.name || "-";
 
-    <div class="meta">
+  const awayName =
+    match.away?.name || "-";
 
-      <div class="league">
+  const homeLogo =
+    match.home?.logo || "";
 
-        ${
-          match.league?.logo
-            ? `
-              <img
-                src="${esc(
-                  match.league.logo
-                )}"
-                alt=""
-              >
-            `
-            : ""
-        }
+  const awayLogo =
+    match.away?.logo || "";
 
-        <span>
+  let mainStatus = "";
 
-          ${esc(
-            match.league?.country ||
-            ""
-          )}
+  if(match.status === "NS"){
 
-          ·
-
-          ${esc(
-            trLeagueText(
-              match.league?.name
-            )
-          )}
-
-        </span>
-
-      </div>
-
-      <div class="match-date">
-
-        ${esc(dt.date)}
-        ·
+    mainStatus = `
+      <div class="compact-time">
         ${esc(dt.time)}
+      </div>
+    `;
+
+  }else{
+
+    mainStatus = `
+      <div class="compact-score">
+        <strong>
+          ${match.score?.home ?? "-"}
+        </strong>
+
+        <span>-</span>
+
+        <strong>
+          ${match.score?.away ?? "-"}
+        </strong>
+      </div>
+    `;
+
+  }
+
+  const liveLabel =
+    live
+      ? `
+        <div class="compact-live">
+          ● ${esc(minute)}
+        </div>
+      `
+      : "";
+
+  return `
+    <article
+      class="compact-match ${
+        live ? "live-card" : ""
+      }"
+      onclick="openLiveDetail(${Number(match.id)})"
+    >
+
+      <div class="compact-match-main">
+
+        <div class="compact-status">
+          ${mainStatus}
+          ${liveLabel}
+        </div>
+
+        <div class="compact-teams">
+
+          <div class="compact-team">
+
+            ${
+              homeLogo
+                ? `
+                  <img
+                    src="${esc(homeLogo)}"
+                    alt=""
+                  >
+                `
+                : `
+                  <span class="compact-logo-placeholder">
+                    ⚽
+                  </span>
+                `
+            }
+
+            <span>
+              ${esc(homeName)}
+            </span>
+
+          </div>
+
+          <div class="compact-team">
+
+            ${
+              awayLogo
+                ? `
+                  <img
+                    src="${esc(awayLogo)}"
+                    alt=""
+                  >
+                `
+                : `
+                  <span class="compact-logo-placeholder">
+                    ⚽
+                  </span>
+                `
+            }
+
+            <span>
+              ${esc(awayName)}
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="compact-actions">
+
+          <button
+            type="button"
+            class="compact-fav ${
+              favorite ? "active" : ""
+            }"
+            aria-label="Favori"
+            onclick="
+              event.stopPropagation();
+              toggleFavorite(${Number(match.id)});
+            "
+          >
+            ${favorite ? "★" : "☆"}
+          </button>
+
+          <span class="compact-arrow">
+            ›
+          </span>
+
+        </div>
 
       </div>
 
-    </div>
-
-
-    <div class="teams">
-
-      <div class="team">
-
-        ${
-          match.home?.logo
-            ? `
-              <img
-                src="${esc(
-                  match.home.logo
-                )}"
-                alt=""
-              >
-            `
-            : ""
-        }
-
-        ${esc(
-          match.home?.name
-        )}
-
-      </div>
-
-
-      <div class="score">
-
-        ${
-          match.status === "NS"
-
-            ? `
-              VS
-
-              <div class="kickoff-time">
-                ${esc(dt.time)}
-              </div>
-
-              <div class="kickoff-date">
-                ${esc(dt.date)}
-              </div>
-            `
-
-            : `
-              ${
-                match.score?.home ??
-                "-"
-              }
-
-              -
-
-              ${
-                match.score?.away ??
-                "-"
-              }
-            `
-        }
-
-        ${
-          live
-            ? `
-              <div class="minute">
-                ${esc(minute)}
-              </div>
-            `
-            : ""
-        }
-
-      </div>
-
-
-      <div class="team">
-
-        ${
-          match.away?.logo
-            ? `
-              <img
-                src="${esc(
-                  match.away.logo
-                )}"
-                alt=""
-              >
-            `
-            : ""
-        }
-
-        ${esc(
-          match.away?.name
-        )}
-
-      </div>
-
-    </div>
-
-
-    <div class="actions">
-
-      <div
-        class="status ${
-          live
-            ? "live-status"
-            : ""
-        }"
-      >
-
-        ${
-          live
-            ? `● CANLI ${esc(minute)}`
-
-            : match.status === "NS"
-
-              ? `Başlama: ${esc(dt.date)} ${esc(dt.time)}`
-
-              : `Durum: ${esc(match.status)}`
-        }
-
-      </div>
-
-
-      <div class="action-right">
-
-        <button
-          class="fav-btn ${
-            favorite
-              ? "active"
-              : ""
-          }"
-          onclick="toggleFavorite(${Number(match.id)})"
-        >
-          ${favorite ? "★" : "☆"}
-        </button>
-
-
-        ${
-          match.status === "NS"
-
-            ? `
-              <button
-                class="pred-btn"
-                onclick="loadPrediction(${Number(match.id)},this)"
-              >
-                Analizi Gör
-              </button>
-            `
-
-            : `
-              <button
-                class="detail-btn"
-                onclick="openLiveDetail(${Number(match.id)})"
-              >
-                ${
-                  live
-                    ? "Canlı Detay"
-                    : "Maç Detayı"
-                }
-              </button>
-            `
-        }
-
-      </div>
-
-    </div>
-
-
-    <div
-      class="pred"
-      id="pred-${Number(match.id)}"
-    ></div>
-
-  </article>
+    </article>
   `;
 }
-
 
 /* MAÇLAR */
 let matchSearchQuery = "";
