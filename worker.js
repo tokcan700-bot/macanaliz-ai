@@ -50,6 +50,32 @@ function getLeagueConfig(leagueKey) {
 
   return LEAGUE_MAP[key] || null;
 }
+function getStandingsProvider(leagueKey) {
+  const config =
+    getLeagueConfig(leagueKey);
+
+  if (!config) {
+    return null;
+  }
+
+  if (config.footballDataCode) {
+    return {
+      provider: "football-data",
+      competition:
+        config.footballDataCode
+    };
+  }
+
+  if (config.apiFootballId) {
+    return {
+      provider: "api-football",
+      league:
+        config.apiFootballId
+    };
+  }
+
+  return null;
+}
 export default {
   async fetch(request, env, ctx) {
     const cors = {
