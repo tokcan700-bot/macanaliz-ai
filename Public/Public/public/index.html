@@ -1334,6 +1334,64 @@ button:disabled{opacity:.55}
   border:1px solid var(--line);
   border-radius:16px;
 }
+/* =========================
+   TARİH SEÇİCİ
+   ========================= */
+
+.date-navigator{
+  display:grid;
+  grid-template-columns:44px 1fr 44px;
+  align-items:center;
+  gap:10px;
+  margin:12px 14px;
+  padding:8px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:16px;
+}
+
+.date-nav-arrow{
+  width:44px;
+  height:44px;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#101f32;
+  color:var(--text);
+  font-size:28px;
+  font-weight:700;
+  line-height:1;
+}
+
+.date-nav-arrow:active{
+  transform:scale(.96);
+}
+
+.date-current{
+  min-width:0;
+  height:44px;
+  padding:4px 10px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  text-align:center;
+}
+
+.date-current small{
+  display:block;
+  margin-bottom:2px;
+  color:var(--green);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.8px;
+}
+
+.date-current strong{
+  display:block;
+  color:var(--text);
+  font-size:14px;
+  font-weight:900;
+}
 </style>
 </head>
 
@@ -1354,6 +1412,43 @@ button:disabled{opacity:.55}
     Türkiye tarih ve saatiyle maç programı,
     canlı skor, olaylar ve MaçAnaliz AI tahminleri.
   </p>
+</section>
+<!-- TARİH SEÇİCİ -->
+
+<section class="date-navigator" id="dateNavigator">
+
+  <button
+    type="button"
+    class="date-nav-arrow"
+    id="previousDateButton"
+    aria-label="Önceki gün"
+  >
+    ‹
+  </button>
+
+  <button
+    type="button"
+    class="date-current"
+    id="currentDateButton"
+  >
+    <small id="currentDateDay">
+      BUGÜN
+    </small>
+
+    <strong id="currentDateText">
+      6 Ekim
+    </strong>
+  </button>
+
+  <button
+    type="button"
+    class="date-nav-arrow"
+    id="nextDateButton"
+    aria-label="Sonraki gün"
+  >
+    ›
+  </button>
+
 </section>
 <section class="daily-summary" id="dailySummary">
   <div class="summary-card">
