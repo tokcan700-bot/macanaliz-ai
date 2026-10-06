@@ -4963,9 +4963,23 @@ const competition =
     league
   );
 
+const apiLeagueId =
+  Number(league?.id || 0);
+
+const apiSeason =
+  Number(league?.season || 0);
+
+const useFootballData =
+  Boolean(competition);
+
+const canUseApiFootball =
+  apiLeagueId > 0 &&
+  apiSeason >= 2000;
+
 const cacheKey =
   [
-    competition || "none",
+    competition ||
+      `api-${apiLeagueId}-${apiSeason}`,
     home?.name || "",
     away?.name || ""
   ].join("|");
@@ -4979,27 +4993,30 @@ if(
 
 window.matchCenterStandingsKey =
   cacheKey;
-  const content =
-    document.getElementById(
-      "mcStandingsContent"
-    );
 
-  if(!content){
-    return;
-  }
+const content =
+  document.getElementById(
+    "mcStandingsContent"
+  );
 
-  
-  if(!competition){
+if(!content){
+  return;
+}
 
-    content.innerHTML = `
-      <div class="mc-empty">
-        Bu lig için puan durumu
-        kaynağı henüz bağlı değil.
-      </div>
-    `;
+if(
+  !useFootballData &&
+  !canUseApiFootball
+){
 
-    return;
-  }
+  content.innerHTML = `
+    <div class="mc-empty">
+      Bu lig için puan durumu
+      verisi mevcut değil.
+    </div>
+  `;
+
+  return;
+}
 
 
   content.innerHTML = `
@@ -5011,15 +5028,24 @@ window.matchCenterStandingsKey =
 
   try{
 
-    const response =
-      await fetch(
-        `/api/standings?competition=${encodeURIComponent(
-          competition
-        )}`
-      );
+   const standingsUrl =
+  useFootballData
+    ? `/api/standings?competition=${encodeURIComponent(
+        competition
+      )}`
+    : `/api/api-football-standings?league=${encodeURIComponent(
+        apiLeagueId
+      )}&season=${encodeURIComponent(
+        apiSeason
+      )}`;
 
-    const data =
-      await response.json();
+const response =
+  await fetch(
+    standingsUrl
+  );
+
+const data =
+  await response.json();
 
 
     if(
