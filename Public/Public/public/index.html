@@ -1386,11 +1386,9 @@ button:disabled{opacity:.55}
     placeholder="Takım ara... Örn: Galatasaray"
     autocomplete="off"
   >
-
-<button
+  <button
   type="button"
   id="teamSearchButton"
-  onclick="alert('ARA çalışıyor')"
 >
   ARA
 </button>
@@ -9147,49 +9145,21 @@ loadFixtures();
 
 })();
 </script>
-<script id="team-search-v1">
-(function(){
+<script id="team-search-v2">
+(function () {
+  const input = document.getElementById("matchSearchInput");
+  const button = document.getElementById("teamSearchButton");
+  const modal = document.getElementById("teamCenterModal");
+  const content = document.getElementById("teamCenterContent");
+  const subtitle = document.getElementById("teamCenterSubtitle");
+  const closeButton = document.getElementById("teamCenterClose");
 
-  const input =
-    document.getElementById(
-      "matchSearchInput"
-    );
-
-  const button =
-    document.getElementById(
-      "teamSearchButton"
-    );
-
-  const modal =
-    document.getElementById(
-      "teamCenterModal"
-    );
-
-  const content =
-    document.getElementById(
-      "teamCenterContent"
-    );
-
-  const subtitle =
-    document.getElementById(
-      "teamCenterSubtitle"
-    );
-
-  const closeButton =
-    document.getElementById(
-      "teamCenterClose"
-    );
-
-
-  if(
-    !input ||
-    !button ||
-    !modal ||
-    !content
-  ){
+  if (!input || !button || !modal || !content) {
+    console.error("Takım Merkezi elemanları bulunamadı.");
     return;
   }
-  function escapeHtml(value){
+
+  function esc(value) {
     return String(value ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -9198,281 +9168,249 @@ loadFixtures();
       .replaceAll("'", "&#039;");
   }
 
-  function closeTeamCenter(){
-
-    modal.classList.remove(
-      "show"
-    );
-
+  function openModal() {
+    modal.classList.add("show");
   }
 
+  function closeModal() {
+    modal.classList.remove("show");
+  }
 
-  async function searchTeam(){
+  function showLoading(name) {
+    content.innerHTML = `
+      <div class="mc-loading">
+        ${esc(name)} aranıyor...
+      </div>
+    `;
 
-    const name =
-      input.value.trim();
+    openModal();
+  }
 
-    if(!name){
+  function showError(message) {
+    content.innerHTML = `
+      <div class="mc-empty">
+        ${esc(message)}
+      </div>
+    `;
+
+    openModal();
+  }
+
+  function renderTeam(team, searchedName) {
+    if (subtitle) {
+      subtitle.textContent =
+        team.league ||
+        team.country ||
+        "Takım bilgileri";
+    }
+
+    const badge = team.badge
+      ? `
+        <img
+          class="team-center-logo"
+          src="${esc(team.badge)}"
+          alt="${esc(team.name || searchedName)}"
+        >
+      `
+      : "";
+
+    content.innerHTML = `
+      <div class="team-center-card">
+
+        <div class="team-center-hero">
+          ${badge}
+
+          <div class="team-center-info">
+            <div class="team-center-name">
+              ${esc(team.name || searchedName)}
+            </div>
+
+            <div class="team-center-league">
+              ${esc(team.league || "Lig bilgisi yok")}
+            </div>
+
+            <div class="team-center-country">
+              ${esc(team.country || "")}
+            </div>
+          </div>
+        </div>
+
+        <div class="team-center-grid">
+
+          <div class="team-center-stat">
+            <small>Kuruluş</small>
+            <strong>
+              ${esc(team.formedYear || "-")}
+            </strong>
+          </div>
+
+          <div class="team-center-stat">
+            <small>Stadyum</small>
+            <strong>
+              ${esc(team.stadium || "-")}
+            </strong>
+          </div>
+
+        </div>
+
+        <div class="team-center-tabs">
+          <button
+            class="team-center-tab active"
+            type="button"
+          >
+            Genel
+          </button>
+
+          <button
+            class="team-center-tab"
+            type="button"
+          >
+            Maçlar
+          </button>
+
+          <button
+            class="team-center-tab"
+            type="button"
+          >
+            Kadro
+          </button>
+
+          <button
+            class="team-center-tab"
+            type="button"
+          >
+            Puan Durumu
+          </button>
+        </div>
+
+        <div class="team-center-section">
+          <div class="mc-section-title">
+            Takım Bilgileri
+          </div>
+
+          <div class="mc-player-meta">
+            ${team.stadiumLocation
+              ? `Stadyum konumu: ${esc(team.stadiumLocation)}`
+              : "Takım bilgileri başarıyla yüklendi."
+            }
+          </div>
+        </div>
+
+        <div class="mc-source">
+          Kaynak: TheSportsDB
+        </div>
+
+      </div>
+    `;
+
+    openModal();
+  }
+
+  async function searchTeam() {
+    const name = input.value.trim();
+
+    if (!name) {
       input.focus();
       return;
     }
 
-
     button.disabled = true;
-    button.textContent =
-      "ARANIYOR...";
+    button.textContent = "ARANIYOR...";
 
-    content.innerHTML = `
-      <div class="mc-loading">
-        ${escapeHtml(name)}
-        aranıyor...
-      </div>
-    `;
+    showLoading(name);
 
-    modal.classList.add(
-      "show"
-    );
+    try {
+      const response = await fetch(
+        "/api/team-search?name=" +
+        encodeURIComponent(name),
+        {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        }
+      );
 
+      const data = await response.json();
 
-    try{
-
-      const response =
-        await fetch(
-          `/api/team-search?name=${encodeURIComponent(
-            name
-          )}`
-        );
-
-      const data =
-        await response.json();
-
-
-      if(
-        !response.ok ||
-        !data.success
-      ){
+      if (!response.ok) {
         throw new Error(
-          data.error ||
-          "Takım aranamadı."
+          data?.error ||
+          "Takım araması başarısız."
         );
       }
 
+      if (!data?.success) {
+        throw new Error(
+          data?.error ||
+          "Takım bilgisi alınamadı."
+        );
+      }
 
-      const team =
-        data.teams?.[0];
-
-
-      if(!team){
-
-        content.innerHTML = `
-          <div class="mc-empty">
-            "${escapeHtml(name)}"
-            için takım bulunamadı.
-          </div>
-        `;
-
+      if (
+        !Array.isArray(data.teams) ||
+        data.teams.length === 0
+      ) {
+        showError(
+          `"${name}" için takım bulunamadı.`
+        );
         return;
       }
 
+      renderTeam(
+        data.teams[0],
+        name
+      );
 
-      if(subtitle){
+    } catch (error) {
+      console.error(
+        "Takım arama hatası:",
+        error
+      );
 
-        subtitle.textContent =
-          team.league ||
-          team.country ||
-          "Takım bilgileri";
+      showError(
+        error?.message ||
+        "Takım aranırken hata oluştu."
+      );
 
-      }
-
-
-      content.innerHTML = `
-
-        <div class="team-center-card">
-
-          <div class="team-center-hero">
-
-            ${
-              team.badge
-                ? `
-                  <img
-                    class="team-center-logo"
-                    src="${escapeHtml(
-                      team.badge
-                    )}"
-                    alt=""
-                  >
-                `
-                : ""
-            }
-
-            <div class="team-center-info">
-
-              <div class="team-center-name">
-                ${escapeHtml(
-                  team.name ||
-                  name
-                )}
-              </div>
-
-              <div class="team-center-league">
-                ${escapeHtml(
-                  team.league ||
-                  "Lig bilgisi yok"
-                )}
-              </div>
-
-              <div class="team-center-country">
-                ${escapeHtml(
-                  team.country ||
-                  ""
-                )}
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <div class="team-center-grid">
-
-            <div class="team-center-stat">
-              <small>Kuruluş</small>
-              <strong>
-                ${escapeHtml(
-                  team.formedYear ||
-                  "-"
-                )}
-              </strong>
-            </div>
-
-            <div class="team-center-stat">
-              <small>Stadyum</small>
-              <strong>
-                ${escapeHtml(
-                  team.stadium ||
-                  "-"
-                )}
-              </strong>
-            </div>
-
-          </div>
-
-
-          <div class="team-center-tabs">
-
-            <button
-              class="team-center-tab active"
-              type="button">
-              Genel
-            </button>
-
-            <button
-              class="team-center-tab"
-              type="button">
-              Maçlar
-            </button>
-
-            <button
-              class="team-center-tab"
-              type="button">
-              Kadro
-            </button>
-
-            <button
-              class="team-center-tab"
-              type="button">
-              Puan Durumu
-            </button>
-
-          </div>
-
-
-          <div class="team-center-section">
-
-            <div class="mc-section-title">
-              Takım Bilgileri
-            </div>
-
-            <div class="mc-player-meta">
-              Takım Merkezi hazır.
-              Maçlar, kadro ve puan
-              durumu kaynakları sırayla
-              bağlanacak.
-            </div>
-
-          </div>
-
-          <div class="mc-source">
-            Kaynak: TheSportsDB
-          </div>
-
-        </div>
-      `;
-
-
-    }catch(error){
-
-      content.innerHTML = `
-        <div class="mc-empty">
-          ${escapeHtml(
-            error.message ||
-            "Takım aranamadı."
-          )}
-        </div>
-      `;
-
-    }finally{
-
+    } finally {
       button.disabled = false;
       button.textContent = "ARA";
-
     }
-
   }
-
 
   button.addEventListener(
     "click",
-    searchTeam
+    function () {
+      searchTeam();
+    }
   );
-
 
   input.addEventListener(
     "keydown",
-    event => {
-
-      if(event.key === "Enter"){
-
+    function (event) {
+      if (event.key === "Enter") {
         event.preventDefault();
         searchTeam();
-
       }
-
     }
   );
 
-
-  if(closeButton){
-
+  if (closeButton) {
     closeButton.addEventListener(
       "click",
-      closeTeamCenter
+      closeModal
     );
-
   }
-
 
   modal.addEventListener(
     "click",
-    event => {
-
-      if(event.target === modal){
-        closeTeamCenter();
+    function (event) {
+      if (event.target === modal) {
+        closeModal();
       }
-
     }
   );
-
 })();
 </script>
 <script id="match-center-tabs-v1">
