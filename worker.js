@@ -3348,7 +3348,7 @@ async function footballDataTest(
     }
   );
 }
-}/* =========================
+/* =========================
    FOOTBALL-DATA STANDINGS
    ========================= */
 
