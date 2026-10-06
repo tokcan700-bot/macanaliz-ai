@@ -5872,43 +5872,67 @@ async function fetchLiveDetail(
 }
 
 
-function openLiveDetail(
-  fixture
-){
+function openLiveDetail(fixture){
 
-  activeLiveFixture =
-    fixture;
+  activeLiveFixture = fixture;
+
+  const modal =
+    document.getElementById("matchModal");
+
+  modal.classList.add("show");
+
+  document.body.style.overflow = "hidden";
+
+  const liveContent =
+    document.getElementById("liveContent");
+
+  liveContent.innerHTML = `
+    <div class="loading">
+      Maç detayları yükleniyor...
+    </div>
+  `;
+
+  /* MAÇ MERKEZİNİ HER AÇILIŞTA SIFIRLA */
 
   document
-    .getElementById(
-      "matchModal"
-    )
-    .classList
-    .add(
-      "show"
-    );
+    .querySelectorAll("#matchCenter .mc-tab")
+    .forEach(button => {
 
-  document.body
-    .style
-    .overflow =
-      "hidden";
+      button.classList.toggle(
+        "active",
+        button.dataset.mcTab === "overview"
+      );
+
+    });
 
   document
-    .getElementById(
-      "liveContent"
-    )
-    .innerHTML = `
-      <div class="loading">
-        Maç detayları yükleniyor...
-      </div>
-    `;
+    .querySelectorAll("#matchCenter .mc-panel")
+    .forEach(panel => {
 
-  fetchLiveDetail(
-    fixture
-  );
+      panel.classList.toggle(
+        "active",
+        panel.id === "mc-overview"
+      );
+
+    });
+
+  const tabs =
+    document.querySelector("#matchCenter .mc-tabs");
+
+  if(tabs){
+    tabs.scrollLeft = 0;
+  }
+
+  const sheet =
+    modal.querySelector(".modal-sheet");
+
+  if(sheet){
+    sheet.scrollTop = 0;
+  }
+
+  fetchLiveDetail(fixture);
+
 }
-
-
 function refreshLiveDetail(){
 
   if(activeLiveFixture){
