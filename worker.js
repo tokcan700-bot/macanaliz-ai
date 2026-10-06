@@ -3,7 +3,7 @@ const LEAGUE_MAP = {
     name: "Süper Lig",
     country: "Turkey",
     apiFootballId: 203,
-    footballDataCode: null
+    footballDataCode: null,
     sportsDbId: 4339
   },
 
