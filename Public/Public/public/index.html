@@ -1582,6 +1582,93 @@ button:disabled{opacity:.55}
 .league-group-matches{
   gap:0;
 }
+  /* =========================
+   MAÇ MERKEZİ - MAÇ ÖZETİ
+   ========================= */
+
+.mc-match-hero{
+  padding:14px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:16px;
+}
+
+.mc-match-league{
+  margin-bottom:16px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  text-align:center;
+  text-transform:uppercase;
+}
+
+.mc-match-teams{
+  display:grid;
+  grid-template-columns:1fr 82px 1fr;
+  align-items:center;
+  gap:8px;
+}
+
+.mc-match-team{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  text-align:center;
+}
+
+.mc-match-team img{
+  width:48px;
+  height:48px;
+  object-fit:contain;
+}
+
+.mc-match-team strong{
+  width:100%;
+  overflow:hidden;
+  color:var(--text);
+  font-size:12px;
+  font-weight:900;
+  text-overflow:ellipsis;
+}
+
+.mc-match-score{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+.mc-match-score strong{
+  color:var(--text);
+  font-size:24px;
+  font-weight:900;
+}
+
+.mc-match-score small{
+  margin-top:4px;
+  color:var(--green);
+  font-size:9px;
+  font-weight:900;
+  text-align:center;
+}
+
+.mc-match-info{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px 12px;
+  margin-top:16px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+}
+
+.mc-match-info span{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+}
 </style>
 </head>
 
@@ -5139,6 +5226,138 @@ function renderLiveDetail(data){
   home,
   away
 };
+  const overviewContent =
+  document.getElementById(
+    "mcOverviewContent"
+  );
+
+if(overviewContent){
+
+  const overviewDate =
+    fmtDateTime(
+      fixture.date
+    );
+
+  const matchStarted =
+    fixture.status?.short !== "NS";
+
+  overviewContent.innerHTML = `
+
+    <div class="mc-match-hero">
+
+      <div class="mc-match-league">
+        ${esc(league.country || "")}
+        ·
+        ${esc(
+          trLeagueText(
+            league.name || ""
+          )
+        )}
+      </div>
+
+      <div class="mc-match-teams">
+
+        <div class="mc-match-team">
+
+          ${
+            home.logo
+              ? `
+                <img
+                  src="${esc(home.logo)}"
+                  alt=""
+                >
+              `
+              : ""
+          }
+
+          <strong>
+            ${esc(home.name || "")}
+          </strong>
+
+        </div>
+
+        <div class="mc-match-score">
+
+          ${
+            matchStarted
+              ? `
+                <strong>
+                  ${data.goals?.home ?? "-"}
+                  -
+                  ${data.goals?.away ?? "-"}
+                </strong>
+              `
+              : `
+                <strong>
+                  ${esc(overviewDate.time)}
+                </strong>
+              `
+          }
+
+          <small>
+            ${
+              matchStarted
+                ? esc(
+                    fixture.status?.long ||
+                    fixture.status?.short ||
+                    ""
+                  )
+                : "Başlamadı"
+            }
+          </small>
+
+        </div>
+
+        <div class="mc-match-team">
+
+          ${
+            away.logo
+              ? `
+                <img
+                  src="${esc(away.logo)}"
+                  alt=""
+                >
+              `
+              : ""
+          }
+
+          <strong>
+            ${esc(away.name || "")}
+          </strong>
+
+        </div>
+
+      </div>
+
+      <div class="mc-match-info">
+
+        <span>
+          📅 ${esc(overviewDate.date)}
+        </span>
+
+        <span>
+          🕒 ${esc(overviewDate.time)}
+        </span>
+
+        ${
+          fixture.venue?.name
+            ? `
+              <span>
+                🏟️ ${esc(
+                  fixture.venue.name
+                )}
+              </span>
+            `
+            : ""
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+}
   const homeStats =
     data.statistics?.home ||
     {};
