@@ -1392,6 +1392,64 @@ button:disabled{opacity:.55}
   font-size:14px;
   font-weight:900;
 }
+/* =========================
+   LİG GRUPLARI
+   ========================= */
+
+.league-group{
+  margin:0 0 18px;
+}
+
+.league-group-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 8px;
+  padding:10px 12px;
+  background:#0d1b2a;
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+
+.league-group-title{
+  min-width:0;
+}
+
+.league-group-title small{
+  display:block;
+  margin-bottom:3px;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.league-group-title strong{
+  display:block;
+  overflow:hidden;
+  color:var(--text);
+  font-size:12px;
+  font-weight:900;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.league-match-count{
+  flex:0 0 auto;
+  padding:5px 8px;
+  background:rgba(46,229,157,.10);
+  border:1px solid rgba(46,229,157,.20);
+  border-radius:999px;
+  color:var(--green);
+  font-size:9px;
+  font-weight:900;
+}
+
+.league-group-matches{
+  display:grid;
+  gap:10px;
+}
 </style>
 </head>
 
@@ -2733,6 +2791,46 @@ function normalizeMatchSearch(
     )
     .trim();
 }
+function groupMatchesByLeague(list){
+
+  const groups = new Map();
+
+  list.forEach(match => {
+
+    const country =
+      match.league?.country ||
+      "Diğer";
+
+    const league =
+      match.league?.name ||
+      match.league ||
+      "Diğer Maçlar";
+
+    const key =
+      country + "||" + league;
+
+    if(!groups.has(key)){
+      groups.set(
+        key,
+        {
+          country,
+          league,
+          matches:[]
+        }
+      );
+    }
+
+    groups
+      .get(key)
+      .matches
+      .push(match);
+
+  });
+
+  return Array.from(
+    groups.values()
+  );
+}
 function renderMatches(){
 
   activePage =
@@ -2847,10 +2945,48 @@ const filtered =
     return;
   }
 
-  root.innerHTML =
-    filtered
-      .map(matchCard)
-      .join("");
+  const leagueGroups =
+  groupMatchesByLeague(filtered);
+
+root.innerHTML =
+  leagueGroups
+    .map(group => {
+
+      const cards =
+        group.matches
+          .map(matchCard)
+          .join("");
+
+      return `
+        <section class="league-group">
+
+          <div class="league-group-head">
+
+            <div class="league-group-title">
+              <small>
+                ${group.country}
+              </small>
+
+              <strong>
+                ${group.league}
+              </strong>
+            </div>
+
+            <span class="league-match-count">
+              ${group.matches.length} maç
+            </span>
+
+          </div>
+
+          <div class="league-group-matches">
+            ${cards}
+          </div>
+
+        </section>
+      `;
+
+    })
+    .join("");
 }
 
 
