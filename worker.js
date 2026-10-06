@@ -3272,6 +3272,81 @@ async function footballDataTest(
       }
     );
   }
+  async function smartLeagueStandings(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const league =
+    url.searchParams.get("league");
+
+  const provider =
+    getStandingsProvider(league);
+
+  if (!provider) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          "Lig bulunamadı veya desteklenmiyor."
+      },
+      {
+        status: 400,
+        headers: cors
+      }
+    );
+  }
+
+  const targetUrl =
+    new URL(url.toString());
+
+  if (
+    provider.provider ===
+    "football-data"
+  ) {
+    targetUrl.searchParams.set(
+      "competition",
+      provider.competition
+    );
+
+    return footballDataStandings(
+      env,
+      ctx,
+      cors,
+      targetUrl
+    );
+  }
+
+  if (
+    provider.provider ===
+    "api-football"
+  ) {
+    targetUrl.searchParams.set(
+      "league",
+      String(provider.league)
+    );
+
+    return apiFootballStandings(
+      env,
+      ctx,
+      cors,
+      targetUrl
+    );
+  }
+
+  return Response.json(
+    {
+      success: false,
+      error:
+        "Uygun veri kaynağı bulunamadı."
+    },
+    {
+      status: 503,
+      headers: cors
+    }
+  );
+}
 }/* =========================
    FOOTBALL-DATA STANDINGS
    ========================= */
