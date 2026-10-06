@@ -148,6 +148,17 @@ if (
 }
 if (
   url.pathname ===
+  "/api/league-standings"
+) {
+  return smartLeagueStandings(
+    env,
+    ctx,
+    cors,
+    url
+  );
+}
+if (
+  url.pathname ===
   "/api/sportsdb-test"
 ) {
   return sportsDbTest(
