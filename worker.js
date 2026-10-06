@@ -4318,6 +4318,34 @@ async function sportsDbTeamPlayers(
     );
   }
 }
+async function sportsDbLastEvents(
+  teamId,
+  last = 5
+) {
+  const response =
+    await fetch(
+      `https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=${encodeURIComponent(teamId)}`
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      "TheSportsDB son maç verisi alınamadı."
+    );
+  }
+
+  const data =
+    await response.json();
+
+  const events =
+    Array.isArray(data?.results)
+      ? data.results
+      : [];
+
+  return events.slice(
+    0,
+    Math.min(last, 10)
+  );
+}
 async function sportsDbTeamSearch(
   ctx,
   cors,
