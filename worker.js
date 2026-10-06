@@ -4,6 +4,7 @@ const LEAGUE_MAP = {
     country: "Turkey",
     apiFootballId: 203,
     footballDataCode: null
+    sportsDbId: 4339
   },
 
   "premier-league": {
