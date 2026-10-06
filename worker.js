@@ -3960,7 +3960,7 @@ const resolvedLeague =
   if (
     !league ||
     !season ||
-    !/^\d+$/.test(league) ||
+    !/^\d+$/.test(String(resolvedLeague)) ||
     !/^\d{4}$/.test(season)
   ) {
     return Response.json(
