@@ -3325,7 +3325,21 @@ async function footballDataTest(
       targetUrl
     );
   }
+    if (
+  provider.provider ===
+  "thesportsdb"
+) {
+  targetUrl.searchParams.set(
+    "league",
+    String(provider.league)
+  );
 
+  return sportsDbStandings(
+    ctx,
+    cors,
+    targetUrl
+  );
+}
   if (
     provider.provider ===
     "api-football"
