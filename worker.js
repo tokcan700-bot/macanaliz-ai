@@ -259,6 +259,244 @@ if (
   }
 };
 
+async function teamForm(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const team =
+    url.searchParams.get("team");
+
+  const last =
+    Math.min(
+      Math.max(
+        Number(
+          url.searchParams.get("last")
+        ) || 5,
+        1
+      ),
+      10
+    );
+
+  if (
+    !team ||
+    !/^\d+$/.test(team)
+  ) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          "Geçerli team ID gerekli."
+      },
+      {
+        status: 400,
+        headers: cors
+      }
+    );
+  }
+
+  const cache =
+    caches.default;
+
+  const cacheKey =
+    new Request(
+      `${url.origin}/api/team-form-v1?team=${team}&last=${last}`
+    );
+
+  const cached =
+    await cache.match(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const data =
+      await apiFetch(
+        "/fixtures",
+        {
+          team,
+          last,
+          status: "FT"
+        },
+        env
+      );
+
+    const fixtures =
+      Array.isArray(data?.response)
+        ? data.response
+        : [];
+
+    const matches =
+      fixtures.map(item => {
+        const homeId =
+          item.teams?.home?.id;
+
+        const awayId =
+          item.teams?.away?.id;
+
+        const isHome =
+          String(homeId) ===
+          String(team);
+
+        const goalsFor =
+          isHome
+            ? item.goals?.home
+            : item.goals?.away;
+
+        const goalsAgainst =
+          isHome
+            ? item.goals?.away
+            : item.goals?.home;
+
+        let result = "D";
+
+        if (goalsFor > goalsAgainst) {
+          result = "W";
+        } else if (
+          goalsFor < goalsAgainst
+        ) {
+          result = "L";
+        }
+
+        return {
+          fixtureId:
+            item.fixture?.id ||
+            null,
+
+          date:
+            item.fixture?.date ||
+            null,
+
+          venue:
+            isHome
+              ? "home"
+              : "away",
+
+          opponent: {
+            id:
+              isHome
+                ? awayId
+                : homeId,
+
+            name:
+              isHome
+                ? item.teams?.away?.name
+                : item.teams?.home?.name
+          },
+
+          goalsFor:
+            goalsFor ?? 0,
+
+          goalsAgainst:
+            goalsAgainst ?? 0,
+
+          result
+        };
+      });
+
+    const summary = {
+      played:
+        matches.length,
+
+      won:
+        matches.filter(
+          match =>
+            match.result === "W"
+        ).length,
+
+      draw:
+        matches.filter(
+          match =>
+            match.result === "D"
+        ).length,
+
+      lost:
+        matches.filter(
+          match =>
+            match.result === "L"
+        ).length,
+
+      goalsFor:
+        matches.reduce(
+          (total, match) =>
+            total +
+            match.goalsFor,
+          0
+        ),
+
+      goalsAgainst:
+        matches.reduce(
+          (total, match) =>
+            total +
+            match.goalsAgainst,
+          0
+        )
+    };
+
+    const result =
+      Response.json(
+        {
+          success: true,
+          source:
+            "API-Football",
+
+          team:
+            Number(team),
+
+          form:
+            matches
+              .map(
+                match =>
+                  match.result
+              )
+              .join(""),
+
+          summary,
+          matches
+        },
+        {
+          headers: {
+            ...cors,
+            "Cache-Control":
+              "public, max-age=3600"
+          }
+        }
+      );
+
+    ctx.waitUntil(
+      cache.put(
+        cacheKey,
+        result.clone()
+      )
+    );
+
+    return result;
+
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        source:
+          "API-Football",
+
+        error:
+          error.message ||
+          "Takım formu alınamadı.",
+
+        apiErrors:
+          error.apiErrors ||
+          {}
+      },
+      {
+        status:
+          error.status || 500,
+        headers: cors
+      }
+    );
+  }
+}
 
 /* =========================
    API FOOTBALL
