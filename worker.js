@@ -3980,9 +3980,9 @@ const resolvedLeague =
     caches.default;
 
   const cacheKey =
-    new Request(
-      `${url.origin}/api/api-football-standings-v1?league=${league}&season=${season}`
-    );
+  new Request(
+    `${url.origin}/api/api-football-standings-v2?league=${resolvedLeague}&season=${season}`
+  );
 
   const cached =
     await cache.match(cacheKey);
