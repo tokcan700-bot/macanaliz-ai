@@ -204,6 +204,53 @@ if (
     url
   );
 }
+   if (
+  url.pathname ===
+  "/api/sportsdb-last"
+) {
+  const teamId =
+    url.searchParams.get("team");
+
+  const last =
+    Number(
+      url.searchParams.get("last")
+    ) || 5;
+
+  try {
+    const events =
+      await sportsDbLastEvents(
+        teamId,
+        last
+      );
+
+    return Response.json(
+      {
+        success: true,
+        source: "TheSportsDB",
+        team: teamId,
+        count: events.length,
+        events
+      },
+      {
+        headers: cors
+      }
+    );
+
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        source: "TheSportsDB",
+        error:
+          error.message
+      },
+      {
+        status: 500,
+        headers: cors
+      }
+    );
+  }
+}
     if (
       url.pathname ===
       "/api/fixtures"
