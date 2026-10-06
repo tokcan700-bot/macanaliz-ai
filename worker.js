@@ -192,6 +192,18 @@ if (
     url
   );
 }
+
+    if (
+  url.pathname ===
+  "/api/team-form"
+) {
+  return teamForm(
+    env,
+    ctx,
+    cors,
+    url
+  );
+}
     if (
       url.pathname ===
       "/api/fixtures"
