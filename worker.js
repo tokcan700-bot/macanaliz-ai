@@ -4116,8 +4116,14 @@ const resolvedLeague =
         success: false,
         source: "API-Football",
         error:
-          error.message ||
-          "Puan durumu alınamadı."
+  error.message ||
+  "Puan durumu alınamadı.",
+
+apiErrors:
+  error.apiErrors || {},
+
+rateLimit:
+  error.rateLimit || null
       },
       {
         status:
