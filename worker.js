@@ -59,6 +59,17 @@ if (
 }
 if (
   url.pathname ===
+  "/api/api-football-standings"
+) {
+  return apiFootballStandings(
+    env,
+    ctx,
+    cors,
+    url
+  );
+}
+if (
+  url.pathname ===
   "/api/sportsdb-test"
 ) {
   return sportsDbTest(
@@ -3868,6 +3879,194 @@ async function sportsDbTeamSearch(
       },
       {
         status: 500,
+        headers: cors
+      }
+    );
+
+  }
+}
+/* =========================
+   API-FOOTBALL STANDINGS
+   ========================= */
+
+async function apiFootballStandings(
+  env,
+  ctx,
+  cors,
+  url
+) {
+
+  const league =
+    url.searchParams.get("league");
+
+  const season =
+    url.searchParams.get("season");
+
+  if (
+    !league ||
+    !season ||
+    !/^\d+$/.test(league) ||
+    !/^\d{4}$/.test(season)
+  ) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          "Geçerli league ve season gerekli."
+      },
+      {
+        status: 400,
+        headers: cors
+      }
+    );
+  }
+
+  const cache =
+    caches.default;
+
+  const cacheKey =
+    new Request(
+      `${url.origin}/api/api-football-standings-v1?league=${league}&season=${season}`
+    );
+
+  const cached =
+    await cache.match(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+
+    const data =
+      await apiFetch(
+        "/standings",
+        {
+          league,
+          season
+        },
+        env
+      );
+
+    const leagueData =
+      data.response?.[0]?.league;
+
+    const rawTable =
+      leagueData?.standings?.[0] || [];
+
+    if (!Array.isArray(rawTable)) {
+      throw new Error(
+        "Puan durumu verisi bulunamadı."
+      );
+    }
+
+    const table =
+      rawTable.map(row => ({
+        position:
+          row.rank ?? null,
+
+        team: {
+          id:
+            row.team?.id ?? null,
+
+          name:
+            row.team?.name || "",
+
+          shortName:
+            row.team?.name || "",
+
+          crest:
+            row.team?.logo || null
+        },
+
+        played:
+          row.all?.played ?? 0,
+
+        won:
+          row.all?.win ?? 0,
+
+        draw:
+          row.all?.draw ?? 0,
+
+        lost:
+          row.all?.lose ?? 0,
+
+        goalsFor:
+          row.all?.goals?.for ?? 0,
+
+        goalsAgainst:
+          row.all?.goals?.against ?? 0,
+
+        goalDifference:
+          row.goalsDiff ?? 0,
+
+        points:
+          row.points ?? 0,
+
+        form:
+          row.form || null
+      }));
+
+    const result =
+      Response.json(
+        {
+          success: true,
+          source: "API-Football",
+
+          competition: {
+            id:
+              leagueData?.id ||
+              Number(league),
+
+            name:
+              leagueData?.name ||
+              "",
+
+            code: null,
+
+            emblem:
+              leagueData?.logo ||
+              null
+          },
+
+          season: {
+            year:
+              Number(season)
+          },
+
+          table
+        },
+        {
+          headers: {
+            ...cors,
+            "Cache-Control":
+              "public, max-age=21600"
+          }
+        }
+      );
+
+    ctx.waitUntil(
+      cache.put(
+        cacheKey,
+        result.clone()
+      )
+    );
+
+    return result;
+
+  } catch (error) {
+
+    return Response.json(
+      {
+        success: false,
+        source: "API-Football",
+        error:
+          error.message ||
+          "Puan durumu alınamadı."
+      },
+      {
+        status:
+          error.status || 500,
         headers: cors
       }
     );
