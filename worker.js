@@ -58,7 +58,13 @@ function getStandingsProvider(leagueKey) {
   if (!config) {
     return null;
   }
-
+   if (config.sportsDbId) {
+  return {
+    provider: "thesportsdb",
+    league:
+      config.sportsDbId
+  };
+}
   if (config.footballDataCode) {
     return {
       provider: "football-data",
