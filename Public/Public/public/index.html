@@ -5039,13 +5039,40 @@ if(
         apiSeason
       )}`;
 
-const response =
-  await fetch(
-    standingsUrl
+const controller =
+  new AbortController();
+
+const timeoutId =
+  setTimeout(
+    () => controller.abort(),
+    12000
   );
 
-const data =
-  await response.json();
+let response;
+let data;
+
+try {
+
+  response =
+    await fetch(
+      standingsUrl,
+      {
+        cache: "no-store",
+        signal:
+          controller.signal
+      }
+    );
+
+  data =
+    await response.json();
+
+} finally {
+
+  clearTimeout(
+    timeoutId
+  );
+
+}
 
 
     if(
@@ -5222,16 +5249,21 @@ const data =
 
   }catch(error){
 
-    content.innerHTML = `
-      <div class="mc-empty">
-        ${escapeHtml(
-          error.message ||
-          "Puan durumu yüklenemedi."
-        )}
-      </div>
-    `;
+  window.matchCenterStandingsKey =
+    "";
 
-  }
+  content.innerHTML = `
+    <div class="mc-empty">
+      ${escapeHtml(
+        error?.name === "AbortError"
+          ? "Puan durumu isteği zaman aşımına uğradı."
+          : error.message ||
+            "Puan durumu yüklenemedi."
+      )}
+    </div>
+  `;
+
+}
 }
 function renderLiveDetail(data){
 
