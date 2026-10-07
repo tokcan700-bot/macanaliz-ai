@@ -670,8 +670,7 @@ async function liveDetail(
     return json(
       {
         success: false,
-        error:
-          "Geçerli fixture ID gerekli."
+        error: "Geçerli fixture ID gerekli."
       },
       400,
       cors
@@ -680,7 +679,7 @@ async function liveDetail(
 
   return cached(
     ctx,
-    `${url.origin}/_cache/live-detail?fixture=${fixture}`,
+    `${url.origin}/_cache/live-detail-v4?fixture=${fixture}`,
     15,
 
     async () => {
@@ -689,47 +688,40 @@ async function liveDetail(
         statisticsData,
         eventsData,
         lineupsData
-      ] =
-        await Promise.all([
-          apiFetch(
-            "/fixtures",
-            {
-              id: fixture,
-              timezone: TZ
-            },
-            env
-          ),
+      ] = await Promise.all([
+        apiFetch(
+          "/fixtures",
+          {
+            id: fixture,
+            timezone: TZ
+          },
+          env
+        ),
 
-          apiFetch(
-            "/fixtures/statistics",
-            { fixture },
-            env
-          ).catch(
-            () => ({
-              response: []
-            })
-          ),
+        apiFetch(
+          "/fixtures/statistics",
+          { fixture },
+          env
+        ).catch(() => ({
+          response: []
+        })),
 
-          apiFetch(
-            "/fixtures/events",
-            { fixture },
-            env
-          ).catch(
-            () => ({
-              response: []
-            })
-          ),
+        apiFetch(
+          "/fixtures/events",
+          { fixture },
+          env
+        ).catch(() => ({
+          response: []
+        })),
 
-          apiFetch(
-            "/fixtures/lineups",
-            { fixture },
-            env
-          ).catch(
-            () => ({
-              response: []
-            })
-          )
-        ]);
+        apiFetch(
+          "/fixtures/lineups",
+          { fixture },
+          env
+        ).catch(() => ({
+          response: []
+        }))
+      ]);
 
       const raw =
         fixtureData.response?.[0];
@@ -738,33 +730,325 @@ async function liveDetail(
         return json(
           {
             success: false,
-            error:
-              "Maç bulunamadı."
+            error: "Maç bulunamadı."
           },
           404,
           cors
         );
       }
 
-      return json(
-        {
-          success: true,
+      const homeTeamId =
+        raw.teams?.home?.id;
 
-          match:
-            mapFixture(raw),
+      const awayTeamId =
+        raw.teams?.away?.id;
+
+      const stats =
+        statisticsData.response || [];
+
+      const homeStatsBlock =
+        stats.find(
+          item =>
+            Number(item.team?.id) ===
+            Number(homeTeamId)
+        ) ||
+        stats[0] ||
+        null;
+
+      const awayStatsBlock =
+        stats.find(
+          item =>
+            Number(item.team?.id) ===
+            Number(awayTeamId)
+        ) ||
+        stats[1] ||
+        null;
+
+      function getStat(
+        block,
+        type
+      ) {
+        const item =
+          block?.statistics?.find(
+            stat =>
+              stat.type === type
+          );
+
+        return item?.value ?? null;
+      }
+
+      function normalizeStats(
+        block
+      ) {
+        if (!block) {
+          return {};
+        }
+
+        return {
+          totalShots:
+            getStat(
+              block,
+              "Total Shots"
+            ),
+
+          shotsOnGoal:
+            getStat(
+              block,
+              "Shots on Goal"
+            ),
+
+          shotsOffGoal:
+            getStat(
+              block,
+              "Shots off Goal"
+            ),
+
+          blockedShots:
+            getStat(
+              block,
+              "Blocked Shots"
+            ),
+
+          corners:
+            getStat(
+              block,
+              "Corner Kicks"
+            ),
+
+          possession:
+            getStat(
+              block,
+              "Ball Possession"
+            ),
+
+          fouls:
+            getStat(
+              block,
+              "Fouls"
+            ),
+
+          offsides:
+            getStat(
+              block,
+              "Offsides"
+            ),
+
+          yellowCards:
+            getStat(
+              block,
+              "Yellow Cards"
+            ),
+
+          redCards:
+            getStat(
+              block,
+              "Red Cards"
+            ),
+
+          saves:
+            getStat(
+              block,
+              "Goalkeeper Saves"
+            )
+        };
+      }
+
+      const events =
+        (
+          eventsData.response ||
+          []
+        ).map(
+          event => ({
+            time:
+              event.time || {},
+
+            team:
+              event.team || {},
+
+            player:
+              event.player || {},
+
+            assist:
+              event.assist || {},
+
+            type:
+              event.type || null,
+
+            detail:
+              event.detail || null,
+
+            comments:
+              event.comments || null
+          })
+        );
+
+      const payload = {
+        success: true,
+
+        fixture: {
+          id:
+            raw.fixture?.id ||
+            Number(fixture),
+
+          date:
+            raw.fixture?.date ||
+            null,
+
+          referee:
+            raw.fixture?.referee ||
+            null,
+
+          venue: {
+            name:
+              raw.fixture?.venue?.name ||
+              null,
+
+            city:
+              raw.fixture?.venue?.city ||
+              null
+          },
+
+          status: {
+            long:
+              raw.fixture?.status?.long ||
+              null,
+
+            short:
+              raw.fixture?.status?.short ||
+              null,
+
+            elapsed:
+              raw.fixture?.status?.elapsed ??
+              null,
+
+            extra:
+              raw.fixture?.status?.extra ??
+              null
+          }
+        },
+
+        league: {
+          id:
+            raw.league?.id ||
+            null,
+
+          name:
+            raw.league?.name ||
+            null,
+
+          country:
+            raw.league?.country ||
+            null,
+
+          logo:
+            raw.league?.logo ||
+            null,
+
+          flag:
+            raw.league?.flag ||
+            null,
+
+          season:
+            raw.league?.season ||
+            null,
+
+          round:
+            raw.league?.round ||
+            null
+        },
+
+        teams: {
+          home: {
+            id:
+              homeTeamId ||
+              null,
+
+            name:
+              raw.teams?.home?.name ||
+              null,
+
+            logo:
+              raw.teams?.home?.logo ||
+              null
+          },
+
+          away: {
+            id:
+              awayTeamId ||
+              null,
+
+            name:
+              raw.teams?.away?.name ||
+              null,
+
+            logo:
+              raw.teams?.away?.logo ||
+              null
+          }
+        },
+
+        goals: {
+          home:
+            raw.goals?.home ??
+            null,
+
+          away:
+            raw.goals?.away ??
+            null
+        },
+
+        score:
+          raw.score || {},
+
+        statistics: {
+          available:
+            stats.length > 0,
+
+          home:
+            normalizeStats(
+              homeStatsBlock
+            ),
+
+          away:
+            normalizeStats(
+              awayStatsBlock
+            )
+        },
+
+        events: {
+          available:
+            events.length > 0,
+
+          count:
+            events.length,
+
+          items:
+            events
+        },
+
+        lineups:
+          lineupsData.response ||
+          [],
+
+        availability: {
+          fixture: true,
 
           statistics:
-            statisticsData.response ||
-            [],
+            stats.length > 0,
 
           events:
-            eventsData.response ||
-            [],
+            events.length > 0,
 
           lineups:
-            lineupsData.response ||
-            []
-        },
+            (
+              lineupsData.response ||
+              []
+            ).length > 0
+        }
+      };
+
+      return json(
+        payload,
         200,
         cors,
         15
@@ -772,7 +1056,6 @@ async function liveDetail(
     }
   );
 }
-
 // ==========================================
 // API FOOTBALL TAHMİNİ
 // ==========================================
