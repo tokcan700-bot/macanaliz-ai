@@ -1831,220 +1831,70 @@ async function standings(
     param(url, "league");
 
   const season =
-    param(url, "season") ||
-    String(
-      new Date()
-        .getUTCFullYear()
-    );
+    param(url, "season");
 
-  // =====================================
-  // FOOTBALL-DATA.ORG
-  // /api/standings?competition=PL
-  // =====================================
-
+  // Football-Data
   if (competition) {
     if (!env.FOOTBALL_DATA_KEY) {
       return json(
         {
           success: false,
-          error:
-            "FOOTBALL_DATA_KEY bulunamadı."
+          error: "FOOTBALL_DATA_KEY bulunamadı."
         },
         500,
         cors
       );
     }
 
-    return cached(
-      ctx,
-      `${url.origin}/_cache/standings-footballdata?competition=${encodeURIComponent(competition)}`,
-      1800,
-
-      async () => {
-        const apiUrl =
-          `https://api.football-data.org/v4/competitions/${encodeURIComponent(competition)}/standings`;
-
-        const response =
-          await fetch(
-            apiUrl,
-            {
-              headers: {
-                "X-Auth-Token":
-                  env.FOOTBALL_DATA_KEY
-              }
-            }
-          );
-
-        let data;
-
-        try {
-          data =
-            await response.json();
-        } catch {
-          data = {};
-        }
-
-        if (!response.ok) {
-          return json(
-            {
-              success: false,
-              error:
-                "Football-Data puan durumu alınamadı.",
-              status:
-                response.status,
-              details:
-                data
+    try {
+      const response =
+        await fetch(
+          `https://api.football-data.org/v4/competitions/${encodeURIComponent(
+            competition
+          )}/standings`,
+          {
+            headers: {
+              "X-Auth-Token":
+                env.FOOTBALL_DATA_KEY
             },
-            502,
-            cors
-          );
-        }
+            signal:
+              AbortSignal.timeout(12000)
+          }
+        );
 
-        const totalStanding =
-          (
-            data.standings ||
-            []
-          ).find(
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        return json(
+          {
+            success: false,
+            source: "football-data.org",
+            error:
+              data?.message ||
+              "Puan durumu alınamadı."
+          },
+          response.status,
+          cors
+        );
+      }
+
+      const totalStanding =
+        (data.standings || [])
+          .find(
             item =>
               item.type === "TOTAL"
           ) ||
-          (
-            data.standings ||
-            []
-          )[0];
-
-        const table =
-          (
-            totalStanding?.table ||
-            []
-          ).map(
-            row => ({
-              position:
-                row.position ??
-                null,
-
-              team: {
-                id:
-                  row.team?.id ??
-                  null,
-
-                name:
-                  row.team?.name ??
-                  null,
-
-                shortName:
-                  row.team?.shortName ??
-                  row.team?.tla ??
-                  row.team?.name ??
-                  null,
-
-                crest:
-                  row.team?.crest ??
-                  null
-              },
-
-              played:
-                row.playedGames ??
-                0,
-
-              won:
-                row.won ??
-                0,
-
-              draw:
-                row.draw ??
-                0,
-
-              lost:
-                row.lost ??
-                0,
-
-              goalsFor:
-                row.goalsFor ??
-                0,
-
-              goalsAgainst:
-                row.goalsAgainst ??
-                0,
-
-              goalDifference:
-                row.goalDifference ??
-                0,
-
-              points:
-                row.points ??
-                0
-            })
-          );
-
-        return json(
-          {
-            success: true,
-            source:
-              "football-data",
-            competition,
-            table
-          },
-          200,
-          cors,
-          1800
-        );
-      }
-    );
-  }
-
-  // =====================================
-  // API-FOOTBALL
-  // /api/api-football-standings?league=39&season=2026
-  // =====================================
-
-  if (
-    !numeric(league) ||
-    !numeric(season)
-  ) {
-    return json(
-      {
-        success: false,
-        error:
-          "Geçerli competition veya league/season gerekli."
-      },
-      400,
-      cors
-    );
-  }
-
-  return cached(
-    ctx,
-    `${url.origin}/_cache/standings-apifootball?league=${league}&season=${season}`,
-    1800,
-
-    async () => {
-      const data =
-        await apiFetch(
-          "/standings",
-          {
-            league,
-            season
-          },
-          env
-        );
-
-      const leagueData =
-        data.response?.[0]
-          ?.league;
-
-      const groups =
-        leagueData?.standings ||
-        [];
-
-      const rawTable =
-        groups.flat();
+        (data.standings || [])[0];
 
       const table =
-        rawTable.map(
+        (
+          totalStanding?.table ||
+          []
+        ).map(
           row => ({
             position:
-              row.rank ??
+              row.position ??
               null,
 
             team: {
@@ -2053,44 +1903,46 @@ async function standings(
                 null,
 
               name:
-                row.team?.name ??
-                null,
+                row.team?.name ||
+                "",
 
               shortName:
-                row.team?.name ??
-                null,
+                row.team?.shortName ||
+                row.team?.tla ||
+                row.team?.name ||
+                "",
 
               crest:
-                row.team?.logo ??
+                row.team?.crest ||
                 null
             },
 
             played:
-              row.all?.played ??
+              row.playedGames ??
               0,
 
             won:
-              row.all?.win ??
+              row.won ??
               0,
 
             draw:
-              row.all?.draw ??
+              row.draw ??
               0,
 
             lost:
-              row.all?.lose ??
+              row.lost ??
               0,
 
             goalsFor:
-              row.all?.goals?.for ??
+              row.goalsFor ??
               0,
 
             goalsAgainst:
-              row.all?.goals?.against ??
+              row.goalsAgainst ??
               0,
 
             goalDifference:
-              row.goalsDiff ??
+              row.goalDifference ??
               0,
 
             points:
@@ -2098,11 +1950,7 @@ async function standings(
               0,
 
             form:
-              row.form ??
-              null,
-
-            description:
-              row.description ??
+              row.form ||
               null
           })
         );
@@ -2110,29 +1958,28 @@ async function standings(
       return json(
         {
           success: true,
-          source:
-            "api-football",
+          source: "football-data.org",
 
-          league:
-            Number(league),
+          competition: {
+            id:
+              data.competition?.id ||
+              null,
+
+            name:
+              data.competition?.name ||
+              competition,
+
+            code:
+              data.competition?.code ||
+              competition,
+
+            emblem:
+              data.competition?.emblem ||
+              null
+          },
 
           season:
-            Number(season),
-
-          name:
-            leagueData?.name ??
-            null,
-
-          country:
-            leagueData?.country ??
-            null,
-
-          logo:
-            leagueData?.logo ??
-            null,
-
-          flag:
-            leagueData?.flag ??
+            data.season ||
             null,
 
           table
@@ -2141,8 +1988,243 @@ async function standings(
         cors,
         1800
       );
+
+    } catch (error) {
+      return json(
+        {
+          success: false,
+          source: "football-data.org",
+          error:
+            error?.name === "TimeoutError"
+              ? "Puan durumu isteği zaman aşımına uğradı."
+              : error?.message ||
+                "Puan durumu alınamadı."
+        },
+        502,
+        cors
+      );
     }
-  );
+  }
+
+
+  // API-Football
+  if (
+    !numeric(league) ||
+    !/^\d{4}$/.test(
+      String(season || "")
+    )
+  ) {
+    return json(
+      {
+        success: false,
+        error:
+          "Geçerli league ve season gerekli."
+      },
+      400,
+      cors
+    );
+  }
+
+  try {
+    const apiUrl =
+      new URL(
+        API_BASE +
+        "/standings"
+      );
+
+    apiUrl.searchParams.set(
+      "league",
+      league
+    );
+
+    apiUrl.searchParams.set(
+      "season",
+      season
+    );
+
+    const response =
+      await fetch(
+        apiUrl.toString(),
+        {
+          headers: {
+            "x-apisports-key":
+              env.API_FOOTBALL_KEY
+          },
+          signal:
+            AbortSignal.timeout(12000)
+        }
+      );
+
+    const data =
+      await response.json();
+
+    const errors =
+      apiErrors(data);
+
+    if (
+      !response.ok ||
+      errors.length
+    ) {
+      return json(
+        {
+          success: false,
+          source: "API-Football",
+
+          error:
+            "Puan durumu alınamadı.",
+
+          apiErrors:
+            data.errors || {}
+        },
+        502,
+        cors
+      );
+    }
+
+    const leagueData =
+      data.response?.[0]
+        ?.league;
+
+    const rawTable =
+      leagueData
+        ?.standings
+        ?.[0] ||
+      [];
+
+    if (
+      !Array.isArray(
+        rawTable
+      )
+    ) {
+      return json(
+        {
+          success: false,
+          source: "API-Football",
+          error:
+            "Bu lig için puan durumu bulunamadı."
+        },
+        404,
+        cors
+      );
+    }
+
+    const table =
+      rawTable.map(
+        row => ({
+          position:
+            row.rank ??
+            null,
+
+          team: {
+            id:
+              row.team?.id ??
+              null,
+
+            name:
+              row.team?.name ||
+              "",
+
+            shortName:
+              row.team?.name ||
+              "",
+
+            crest:
+              row.team?.logo ||
+              null
+          },
+
+          played:
+            row.all?.played ??
+            0,
+
+          won:
+            row.all?.win ??
+            0,
+
+          draw:
+            row.all?.draw ??
+            0,
+
+          lost:
+            row.all?.lose ??
+            0,
+
+          goalsFor:
+            row.all
+              ?.goals
+              ?.for ??
+            0,
+
+          goalsAgainst:
+            row.all
+              ?.goals
+              ?.against ??
+            0,
+
+          goalDifference:
+            row.goalsDiff ??
+            0,
+
+          points:
+            row.points ??
+            0,
+
+          form:
+            row.form ||
+            null
+        })
+      );
+
+    return json(
+      {
+        success: true,
+        source: "API-Football",
+
+        competition: {
+          id:
+            leagueData?.id ||
+            Number(league),
+
+          name:
+            leagueData?.name ||
+            "",
+
+          code:
+            null,
+
+          emblem:
+            leagueData?.logo ||
+            null
+        },
+
+        season: {
+          year:
+            Number(season)
+        },
+
+        table
+      },
+      200,
+      cors,
+      1800
+    );
+
+  } catch (error) {
+    return json(
+      {
+        success: false,
+        source: "API-Football",
+
+        error:
+          error?.name === "TimeoutError"
+            ? "Puan durumu isteği zaman aşımına uğradı."
+            : error?.message ||
+              "Puan durumu alınamadı."
+      },
+      502,
+      cors
+    );
+  }
 }
 
 // ==========================================
