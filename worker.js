@@ -108,9 +108,12 @@ export default {
       // LİGLER
       // =========================
 
-      if (url.pathname === "/api/standings") {
-        return standings(env, ctx, cors, url);
-      }
+      if (
+  url.pathname === "/api/standings" ||
+  url.pathname === "/api/api-football-standings"
+) {
+  return standings(env, ctx, cors, url);
+}
 
       if (url.pathname === "/api/leagues") {
         return leagues(env, ctx, cors, url);
@@ -1538,6 +1541,9 @@ async function standings(
   cors,
   url
 ) {
+  const competition =
+    param(url, "competition");
+
   const league =
     param(url, "league");
 
@@ -1548,6 +1554,167 @@ async function standings(
         .getUTCFullYear()
     );
 
+  // =====================================
+  // FOOTBALL-DATA.ORG
+  // /api/standings?competition=PL
+  // =====================================
+
+  if (competition) {
+    if (!env.FOOTBALL_DATA_KEY) {
+      return json(
+        {
+          success: false,
+          error:
+            "FOOTBALL_DATA_KEY bulunamadı."
+        },
+        500,
+        cors
+      );
+    }
+
+    return cached(
+      ctx,
+      `${url.origin}/_cache/standings-footballdata?competition=${encodeURIComponent(competition)}`,
+      1800,
+
+      async () => {
+        const apiUrl =
+          `https://api.football-data.org/v4/competitions/${encodeURIComponent(competition)}/standings`;
+
+        const response =
+          await fetch(
+            apiUrl,
+            {
+              headers: {
+                "X-Auth-Token":
+                  env.FOOTBALL_DATA_KEY
+              }
+            }
+          );
+
+        let data;
+
+        try {
+          data =
+            await response.json();
+        } catch {
+          data = {};
+        }
+
+        if (!response.ok) {
+          return json(
+            {
+              success: false,
+              error:
+                "Football-Data puan durumu alınamadı.",
+              status:
+                response.status,
+              details:
+                data
+            },
+            502,
+            cors
+          );
+        }
+
+        const totalStanding =
+          (
+            data.standings ||
+            []
+          ).find(
+            item =>
+              item.type === "TOTAL"
+          ) ||
+          (
+            data.standings ||
+            []
+          )[0];
+
+        const table =
+          (
+            totalStanding?.table ||
+            []
+          ).map(
+            row => ({
+              position:
+                row.position ??
+                null,
+
+              team: {
+                id:
+                  row.team?.id ??
+                  null,
+
+                name:
+                  row.team?.name ??
+                  null,
+
+                shortName:
+                  row.team?.shortName ??
+                  row.team?.tla ??
+                  row.team?.name ??
+                  null,
+
+                crest:
+                  row.team?.crest ??
+                  null
+              },
+
+              played:
+                row.playedGames ??
+                0,
+
+              won:
+                row.won ??
+                0,
+
+              draw:
+                row.draw ??
+                0,
+
+              lost:
+                row.lost ??
+                0,
+
+              goalsFor:
+                row.goalsFor ??
+                0,
+
+              goalsAgainst:
+                row.goalsAgainst ??
+                0,
+
+              goalDifference:
+                row.goalDifference ??
+                0,
+
+              points:
+                row.points ??
+                0
+            })
+          );
+
+        return json(
+          {
+            success: true,
+            source:
+              "football-data",
+            competition,
+            table
+          },
+          200,
+          cors,
+          1800
+        );
+      }
+    );
+  }
+
+  // =====================================
+  // API-FOOTBALL
+  // /api/api-football-standings?league=39&season=2026
+  // =====================================
+
   if (
     !numeric(league) ||
     !numeric(season)
@@ -1556,7 +1723,7 @@ async function standings(
       {
         success: false,
         error:
-          "Geçerli league ve season gerekli."
+          "Geçerli competition veya league/season gerekli."
       },
       400,
       cors
@@ -1565,7 +1732,7 @@ async function standings(
 
   return cached(
     ctx,
-    `${url.origin}/_cache/standings?league=${league}&season=${season}`,
+    `${url.origin}/_cache/standings-apifootball?league=${league}&season=${season}`,
     1800,
 
     async () => {
@@ -1579,16 +1746,113 @@ async function standings(
           env
         );
 
+      const leagueData =
+        data.response?.[0]
+          ?.league;
+
+      const groups =
+        leagueData?.standings ||
+        [];
+
+      const rawTable =
+        groups.flat();
+
+      const table =
+        rawTable.map(
+          row => ({
+            position:
+              row.rank ??
+              null,
+
+            team: {
+              id:
+                row.team?.id ??
+                null,
+
+              name:
+                row.team?.name ??
+                null,
+
+              shortName:
+                row.team?.name ??
+                null,
+
+              crest:
+                row.team?.logo ??
+                null
+            },
+
+            played:
+              row.all?.played ??
+              0,
+
+            won:
+              row.all?.win ??
+              0,
+
+            draw:
+              row.all?.draw ??
+              0,
+
+            lost:
+              row.all?.lose ??
+              0,
+
+            goalsFor:
+              row.all?.goals?.for ??
+              0,
+
+            goalsAgainst:
+              row.all?.goals?.against ??
+              0,
+
+            goalDifference:
+              row.goalsDiff ??
+              0,
+
+            points:
+              row.points ??
+              0,
+
+            form:
+              row.form ??
+              null,
+
+            description:
+              row.description ??
+              null
+          })
+        );
+
       return json(
         {
           success: true,
+          source:
+            "api-football",
+
           league:
             Number(league),
+
           season:
             Number(season),
-          standings:
-            data.response ||
-            []
+
+          name:
+            leagueData?.name ??
+            null,
+
+          country:
+            leagueData?.country ??
+            null,
+
+          logo:
+            leagueData?.logo ??
+            null,
+
+          flag:
+            leagueData?.flag ??
+            null,
+
+          table
         },
         200,
         cors,
