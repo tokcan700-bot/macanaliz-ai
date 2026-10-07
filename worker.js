@@ -1,90 +1,19 @@
-const LEAGUE_MAP = {
-  "super-lig": {
-    name: "Süper Lig",
-    country: "Turkey",
-    apiFootballId: 203,
-    footballDataCode: null,
-    sportsDbId: 4339
-  },
+// MaçAnaliz API - Worker v3
+// Cloudflare Workers
+// Bindings:
+// API_FOOTBALL_KEY
+// FOOTBALL_DATA_KEY (opsiyonel)
+// ASSETS (opsiyonel)
 
-  "premier-league": {
-    name: "Premier League",
-    country: "England",
-    apiFootballId: 39,
-    footballDataCode: "PL"
-  },
+const TZ = "Europe/Istanbul";
+const API_BASE = "https://v3.football.api-sports.io";
+const SPORTSDB_BASE =
+  "https://www.thesportsdb.com/api/v1/json/123";
 
-  "la-liga": {
-    name: "La Liga",
-    country: "Spain",
-    apiFootballId: 140,
-    footballDataCode: "PD"
-  },
-
-  "serie-a": {
-    name: "Serie A",
-    country: "Italy",
-    apiFootballId: 135,
-    footballDataCode: "SA"
-  },
-
-  "bundesliga": {
-    name: "Bundesliga",
-    country: "Germany",
-    apiFootballId: 78,
-    footballDataCode: "BL1"
-  },
-
-  "ligue-1": {
-    name: "Ligue 1",
-    country: "France",
-    apiFootballId: 61,
-    footballDataCode: "FL1"
-  }
-};
-function getLeagueConfig(leagueKey) {
-  if (!leagueKey) return null;
-
-  const key = String(leagueKey)
-    .toLowerCase()
-    .trim();
-
-  return LEAGUE_MAP[key] || null;
-}
-function getStandingsProvider(leagueKey) {
-  const config =
-    getLeagueConfig(leagueKey);
-
-  if (!config) {
-    return null;
-  }
-   if (config.sportsDbId) {
-  return {
-    provider: "thesportsdb",
-    league:
-      config.sportsDbId
-  };
-}
-  if (config.footballDataCode) {
-    return {
-      provider: "football-data",
-      competition:
-        config.footballDataCode
-    };
-  }
-
-  if (config.apiFootballId) {
-    return {
-      provider: "api-football",
-      league:
-        config.apiFootballId
-    };
-  }
-
-  return null;
-}
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
     const cors = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -93,682 +22,468 @@ export default {
     };
 
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: cors
-      });
+      return new Response(null, { headers: cors });
     }
 
-    if (!env.API_FOOTBALL_KEY) {
-      return Response.json(
+    try {
+      // =========================
+      // HEALTH
+      // =========================
+
+      if (
+        url.pathname === "/health" ||
+        url.pathname === "/api/health"
+      ) {
+        return json(
+          {
+            success: true,
+            service: "macanaliz-api",
+            version: "3.0",
+            timezone: TZ
+          },
+          200,
+          cors
+        );
+      }
+
+      // =========================
+      // MAÇLAR
+      // =========================
+
+      if (
+        url.pathname === "/api/fixtures" ||
+        url.pathname === "/fixtures"
+      ) {
+        return fixtures(env, ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/live") {
+        return live(env, ctx, cors, url);
+      }
+
+      if (
+        url.pathname === "/api/fixture" ||
+        url.pathname === "/api/match"
+      ) {
+        return fixtureDetail(env, ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/live-detail") {
+        return liveDetail(env, ctx, cors, url);
+      }
+
+      // =========================
+      // TAHMİN
+      // =========================
+
+      if (url.pathname === "/api/prediction") {
+        return prediction(env, ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/model") {
+        return model(env, ctx, cors, url);
+      }
+
+      // =========================
+      // TAKIM
+      // =========================
+
+      if (url.pathname === "/api/team-search") {
+        return teamSearch(env, ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/team") {
+        return teamInfo(env, ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/team-form") {
+        return teamForm(env, ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/squad") {
+        return squad(env, ctx, cors, url);
+      }
+
+      // =========================
+      // LİGLER
+      // =========================
+
+      if (url.pathname === "/api/standings") {
+        return standings(env, ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/leagues") {
+        return leagues(env, ctx, cors, url);
+      }
+
+      // =========================
+      // THE SPORTS DB
+      // =========================
+
+      if (url.pathname === "/api/sportsdb-search") {
+        return sportsDbTeamSearch(ctx, cors, url);
+      }
+
+      if (url.pathname === "/api/sportsdb-last") {
+        return sportsDbLastEvents(ctx, cors, url);
+      }
+
+      // =========================
+      // FRONTEND ASSETS
+      // =========================
+
+      if (env.ASSETS) {
+        return env.ASSETS.fetch(request);
+      }
+
+      return json(
         {
           success: false,
-          error: "API_FOOTBALL_KEY bulunamadı."
+          error: "Endpoint bulunamadı."
         },
+        404,
+        cors
+      );
+    } catch (e) {
+      return json(
         {
-          status: 500,
-          headers: cors
-        }
+          success: false,
+          error: e?.message || "Sunucu hatası.",
+          status: e?.status || 500,
+          details: e?.apiErrors || null
+        },
+        e?.status && e.status < 500
+          ? e.status
+          : 502,
+        cors
       );
     }
-
-    const url =
-      new URL(request.url);
-if (
-  url.pathname ===
-  "/api/status"
-) {
-  return apiStatus(
-    env,
-    cors
-  );
-}
- if (
-  url.pathname ===
-  "/api/football-data-test"
-) {
-  return footballDataTest(
-    env,
-    cors
-  );
-}
-if (
-  url.pathname ===
-  "/api/standings"
-) {
-  return footballDataStandings(
-    env,
-    ctx,
-    cors,
-    url
-  );
-}
-if (
-  url.pathname ===
-  "/api/api-football-standings"
-) {
-  return apiFootballStandings(
-    env,
-    ctx,
-    cors,
-    url
-  );
-}
-if (
-  url.pathname ===
-  "/api/league-standings"
-) {
-  return smartLeagueStandings(
-    env,
-    ctx,
-    cors,
-    url
-  );
-}
-if (
-  url.pathname ===
-  "/api/sportsdb-test"
-) {
-  return sportsDbTest(
-    cors
-  );
-}
-if (
-  url.pathname ===
-  "/api/team-players"
-) {
-  return sportsDbTeamPlayers(
-    ctx,
-    cors,
-    url
-  );
-}
-if (
-  url.pathname ===
-  "/api/team-search"
-) {
-  return sportsDbTeamSearch(
-    ctx,
-    cors,
-    url
-  );
-}
-
-    if (
-  url.pathname ===
-  "/api/team-form"
-) {
-  return teamForm(
-    env,
-    ctx,
-    cors,
-    url
-  );
-}
-   if (
-  url.pathname ===
-  "/api/sportsdb-last"
-) {
-  const teamId =
-    url.searchParams.get("team");
-
-  const last =
-    Number(
-      url.searchParams.get("last")
-    ) || 5;
-
-  try {
-    const events =
-      await sportsDbLastEvents(
-        teamId,
-        last
-      );
-
-    return Response.json(
-      {
-        success: true,
-        source: "TheSportsDB",
-        team: teamId,
-        count: events.length,
-        events
-      },
-      {
-        headers: cors
-      }
-    );
-
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        source: "TheSportsDB",
-        error:
-          error.message
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-  }
-}
-    if (
-      url.pathname ===
-      "/api/fixtures"
-    ) {
-      return fixtures(
-        env,
-        ctx,
-        cors,
-        url
-      );
-    }
-
-    if (
-      url.pathname ===
-      "/api/prediction"
-    ) {
-      return prediction(
-        env,
-        ctx,
-        cors,
-        url
-      );
-    }
-
-    if (
-      url.pathname ===
-      "/api/live-detail"
-    ) {
-      return liveDetail(
-        env,
-        ctx,
-        cors,
-        url
-      );
-    }
-
-    if (env.ASSETS) {
-      return env.ASSETS.fetch(
-        request
-      );
-    }
-
-    return Response.json(
-      {
-        success: false,
-        error: "Endpoint bulunamadı."
-      },
-      {
-        status: 404,
-        headers: cors
-      }
-    );
   }
 };
 
-async function teamForm(
-  env,
-  ctx,
-  cors,
-  url
+// ==========================================
+// YARDIMCI FONKSİYONLAR
+// ==========================================
+
+function json(
+  data,
+  status,
+  headers,
+  maxAge
 ) {
-  const team =
-    url.searchParams.get("team");
+  const h = { ...headers };
 
-  const last =
-    Math.min(
-      Math.max(
-        Number(
-          url.searchParams.get("last")
-        ) || 5,
-        1
-      ),
-      10
-    );
-
-  if (
-    !team ||
-    !/^\d+$/.test(team)
-  ) {
-    return Response.json(
-      {
-        success: false,
-        error:
-          "Geçerli team ID gerekli."
-      },
-      {
-        status: 400,
-        headers: cors
-      }
-    );
+  if (maxAge !== undefined) {
+    h["Cache-Control"] =
+      `public, max-age=${maxAge}`;
   }
 
-  const cache =
-    caches.default;
-
-  const cacheKey =
-    new Request(
-      `${url.origin}/api/team-form-v1?team=${team}&last=${last}`
-    );
-
-  const cached =
-    await cache.match(cacheKey);
-
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    const data =
-      await apiFetch(
-        "/fixtures",
-        {
-          team,
-          last,
-          status: "FT"
-        },
-        env
-      );
-
-    const fixtures =
-      Array.isArray(data?.response)
-        ? data.response
-        : [];
-
-    const matches =
-      fixtures.map(item => {
-        const homeId =
-          item.teams?.home?.id;
-
-        const awayId =
-          item.teams?.away?.id;
-
-        const isHome =
-          String(homeId) ===
-          String(team);
-
-        const goalsFor =
-          isHome
-            ? item.goals?.home
-            : item.goals?.away;
-
-        const goalsAgainst =
-          isHome
-            ? item.goals?.away
-            : item.goals?.home;
-
-        let result = "D";
-
-        if (goalsFor > goalsAgainst) {
-          result = "W";
-        } else if (
-          goalsFor < goalsAgainst
-        ) {
-          result = "L";
-        }
-
-        return {
-          fixtureId:
-            item.fixture?.id ||
-            null,
-
-          date:
-            item.fixture?.date ||
-            null,
-
-          venue:
-            isHome
-              ? "home"
-              : "away",
-
-          opponent: {
-            id:
-              isHome
-                ? awayId
-                : homeId,
-
-            name:
-              isHome
-                ? item.teams?.away?.name
-                : item.teams?.home?.name
-          },
-
-          goalsFor:
-            goalsFor ?? 0,
-
-          goalsAgainst:
-            goalsAgainst ?? 0,
-
-          result
-        };
-      });
-
-    const summary = {
-      played:
-        matches.length,
-
-      won:
-        matches.filter(
-          match =>
-            match.result === "W"
-        ).length,
-
-      draw:
-        matches.filter(
-          match =>
-            match.result === "D"
-        ).length,
-
-      lost:
-        matches.filter(
-          match =>
-            match.result === "L"
-        ).length,
-
-      goalsFor:
-        matches.reduce(
-          (total, match) =>
-            total +
-            match.goalsFor,
-          0
-        ),
-
-      goalsAgainst:
-        matches.reduce(
-          (total, match) =>
-            total +
-            match.goalsAgainst,
-          0
-        )
-    };
-
-    const result =
-      Response.json(
-        {
-          success: true,
-          source:
-            "API-Football",
-
-          team:
-            Number(team),
-
-          form:
-            matches
-              .map(
-                match =>
-                  match.result
-              )
-              .join(""),
-
-          summary,
-          matches
-        },
-        {
-          headers: {
-            ...cors,
-            "Cache-Control":
-              "public, max-age=3600"
-          }
-        }
-      );
-
-    ctx.waitUntil(
-      cache.put(
-        cacheKey,
-        result.clone()
-      )
-    );
-
-    return result;
-
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        source:
-          "API-Football",
-
-        error:
-          error.message ||
-          "Takım formu alınamadı.",
-
-        apiErrors:
-          error.apiErrors ||
-          {}
-      },
-      {
-        status:
-          error.status || 500,
-        headers: cors
-      }
-    );
-  }
+  return Response.json(data, {
+    status,
+    headers: h
+  });
 }
 
-/* =========================
-   API FOOTBALL
-   ========================= */
+function param(url, name) {
+  return (
+    url.searchParams.get(name) || ""
+  ).trim();
+}
+
+function numeric(value) {
+  return /^\d+$/.test(value || "");
+}
+
+function todayTR() {
+  return new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone: TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }
+  ).format(new Date());
+}
+
+function apiErrors(data) {
+  if (!data?.errors) return [];
+
+  if (Array.isArray(data.errors)) {
+    return data.errors;
+  }
+
+  if (
+    typeof data.errors === "object"
+  ) {
+    return Object.keys(data.errors);
+  }
+
+  return [String(data.errors)];
+}
+
+// ==========================================
+// API FOOTBALL
+// ==========================================
 
 async function apiFetch(
   path,
   params,
   env
 ) {
-  const url =
-    new URL(
-      "https://v3.football.api-sports.io" +
-      path
-    );
+  if (!env.API_FOOTBALL_KEY) {
+    const error =
+      new Error(
+        "API_FOOTBALL_KEY bulunamadı."
+      );
+
+    error.status = 500;
+
+    throw error;
+  }
+
+  const apiUrl =
+    new URL(API_BASE + path);
 
   for (
     const [key, value]
-    of Object.entries(
-      params || {}
-    )
+    of Object.entries(params || {})
   ) {
     if (
       value !== undefined &&
       value !== null &&
       value !== ""
     ) {
-      url.searchParams.set(
+      apiUrl.searchParams.set(
         key,
         String(value)
       );
     }
   }
 
-  const response =
-    await fetch(
-      url.toString(),
-      {
-        headers: {
-          "x-apisports-key":
-            env.API_FOOTBALL_KEY
-        }
+  const response = await fetch(
+    apiUrl.toString(),
+    {
+      headers: {
+        "x-apisports-key":
+          env.API_FOOTBALL_KEY
       }
-    );
+    }
+  );
 
   let data;
 
   try {
-    data =
-      await response.json();
-
+    data = await response.json();
   } catch {
-    const error =
-      new Error(
-        "API Football JSON cevabı alınamadı."
-      );
-
-    error.status =
-      response.status;
-
-    throw error;
+    data = {};
   }
 
-
-  let hasErrors =
-    false;
-
-
-  if (data?.errors) {
-
-    if (
-      Array.isArray(
-        data.errors
-      )
-    ) {
-      hasErrors =
-        data.errors.length > 0;
-
-    } else if (
-      typeof data.errors ===
-      "object"
-    ) {
-      hasErrors =
-        Object.keys(
-          data.errors
-        ).length > 0;
-
-    } else if (
-      String(
-        data.errors
-      ).trim()
-    ) {
-      hasErrors =
-        true;
-    }
-  }
-
+  const errors = apiErrors(data);
 
   if (
     !response.ok ||
-    hasErrors
+    errors.length
   ) {
     const error =
       new Error(
-        "API Football isteği başarısız."
+        "API-Football isteği başarısız."
       );
 
-error.status =
-  response.status;
+    error.status =
+      response.status || 502;
 
-error.apiErrors =
-  data?.errors || {};
-
-error.rateLimit = {
-  dailyRemaining:
-    response.headers.get(
-      "x-ratelimit-requests-remaining"
-    ),
-
-  minuteRemaining:
-    response.headers.get(
-      "x-ratelimit-remaining"
-    ),
-
-  retryAfter:
-    response.headers.get(
-      "retry-after"
-    )
-};
+    error.apiErrors =
+      data.errors || {};
 
     throw error;
   }
-
 
   return data;
 }
 
+// ==========================================
+// CACHE
+// ==========================================
 
-/* =========================
-   PLAYERELO
-   ========================= */
-
-async function playerEloFetch(
-  fixture,
-  env
+async function cached(
+  ctx,
+  key,
+  seconds,
+  callback
 ) {
-  if (!env.PLAYERELO_KEY) {
-    return {
-      available: false,
-      reason:
-        "PLAYERELO_KEY bulunamadı."
-    };
+  const cache =
+    caches.default;
+
+  const request =
+    new Request(key);
+
+  const hit =
+    await cache.match(request);
+
+  if (hit) {
+    return hit;
   }
 
-  try {
-    const response =
-      await fetch(
-        `https://data-api.playerelo.football/v1/fixtures/${fixture}/prediction`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${env.PLAYERELO_KEY}`
-          }
-        }
-      );
+  const response =
+    await callback();
 
-
-    if (!response.ok) {
-      return {
-        available: false,
-        status:
-          response.status,
-        reason:
-          "PlayerElo verisi alınamadı."
-      };
-    }
-
-
-    const data =
-      await response.json();
-
-
-    return {
-      available: true,
-      data
-    };
-
-
-  } catch {
-    return {
-      available: false,
-      reason:
-        "PlayerElo bağlantı hatası."
-    };
+  if (
+    response.ok &&
+    seconds > 0
+  ) {
+    ctx.waitUntil(
+      cache.put(
+        request,
+        response.clone()
+      )
+    );
   }
+
+  return response;
 }
 
+// ==========================================
+// MAÇ VERİSİ DÖNÜŞTÜRME
+// ==========================================
 
-/* =========================
-   TARİH
-   ========================= */
+function mapFixture(match) {
+  return {
+    id:
+      match.fixture?.id ??
+      null,
 
-function istanbulDate() {
-  return new Intl.DateTimeFormat(
-    "en-CA",
-    {
-      timeZone:
-        "Europe/Istanbul",
-      year:
-        "numeric",
-      month:
-        "2-digit",
-      day:
-        "2-digit"
-    }
-  ).format(
-    new Date()
-  );
+    kickoff:
+      match.fixture?.date ??
+      null,
+
+    date:
+      match.fixture?.date ??
+      null,
+
+    timestamp:
+      match.fixture?.timestamp ??
+      null,
+
+    timezone:
+      match.fixture?.timezone ??
+      TZ,
+
+    venue:
+      match.fixture?.venue ||
+      null,
+
+    referee:
+      match.fixture?.referee ||
+      null,
+
+    status:
+      match.fixture?.status?.short ??
+      null,
+
+    statusLong:
+      match.fixture?.status?.long ??
+      null,
+
+    elapsed:
+      match.fixture?.status?.elapsed ??
+      null,
+
+    league: {
+      id:
+        match.league?.id ??
+        null,
+
+      name:
+        match.league?.name ??
+        null,
+
+      country:
+        match.league?.country ??
+        null,
+
+      logo:
+        match.league?.logo ??
+        null,
+
+      flag:
+        match.league?.flag ??
+        null,
+
+      season:
+        match.league?.season ??
+        null,
+
+      round:
+        match.league?.round ??
+        null
+    },
+
+    home: {
+      id:
+        match.teams?.home?.id ??
+        null,
+
+      name:
+        match.teams?.home?.name ??
+        null,
+
+      logo:
+        match.teams?.home?.logo ??
+        null,
+
+      winner:
+        match.teams?.home?.winner ??
+        null
+    },
+
+    away: {
+      id:
+        match.teams?.away?.id ??
+        null,
+
+      name:
+        match.teams?.away?.name ??
+        null,
+
+      logo:
+        match.teams?.away?.logo ??
+        null,
+
+      winner:
+        match.teams?.away?.winner ??
+        null
+    },
+
+    score: {
+      home:
+        match.goals?.home ??
+        null,
+
+      away:
+        match.goals?.away ??
+        null
+    },
+
+    goals: {
+      home:
+        match.goals?.home ??
+        null,
+
+      away:
+        match.goals?.away ??
+        null
+    },
+
+    periods:
+      match.score ||
+      null
+  };
 }
 
-
-/* =========================
-   FİKSTÜR
-   v11
-   ========================= */
+// ==========================================
+// BUGÜNÜN / TARİHİN MAÇLARI
+// ==========================================
 
 async function fixtures(
   env,
@@ -777,592 +492,564 @@ async function fixtures(
   url
 ) {
   const date =
-    url.searchParams.get(
-      "date"
-    ) ||
-    istanbulDate();
+    param(url, "date") ||
+    todayTR();
 
+  return cached(
+    ctx,
+    `${url.origin}/_cache/fixtures?date=${date}`,
+    180,
 
-  const cache =
-    caches.default;
-
-
-  const mainKey =
-    new Request(
-      `${url.origin}/api/fixtures-v11?date=${encodeURIComponent(date)}`
-    );
-
-
-  const backupKey =
-    new Request(
-      `${url.origin}/api/fixtures-v11-backup?date=${encodeURIComponent(date)}`
-    );
-
-
-  /*
-    Önce ana cache
-  */
-
-  const cached =
-    await cache.match(
-      mainKey
-    );
-
-
-  if (cached) {
-    return cached;
-  }
-
-
-  try {
-
-    const data =
-      await apiFetch(
-        "/fixtures",
-        {
-          date,
-          timezone:
-            "Europe/Istanbul"
-        },
-        env
-      );
-
-
-    const rawMatches =
-      Array.isArray(
-        data.response
-      )
-        ? data.response
-        : [];
-
-
-    /*
-      Kritik koruma:
-      API bugün için 0 maç döndürdüyse
-      bunu başarılı veri saymıyoruz.
-    */
-
-    if (
-      rawMatches.length === 0
-    ) {
-
-      const backup =
-        await cache.match(
-          backupKey
+    async () => {
+      const data =
+        await apiFetch(
+          "/fixtures",
+          {
+            date,
+            timezone: TZ
+          },
+          env
         );
 
+      const matches =
+        (data.response || [])
+          .map(mapFixture);
 
-      if (backup) {
+      return json(
+        {
+          success: true,
+          date,
+          timezone: TZ,
+          count:
+            matches.length,
+          matches
+        },
+        200,
+        cors,
+        180
+      );
+    }
+  );
+}
 
-        const saved =
-          await backup.json();
+// ==========================================
+// CANLI MAÇLAR
+// ==========================================
 
+async function live(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  return cached(
+    ctx,
+    `${url.origin}/_cache/live`,
+    20,
 
-        return Response.json(
+    async () => {
+      const data =
+        await apiFetch(
+          "/fixtures",
           {
-            ...saved,
-
-            success:
-              true,
-
-            stale:
-              true,
-
-            warning:
-              "API boş fikstür döndürdü. Son başarılı maç listesi gösteriliyor."
+            live: "all",
+            timezone: TZ
           },
-          {
-            headers: {
-              ...cors,
+          env
+        );
 
-              "Cache-Control":
-                "public, max-age=300"
-            }
-          }
+      const matches =
+        (data.response || [])
+          .map(mapFixture);
+
+      return json(
+        {
+          success: true,
+          count:
+            matches.length,
+          matches
+        },
+        200,
+        cors,
+        20
+      );
+    }
+  );
+}
+
+// ==========================================
+// MAÇ DETAY
+// ==========================================
+
+async function fixtureDetail(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const id =
+    param(url, "id") ||
+    param(url, "fixture");
+
+  if (!numeric(id)) {
+    return json(
+      {
+        success: false,
+        error:
+          "Geçerli fixture ID gerekli."
+      },
+      400,
+      cors
+    );
+  }
+
+  return cached(
+    ctx,
+    `${url.origin}/_cache/fixture?id=${id}`,
+    45,
+
+    async () => {
+      const data =
+        await apiFetch(
+          "/fixtures",
+          {
+            id,
+            timezone: TZ
+          },
+          env
+        );
+
+      const raw =
+        data.response?.[0];
+
+      if (!raw) {
+        return json(
+          {
+            success: false,
+            error:
+              "Maç bulunamadı."
+          },
+          404,
+          cors
         );
       }
 
-
-      return Response.json(
+      return json(
         {
-          success:
-            false,
-
-          empty:
-            true,
-
-          stale:
-            false,
-
-          error:
-            "API bugün için boş fikstür döndürdü."
+          success: true,
+          match:
+            mapFixture(raw),
+          raw
         },
-        {
-          status: 503,
-          headers: cors
-        }
+        200,
+        cors,
+        45
       );
     }
+  );
+}
 
+// ==========================================
+// CANLI DETAY
+// ==========================================
 
-    const matches =
-      rawMatches.map(
-        item => ({
-          id:
-            item.fixture?.id,
+async function liveDetail(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const fixture =
+    param(url, "fixture") ||
+    param(url, "id");
 
-          kickoff:
-            item.fixture?.timestamp
-              ? new Date(
-                  Number(
-                    item.fixture.timestamp
-                  ) * 1000
-                ).toISOString()
-              : item.fixture?.date,
+  if (!numeric(fixture)) {
+    return json(
+      {
+        success: false,
+        error:
+          "Geçerli fixture ID gerekli."
+      },
+      400,
+      cors
+    );
+  }
 
-          status:
-            item.fixture
-              ?.status
-              ?.short,
+  return cached(
+    ctx,
+    `${url.origin}/_cache/live-detail?fixture=${fixture}`,
+    15,
 
-          statusLong:
-            item.fixture
-              ?.status
-              ?.long,
+    async () => {
+      const [
+        fixtureData,
+        statisticsData,
+        eventsData,
+        lineupsData
+      ] =
+        await Promise.all([
+          apiFetch(
+            "/fixtures",
+            {
+              id: fixture,
+              timezone: TZ
+            },
+            env
+          ),
 
-          elapsed:
-            item.fixture
-              ?.status
-              ?.elapsed,
+          apiFetch(
+            "/fixtures/statistics",
+            { fixture },
+            env
+          ).catch(
+            () => ({
+              response: []
+            })
+          ),
 
-          extra:
-            item.fixture
-              ?.status
-              ?.extra,
+          apiFetch(
+            "/fixtures/events",
+            { fixture },
+            env
+          ).catch(
+            () => ({
+              response: []
+            })
+          ),
 
-          league: {
-            id:
-              item.league?.id,
+          apiFetch(
+            "/fixtures/lineups",
+            { fixture },
+            env
+          ).catch(
+            () => ({
+              response: []
+            })
+          )
+        ]);
 
-            name:
-              item.league?.name,
+      const raw =
+        fixtureData.response?.[0];
 
-            country:
-              item.league?.country,
-
-            logo:
-              item.league?.logo
+      if (!raw) {
+        return json(
+          {
+            success: false,
+            error:
+              "Maç bulunamadı."
           },
+          404,
+          cors
+        );
+      }
 
-          home: {
-            id:
-              item.teams
-                ?.home
-                ?.id,
+      return json(
+        {
+          success: true,
 
-            name:
-              item.teams
-                ?.home
-                ?.name,
+          match:
+            mapFixture(raw),
 
-            logo:
-              item.teams
-                ?.home
-                ?.logo
+          statistics:
+            statisticsData.response ||
+            [],
+
+          events:
+            eventsData.response ||
+            [],
+
+          lineups:
+            lineupsData.response ||
+            []
+        },
+        200,
+        cors,
+        15
+      );
+    }
+  );
+}
+
+// ==========================================
+// API FOOTBALL TAHMİNİ
+// ==========================================
+
+async function prediction(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const fixture =
+    param(url, "fixture");
+
+  if (!numeric(fixture)) {
+    return json(
+      {
+        success: false,
+        error:
+          "Geçerli fixture ID gerekli."
+      },
+      400,
+      cors
+    );
+  }
+
+  return cached(
+    ctx,
+    `${url.origin}/_cache/prediction?fixture=${fixture}`,
+    1800,
+
+    async () => {
+      const data =
+        await apiFetch(
+          "/predictions",
+          { fixture },
+          env
+        );
+
+      const item =
+        data.response?.[0];
+
+      if (!item) {
+        return json(
+          {
+            success: false,
+            error:
+              "Bu maç için tahmin verisi yok."
           },
+          404,
+          cors
+        );
+      }
 
-          away: {
-            id:
-              item.teams
-                ?.away
-                ?.id,
+      const p =
+        item.predictions ||
+        {};
 
-            name:
-              item.teams
-                ?.away
-                ?.name,
+      return json(
+        {
+          success: true,
 
-            logo:
-              item.teams
-                ?.away
-                ?.logo
-          },
+          fixture:
+            Number(fixture),
 
-          score: {
-            home:
-              item.goals
-                ?.home ??
+          prediction: {
+            winner:
+              p.winner?.name ||
               null,
 
-            away:
-              item.goals
-                ?.away ??
-              null
-          }
-        })
-      );
+            winnerComment:
+              p.winner?.comment ||
+              null,
 
+            winOrDraw:
+              p.win_or_draw ??
+              null,
 
-    const payload = {
-      success:
-        true,
+            underOver:
+              p.under_over ||
+              null,
 
-      date,
+            advice:
+              p.advice ||
+              null,
 
-      count:
-        matches.length,
+            goals: {
+              home:
+                p.goals?.home ??
+                null,
 
-      stale:
-        false,
+              away:
+                p.goals?.away ??
+                null
+            },
 
-      updatedAt:
-        new Date()
-          .toISOString(),
+            percent: {
+              home:
+                p.percent?.home ||
+                null,
 
-      matches
-    };
+              draw:
+                p.percent?.draw ||
+                null,
 
-
-    /*
-      Ana cache:
-      1 saat
-    */
-
-    const mainResponse =
-      Response.json(
-        payload,
-        {
-          headers: {
-            ...cors,
-
-            "Cache-Control":
-              "public, max-age=3600"
-          }
-        }
-      );
-
-
-    /*
-      Yedek cache:
-      24 saat
-    */
-
-    const backupResponse =
-      Response.json(
-        payload,
-        {
-          headers: {
-            ...cors,
-
-            "Cache-Control":
-              "public, max-age=86400"
-          }
-        }
-      );
-
-
-    ctx.waitUntil(
-      Promise.all([
-        cache.put(
-          mainKey,
-          mainResponse.clone()
-        ),
-
-        cache.put(
-          backupKey,
-          backupResponse.clone()
-        )
-      ])
-    );
-
-
-    return mainResponse;
-
-
-  } catch (e) {
-
-    /*
-      API hata verirse yedek
-    */
-
-    const backup =
-      await cache.match(
-        backupKey
-      );
-
-
-    if (backup) {
-
-      try {
-
-        const saved =
-          await backup.json();
-
-
-        return Response.json(
-          {
-            ...saved,
-
-            success:
-              true,
-
-            stale:
-              true,
-
-            warning:
-              "API geçici olarak kullanılamıyor. Son başarılı maç listesi gösteriliyor."
-          },
-          {
-            headers: {
-              ...cors,
-
-              "Cache-Control":
-                "public, max-age=300"
+              away:
+                p.percent?.away ||
+                null
             }
-          }
-        );
+          },
 
+          comparison:
+            item.comparison ||
+            null,
 
-      } catch {
-      }
+          teams:
+            item.teams ||
+            null
+        },
+        200,
+        cors,
+        1800
+      );
+    }
+  );
+}
+
+// ==========================================
+// KENDİ MODELİMİZ
+// ==========================================
+
+function completed(list) {
+  const completedStatuses =
+    new Set([
+      "FT",
+      "AET",
+      "PEN"
+    ]);
+
+  return (list || [])
+    .filter(
+      match =>
+        completedStatuses.has(
+          match.fixture
+            ?.status
+            ?.short
+        ) &&
+        Number.isFinite(
+          match.goals?.home
+        ) &&
+        Number.isFinite(
+          match.goals?.away
+        )
+    );
+}
+
+function statsFor(list) {
+  if (!list.length) {
+    return {
+      sample: 0,
+      over15: 0,
+      over25: 0,
+      btts: 0,
+      avgGoals: 0
+    };
+  }
+
+  let over15 = 0;
+  let over25 = 0;
+  let btts = 0;
+  let totalGoals = 0;
+
+  for (const match of list) {
+    const home =
+      Number(
+        match.goals.home
+      );
+
+    const away =
+      Number(
+        match.goals.away
+      );
+
+    const total =
+      home + away;
+
+    totalGoals += total;
+
+    if (total >= 2) {
+      over15++;
     }
 
+    if (total >= 3) {
+      over25++;
+    }
 
-    return Response.json(
-      {
-        success:
-          false,
-
-        status:
-          e.status || 500,
-
-        errors:
-          e.apiErrors || {},
-        rateLimit:
-        e.rateLimit || null,
-  
-        stale:
-          false,
-
-        error:
-          e.message ||
-          "Maç verileri alınamadı."
-      },
-      {
-  status: 502,
-  headers: {
-    ...cors,
-    "Cache-Control":
-      "public, max-age=900"
-  }
-}
-    );
-  }
-}
-
-
-/* =========================
-   MODEL YARDIMCILARI
-   ========================= */
-
-function numberValue(value) {
-  const number =
-    Number(value);
-
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : null;
-}
-
-
-function percentValue(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return null;
+    if (
+      home > 0 &&
+      away > 0
+    ) {
+      btts++;
+    }
   }
 
+  return {
+    sample:
+      list.length,
 
-  const number =
-    Number(
-      String(value)
-        .replace("%", "")
-    );
+    over15:
+      Math.round(
+        over15 /
+        list.length *
+        100
+      ),
 
+    over25:
+      Math.round(
+        over25 /
+        list.length *
+        100
+      ),
 
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : null;
+    btts:
+      Math.round(
+        btts /
+        list.length *
+        100
+      ),
+
+    avgGoals:
+      Number(
+        (
+          totalGoals /
+          list.length
+        ).toFixed(2)
+      )
+  };
 }
 
-
-function average(values) {
-
-  const valid =
-    values.filter(
-      value =>
-        Number.isFinite(
-          value
-        )
-    );
-
-
-  if (!valid.length) {
-    return null;
-  }
-
-
-  return (
-    valid.reduce(
-      (total, value) =>
-        total + value,
-      0
-    ) /
-    valid.length
-  );
-}
-
-
-function clamp(
-  value,
-  min,
-  max
-) {
-  return Math.max(
-    min,
-    Math.min(
-      max,
-      value
-    )
-  );
-}
-
-
-function shrink(
-  value,
-  target,
-  weight = 0.68
+function blend(
+  home,
+  away,
+  key
 ) {
   if (
-    !Number.isFinite(
-      value
-    )
+    !home.sample &&
+    !away.sample
   ) {
-    return target;
+    return 0;
   }
 
+  if (!home.sample) {
+    return away[key];
+  }
 
-  return (
-    value * weight +
-    target *
+  if (!away.sample) {
+    return home[key];
+  }
+
+  return Math.round(
     (
-      1 -
-      weight
-    )
+      home[key] +
+      away[key]
+    ) / 2
   );
 }
 
-
-function poissonOver15(
-  lambda
-) {
-
-  const p0 =
-    Math.exp(
-      -lambda
-    );
-
-
-  const p1 =
-    p0 *
-    lambda;
-
-
-  return (
-    1 -
-    p0 -
-    p1
-  );
-}
-
-
-function poissonOver25(
-  lambda
-) {
-
-  const p0 =
-    Math.exp(
-      -lambda
-    );
-
-
-  const p1 =
-    p0 *
-    lambda;
-
-
-  const p2 =
-    p0 *
-    Math.pow(
-      lambda,
-      2
-    ) /
-    2;
-
-
-  return (
-    1 -
-    p0 -
-    p1 -
-    p2
-  );
-}
-
-
-function bttsProbability(
-  lambdaHome,
-  lambdaAway
-) {
-
-  return (
-    1 -
-    Math.exp(
-      -lambdaHome
-    )
-  ) * (
-    1 -
-    Math.exp(
-      -lambdaAway
-    )
-  );
-}
-
-
-function confidenceLabel(
+function confidence(
   score,
-  dataCount
+  sample
 ) {
-
-  if (
-    dataCount < 4
-  ) {
+  if (sample < 6) {
     return "Düşük";
   }
 
-
   if (
-    score >= 78 ||
+    score >= 72 ||
     score <= 28
   ) {
-    return "Orta";
+    return "Yüksek";
   }
-
 
   if (
     score >= 62 ||
@@ -1371,3398 +1058,848 @@ function confidenceLabel(
     return "Orta";
   }
 
-
   return "Düşük";
 }
 
-
-/* =========================
-   MAÇANALİZ MODELİ
-   ========================= */
-
-function buildModel(item) {
-
+async function model(
+  env,
+  ctx,
+  cors,
+  url
+) {
   const home =
-    item.teams?.home ||
-    {};
-
+    param(url, "home");
 
   const away =
-    item.teams?.away ||
-    {};
-
-
-  const comparison =
-    item.comparison ||
-    {};
-
-
-  const homeLast =
-    home.last_5 ||
-    {};
-
-
-  const awayLast =
-    away.last_5 ||
-    {};
-
-
-  const hScored =
-    numberValue(
-      homeLast
-        .goals
-        ?.for
-        ?.average
-    );
-
-
-  const hConceded =
-    numberValue(
-      homeLast
-        .goals
-        ?.against
-        ?.average
-    );
-
-
-  const aScored =
-    numberValue(
-      awayLast
-        .goals
-        ?.for
-        ?.average
-    );
-
-
-  const aConceded =
-    numberValue(
-      awayLast
-        .goals
-        ?.against
-        ?.average
-    );
-
-
-  const hLeagueScored =
-    numberValue(
-      home.league
-        ?.goals
-        ?.for
-        ?.average
-        ?.home
-    );
-
-
-  const hLeagueConceded =
-    numberValue(
-      home.league
-        ?.goals
-        ?.against
-        ?.average
-        ?.home
-    );
-
-
-  const aLeagueScored =
-    numberValue(
-      away.league
-        ?.goals
-        ?.for
-        ?.average
-        ?.away
-    );
-
-
-  const aLeagueConceded =
-    numberValue(
-      away.league
-        ?.goals
-        ?.against
-        ?.average
-        ?.away
-    );
-
-
-  const homeAttackRaw =
-    average([
-      hScored,
-      hLeagueScored
-    ]);
-
-
-  const homeDefRaw =
-    average([
-      aConceded,
-      aLeagueConceded
-    ]);
-
-
-  const awayAttackRaw =
-    average([
-      aScored,
-      aLeagueScored
-    ]);
-
-
-  const awayDefRaw =
-    average([
-      hConceded,
-      hLeagueConceded
-    ]);
-
-
-  let lambdaHome =
-    average([
-      shrink(
-        homeAttackRaw,
-        1.35
-      ),
-
-      shrink(
-        homeDefRaw,
-        1.20
-      )
-    ]) ?? 1.30;
-
-
-  let lambdaAway =
-    average([
-      shrink(
-        awayAttackRaw,
-        1.10
-      ),
-
-      shrink(
-        awayDefRaw,
-        1.15
-      )
-    ]) ?? 1.10;
-
-
-  const attHome =
-    percentValue(
-      comparison
-        .att
-        ?.home
-    );
-
-
-  const attAway =
-    percentValue(
-      comparison
-        .att
-        ?.away
-    );
-
-
-  const defHome =
-    percentValue(
-      comparison
-        .def
-        ?.home
-    );
-
-
-  const defAway =
-    percentValue(
-      comparison
-        .def
-        ?.away
-    );
-
+    param(url, "away");
 
   if (
-    attHome !== null &&
-    attAway !== null
+    !numeric(home) ||
+    !numeric(away)
   ) {
-
-    const diff =
-      clamp(
-        (
-          attHome -
-          attAway
-        ) /
-        100,
-        -0.6,
-        0.6
-      );
-
-
-    lambdaHome *=
-      1 +
-      diff *
-      0.07;
-
-
-    lambdaAway *=
-      1 -
-      diff *
-      0.07;
-  }
-
-
-  if (
-    defHome !== null &&
-    defAway !== null
-  ) {
-
-    const diff =
-      clamp(
-        (
-          defHome -
-          defAway
-        ) /
-        100,
-        -0.6,
-        0.6
-      );
-
-
-    lambdaHome *=
-      1 -
-      diff *
-      0.05;
-
-
-    lambdaAway *=
-      1 +
-      diff *
-      0.05;
-  }
-
-
-  lambdaHome =
-    clamp(
-      lambdaHome,
-      0.35,
-      2.35
-    );
-
-
-  lambdaAway =
-    clamp(
-      lambdaAway,
-      0.30,
-      2.15
-    );
-
-
-  let totalLambda =
-    lambdaHome +
-    lambdaAway;
-
-
-  totalLambda =
-    clamp(
-      totalLambda,
-      0.80,
-      4.00
-    );
-
-
-  const split =
-    lambdaHome /
-    (
-      lambdaHome +
-      lambdaAway
-    );
-
-
-  lambdaHome =
-    totalLambda *
-    split;
-
-
-  lambdaAway =
-    totalLambda *
-    (
-      1 -
-      split
-    );
-
-
-  let over15 =
-    poissonOver15(
-      totalLambda
-    );
-
-
-  let over25 =
-    poissonOver25(
-      totalLambda
-    );
-
-
-  let btts =
-    bttsProbability(
-      lambdaHome,
-      lambdaAway
-    );
-
-
-  const underOver =
-    String(
-      item.predictions
-        ?.under_over ||
-      ""
-    ).toLowerCase();
-
-
-  const advice =
-    String(
-      item.predictions
-        ?.advice ||
-      ""
-    ).toLowerCase();
-
-
-  if (
-    underOver.includes(
-      "+1.5"
-    ) ||
-    underOver.includes(
-      "over 1.5"
-    ) ||
-    advice.includes(
-      "+1.5"
-    ) ||
-    advice.includes(
-      "over 1.5"
-    )
-  ) {
-    over15 +=
-      0.025;
-  }
-
-
-  if (
-    underOver.includes(
-      "+2.5"
-    ) ||
-    underOver.includes(
-      "over 2.5"
-    ) ||
-    advice.includes(
-      "+2.5"
-    ) ||
-    advice.includes(
-      "over 2.5"
-    )
-  ) {
-    over25 +=
-      0.03;
-  }
-
-
-  if (
-    underOver.includes(
-      "-1.5"
-    ) ||
-    underOver.includes(
-      "under 1.5"
-    )
-  ) {
-    over15 -=
-      0.03;
-  }
-
-
-  if (
-    underOver.includes(
-      "-2.5"
-    ) ||
-    underOver.includes(
-      "under 2.5"
-    )
-  ) {
-    over25 -=
-      0.03;
-  }
-
-
-  over15 =
-    clamp(
-      over15,
-      0.18,
-      0.88
-    );
-
-
-  over25 =
-    clamp(
-      over25,
-      0.12,
-      0.78
-    );
-
-
-  btts =
-    clamp(
-      btts,
-      0.15,
-      0.75
-    );
-
-
-  const over15Pct =
-    Math.round(
-      over15 *
-      100
-    );
-
-
-  const over25Pct =
-    Math.round(
-      over25 *
-      100
-    );
-
-
-  const bttsPct =
-    Math.round(
-      btts *
-      100
-    );
-
-
-  const dataCount =
-    [
-      hScored,
-      hConceded,
-      aScored,
-      aConceded,
-      hLeagueScored,
-      hLeagueConceded,
-      aLeagueScored,
-      aLeagueConceded
-    ]
-    .filter(
-      value =>
-        value !== null
-    )
-    .length;
-
-
-  return {
-    over15:
-      over15Pct,
-
-    over25:
-      over25Pct,
-
-    btts:
-      bttsPct,
-
-    confidence: {
-      over15:
-        confidenceLabel(
-          over15Pct,
-          dataCount
-        ),
-
-      over25:
-        confidenceLabel(
-          over25Pct,
-          dataCount
-        ),
-
-      btts:
-        confidenceLabel(
-          bttsPct,
-          dataCount
-        )
-    },
-
-    expectedGoals: {
-      home:
-        Number(
-          lambdaHome
-            .toFixed(2)
-        ),
-
-      away:
-        Number(
-          lambdaAway
-            .toFixed(2)
-        ),
-
-      total:
-        Number(
-          totalLambda
-            .toFixed(2)
-        )
-    },
-
-    dataCount
-  };
-}
-
-
-/* =========================
-   PLAYERELO MODELİ
-   ========================= */
-
-function probabilityPercent(
-  value
-) {
-
-  const number =
-    Number(value);
-
-
-  if (
-    !Number.isFinite(
-      number
-    )
-  ) {
-    return null;
-  }
-
-
-  if (
-    number <= 1
-  ) {
-    return Math.round(
-      number *
-      100
-    );
-  }
-
-
-  return Math.round(
-    number
-  );
-}
-
-
-function buildPlayerEloModel(
-  data
-) {
-
-  if (!data) {
-    return null;
-  }
-
-
-  const scorelines =
-    data.scoreline_distribution ||
-    {};
-
-
-  let mass =
-    0;
-
-
-  let over15 =
-    0;
-
-
-  let over25 =
-    0;
-
-
-  let btts =
-    0;
-
-
-  for (
-    const [
-      score,
-      rawProbability
-    ]
-    of Object.entries(
-      scorelines
-    )
-  ) {
-
-    const parts =
-      score.split("-");
-
-
-    if (
-      parts.length !== 2
-    ) {
-      continue;
-    }
-
-
-    const homeGoals =
-      Number(
-        parts[0]
-      );
-
-
-    const awayGoals =
-      Number(
-        parts[1]
-      );
-
-
-    const probability =
-      Number(
-        rawProbability
-      );
-
-
-    if (
-      !Number.isFinite(
-        homeGoals
-      ) ||
-      !Number.isFinite(
-        awayGoals
-      ) ||
-      !Number.isFinite(
-        probability
-      ) ||
-      probability < 0
-    ) {
-      continue;
-    }
-
-
-    mass +=
-      probability;
-
-
-    const total =
-      homeGoals +
-      awayGoals;
-
-
-    if (
-      total >= 2
-    ) {
-      over15 +=
-        probability;
-    }
-
-
-    if (
-      total >= 3
-    ) {
-      over25 +=
-        probability;
-    }
-
-
-    if (
-      homeGoals > 0 &&
-      awayGoals > 0
-    ) {
-      btts +=
-        probability;
-    }
-  }
-
-
-  const result = {
-    available:
-      true,
-
-    home:
-      probabilityPercent(
-        data.p_home
-      ),
-
-    draw:
-      probabilityPercent(
-        data.p_draw
-      ),
-
-    away:
-      probabilityPercent(
-        data.p_away
-      ),
-
-    homeElo:
-      numberValue(
-        data.home_team_elo
-      ),
-
-    awayElo:
-      numberValue(
-        data.away_team_elo
-      )
-  };
-
-
-  if (
-    mass <= 0
-  ) {
-    return {
-      ...result,
-
-      over15:
-        null,
-
-      over25:
-        null,
-
-      btts:
-        null
-    };
-  }
-
-
-  return {
-    ...result,
-
-    over15:
-      Math.round(
-        (
-          over15 /
-          mass
-        ) *
-        100
-      ),
-
-    over25:
-      Math.round(
-        (
-          over25 /
-          mass
-        ) *
-        100
-      ),
-
-    btts:
-      Math.round(
-        (
-          btts /
-          mass
-        ) *
-        100
-      )
-  };
-}
-
-
-/* =========================
-   KONSENSÜS
-   ========================= */
-
-function numericAverage(
-  values
-) {
-
-  const valid =
-    values.filter(
-      value =>
-        Number.isFinite(
-          value
-        )
-    );
-
-
-  if (
-    !valid.length
-  ) {
-    return null;
-  }
-
-
-  return Math.round(
-    valid.reduce(
-      (total, value) =>
-        total +
-        value,
-      0
-    ) /
-    valid.length
-  );
-}
-
-
-function buildConsensus(
-  apiPrediction,
-  model,
-  playerElo
-) {
-
-  const apiHome =
-    percentValue(
-      apiPrediction
-        ?.percent
-        ?.home
-    );
-
-
-  const apiDraw =
-    percentValue(
-      apiPrediction
-        ?.percent
-        ?.draw
-    );
-
-
-  const apiAway =
-    percentValue(
-      apiPrediction
-        ?.percent
-        ?.away
-    );
-
-
-  return {
-    home:
-      numericAverage([
-        apiHome,
-        playerElo?.home
-      ]),
-
-    draw:
-      numericAverage([
-        apiDraw,
-        playerElo?.draw
-      ]),
-
-    away:
-      numericAverage([
-        apiAway,
-        playerElo?.away
-      ]),
-
-    over15:
-      numericAverage([
-        model?.over15,
-        playerElo?.over15
-      ]),
-
-    over25:
-      numericAverage([
-        model?.over25,
-        playerElo?.over25
-      ]),
-
-    btts:
-      numericAverage([
-        model?.btts,
-        playerElo?.btts
-      ]),
-
-    sources: {
-      goals:
-        Number.isFinite(
-          playerElo?.over15
-        )
-          ? 2
-          : 1,
-
-      result:
-        Number.isFinite(
-          playerElo?.home
-        )
-          ? 2
-          : 1
-    }
-  };
-}
-
-
-/* =========================
-   TAHMİN
-   ========================= */
-
-async function prediction(
-  env,
-  ctx,
-  cors,
-  url
-) {
-
-  const fixture =
-    url.searchParams.get(
-      "fixture"
-    );
-
-
-  if (
-    !fixture ||
-    !/^\d+$/.test(
-      fixture
-    )
-  ) {
-    return Response.json(
+    return json(
       {
-        success:
-          false,
-
+        success: false,
         error:
-          "Geçerli fixture ID gerekli."
+          "Geçerli home ve away takım ID'leri gerekli."
       },
-      {
-        status:
-          400,
-
-        headers:
-          cors
-      }
+      400,
+      cors
     );
   }
 
-
-  const cache =
-    caches.default;
-
-
-  const cacheKey =
-    new Request(
-      `${url.origin}/api/prediction-v8?fixture=${fixture}`
-    );
-
-
-  const hit =
-    await cache.match(
-      cacheKey
-    );
-
-
-  if (hit) {
-    return hit;
-  }
-
-
-  try {
-
-    const [
-      apiResult,
-      playerEloResult
-    ] =
-      await Promise.allSettled([
-        apiFetch(
-          "/predictions",
-          {
-            fixture
-          },
-          env
-        ),
-
-        playerEloFetch(
-          fixture,
-          env
-        )
-      ]);
-
-
-    if (
-      apiResult.status !==
-      "fulfilled"
-    ) {
-      throw apiResult.reason;
-    }
-
-
-    const data =
-      apiResult.value;
-
-
-    const item =
-      data.response?.[0];
-
-
-    if (!item) {
-      return Response.json(
-        {
-          success:
-            false,
-
-          error:
-            "Bu maç için tahmin verisi yok."
-        },
-        {
-          status:
-            404,
-
-          headers:
-            cors
-        }
-      );
-    }
-
-
-    const predictions =
-      item.predictions ||
-      {};
-
-
-    const apiPrediction = {
-      winner:
-        predictions
-          .winner
-          ?.name ||
-        null,
-
-      winnerComment:
-        predictions
-          .winner
-          ?.comment ||
-        null,
-
-      winOrDraw:
-        predictions
-          .win_or_draw ??
-        null,
-
-      underOver:
-        predictions
-          .under_over ||
-        null,
-
-      advice:
-        predictions
-          .advice ||
-        null,
-
-      percent: {
-        home:
-          predictions
-            .percent
-            ?.home ||
-          null,
-
-        draw:
-          predictions
-            .percent
-            ?.draw ||
-          null,
-
-        away:
-          predictions
-            .percent
-            ?.away ||
-          null
-      }
-    };
-
-
-    const model =
-      buildModel(
-        item
-      );
-
-
-    let playerElo = {
-      available:
-        false
-    };
-
-
-    if (
-      playerEloResult.status ===
-      "fulfilled" &&
-      playerEloResult
-        .value
-        ?.available
-    ) {
-
-      playerElo =
-        buildPlayerEloModel(
-          playerEloResult
-            .value
-            .data
-        ) || {
-          available:
-            false
-        };
-    }
-
-
-    const consensus =
-      buildConsensus(
-        apiPrediction,
-        model,
-        playerElo
-      );
-
-
-    const payload = {
-      success:
-        true,
-
-      fixture:
-        Number(
-          fixture
-        ),
-
-      prediction:
-        apiPrediction,
-
-      model,
-
-      playerElo,
-
-      consensus,
-
-      sources: {
-        apiFootball:
-          true,
-
-        macAnalizModel:
-          true,
-
-        playerElo:
-          Boolean(
-            playerElo
-              .available
-          )
-      }
-    };
-
-
-    const result =
-      Response.json(
-        payload,
-        {
-          headers: {
-            ...cors,
-
-            "Cache-Control":
-              "public, max-age=86400"
-          }
-        }
-      );
-
-
-    ctx.waitUntil(
-      cache.put(
-        cacheKey,
-        result.clone()
-      )
-    );
-
-
-    return result;
-
-
-  } catch (e) {
-
-    return Response.json(
-      {
-        success:
-          false,
-
-        status:
-          e.status ||
-          500,
-
-        errors:
-          e.apiErrors ||
-          {},
-
-        error:
-          e.message ||
-          "Tahmin verisi alınamadı."
-      },
-      {
-        status:
-          502,
-
-        headers:
-          cors
-      }
-    );
-  }
-}
-
-
-/* =========================
-   CANLI DETAY YARDIMCILARI
-   ========================= */
-
-function findStat(
-  statistics,
-  type
-) {
-
-  const found =
-    (statistics || [])
-      .find(
-        item =>
-          String(
-            item.type ||
-            ""
-          )
-          .toLowerCase() ===
-          String(
-            type
-          )
-          .toLowerCase()
-      );
-
-
-  return found
-    ? found.value ??
-      null
-    : null;
-}
-
-
-function normalizeStatsTeam(
-  block
-) {
-
-  if (!block) {
-    return null;
-  }
-
-
-  const statistics =
-    block.statistics ||
-    [];
-
-
-  return {
-    team: {
-      id:
-        block.team
-          ?.id ||
-        null,
-
-      name:
-        block.team
-          ?.name ||
-        null,
-
-      logo:
-        block.team
-          ?.logo ||
-        null
-    },
-
-    shotsOnGoal:
-      findStat(
-        statistics,
-        "Shots on Goal"
-      ),
-
-    shotsOffGoal:
-      findStat(
-        statistics,
-        "Shots off Goal"
-      ),
-
-    totalShots:
-      findStat(
-        statistics,
-        "Total Shots"
-      ),
-
-    blockedShots:
-      findStat(
-        statistics,
-        "Blocked Shots"
-      ),
-
-    shotsInsideBox:
-      findStat(
-        statistics,
-        "Shots insidebox"
-      ),
-
-    shotsOutsideBox:
-      findStat(
-        statistics,
-        "Shots outsidebox"
-      ),
-
-    fouls:
-      findStat(
-        statistics,
-        "Fouls"
-      ),
-
-    corners:
-      findStat(
-        statistics,
-        "Corner Kicks"
-      ),
-
-    offsides:
-      findStat(
-        statistics,
-        "Offsides"
-      ),
-
-    possession:
-      findStat(
-        statistics,
-        "Ball Possession"
-      ),
-
-    yellowCards:
-      findStat(
-        statistics,
-        "Yellow Cards"
-      ),
-
-    redCards:
-      findStat(
-        statistics,
-        "Red Cards"
-      ),
-
-    saves:
-      findStat(
-        statistics,
-        "Goalkeeper Saves"
-      ),
-
-    totalPasses:
-      findStat(
-        statistics,
-        "Total passes"
-      ),
-
-    accuratePasses:
-      findStat(
-        statistics,
-        "Passes accurate"
-      ),
-
-    passAccuracy:
-      findStat(
-        statistics,
-        "Passes %"
-      )
-  };
-}
-
-
-function normalizeEvent(
-  event
-) {
-
-  return {
-    elapsed:
-      event.time
-        ?.elapsed ??
-      null,
-
-    extra:
-      event.time
-        ?.extra ??
-      null,
-
-    team: {
-      id:
-        event.team
-          ?.id ||
-        null,
-
-      name:
-        event.team
-          ?.name ||
-        null,
-
-      logo:
-        event.team
-          ?.logo ||
-        null
-    },
-
-    player:
-      event.player
-        ?.name ||
-      null,
-
-    assist:
-      event.assist
-        ?.name ||
-      null,
-
-    type:
-      event.type ||
-      null,
-
-    detail:
-      event.detail ||
-      null,
-
-    comments:
-      event.comments ||
-      null
-  };
-}
-
-
-function settledError(
-  result
-) {
-
-  if (
-    !result ||
-    result.status !==
-    "rejected"
-  ) {
-    return null;
-  }
-
-
-  const reason =
-    result.reason ||
-    {};
-
-
-  return {
-    message:
-      reason.message ||
-      "İstek başarısız.",
-
-    status:
-      reason.status ||
-      null,
-
-    errors:
-      reason.apiErrors ||
-      {}
-  };
-}
-
-
-/* =========================
-   CANLI / BİTEN MAÇ DETAYI
-   ========================= */
-
-async function liveDetail(
-  env,
-  ctx,
-  cors,
-  url
-) {
-
-  const fixture =
-    url.searchParams.get(
-      "fixture"
-    );
-
-
-  if (
-    !fixture ||
-    !/^\d+$/.test(
-      fixture
-    )
-  ) {
-    return Response.json(
-      {
-        success:
-          false,
-
-        error:
-          "Geçerli fixture ID gerekli."
-      },
-      {
-        status:
-          400,
-
-        headers:
-          cors
-      }
-    );
-  }
-
-
-  const cache =
-    caches.default;
-
-
-  const cacheKey =
-    new Request(
-      `${url.origin}/api/live-detail-v3?fixture=${fixture}`
-    );
-
-
-  const hit =
-    await cache.match(
-      cacheKey
-    );
-
-
-  if (hit) {
-    return hit;
-  }
-
-
-  const fixtureResult =
-    await Promise.allSettled([
-      apiFetch(
-        "/fixtures",
-        {
-          id:
-            fixture,
-
-          timezone:
-            "Europe/Istanbul"
-        },
-        env
-      )
-    ]).then(
-      results =>
-        results[0]
-    );
-
-
-  let statisticsResult = {
-    status:
-      "fulfilled",
-
-    value: {
-      response: []
-    }
-  };
-
-
-  let eventsResult = {
-    status:
-      "fulfilled",
-
-    value: {
-      response: []
-    }
-  };
-
-
-  if (
-    fixtureResult.status ===
-    "fulfilled"
-  ) {
-
-    const liveItem =
-      fixtureResult
-        .value
-        ?.response
-        ?.[0];
-
-
-    const statusShort =
-      liveItem
-        ?.fixture
-        ?.status
-        ?.short ||
-      "";
-
-
-    const startedStatuses =
-      [
-        "1H",
-        "HT",
-        "2H",
-        "ET",
-        "BT",
-        "P",
-        "SUSP",
-        "INT",
-        "FT",
-        "AET",
-        "PEN"
-      ];
-
-
-    if (
-      startedStatuses.includes(
-        statusShort
-      )
-    ) {
-
-      [
-        statisticsResult,
-        eventsResult
+  return cached(
+    ctx,
+    `${url.origin}/_cache/model?home=${home}&away=${away}`,
+    3600,
+
+    async () => {
+      const [
+        homeData,
+        awayData
       ] =
-        await Promise.allSettled([
+        await Promise.all([
           apiFetch(
-            "/fixtures/statistics",
+            "/fixtures",
             {
-              fixture
+              team: home,
+              last: 8,
+              timezone: TZ
             },
             env
           ),
 
           apiFetch(
-            "/fixtures/events",
+            "/fixtures",
             {
-              fixture
+              team: away,
+              last: 8,
+              timezone: TZ
             },
             env
           )
         ]);
-    }
-  }
 
-
-
-  if (
-    fixtureResult.status !==
-    "fulfilled"
-  ) {
-
-    const error =
-      fixtureResult.reason ||
-      {};
-
-
-    return Response.json(
-      {
-        success:
-          false,
-
-        error:
-          error.message ||
-          "Maç bilgisi alınamadı.",
-
-        status:
-          error.status ||
-          500,
-
-        errors:
-          error.apiErrors ||
-          {}
-      },
-      {
-        status:
-          502,
-
-        headers:
-          cors
-      }
-    );
-  }
-
-
-  const fixtureData =
-    fixtureResult.value;
-
-
-  const item =
-    fixtureData
-      .response
-      ?.[0];
-
-
-  if (!item) {
-
-    return Response.json(
-      {
-        success:
-          false,
-
-        error:
-          "Maç bulunamadı."
-      },
-      {
-        status:
-          404,
-
-        headers:
-          cors
-      }
-    );
-  }
-
-
-  let statsResponse =
-    [];
-
-
-  if (
-    statisticsResult.status ===
-    "fulfilled"
-  ) {
-    statsResponse =
-      statisticsResult
-        .value
-        ?.response ||
-      [];
-  }
-
-
-  let eventsResponse =
-    [];
-
-
-  if (
-    eventsResult.status ===
-    "fulfilled"
-  ) {
-    eventsResponse =
-      eventsResult
-        .value
-        ?.response ||
-      [];
-  }
-
-
-  const homeTeamId =
-    item.teams
-      ?.home
-      ?.id;
-
-
-  const awayTeamId =
-    item.teams
-      ?.away
-      ?.id;
-
-
-  const homeStatsBlock =
-    statsResponse.find(
-      block =>
-        Number(
-          block.team?.id
-        ) ===
-        Number(
-          homeTeamId
-        )
-    ) ||
-    statsResponse[0] ||
-    null;
-
-
-  const awayStatsBlock =
-    statsResponse.find(
-      block =>
-        Number(
-          block.team?.id
-        ) ===
-        Number(
-          awayTeamId
-        )
-    ) ||
-    statsResponse[1] ||
-    null;
-
-
-  const homeStats =
-    normalizeStatsTeam(
-      homeStatsBlock
-    );
-
-
-  const awayStats =
-    normalizeStatsTeam(
-      awayStatsBlock
-    );
-
-
-  const events =
-    eventsResponse.map(
-      normalizeEvent
-    );
-
-
-  const payload = {
-    success:
-      true,
-
-    fixture: {
-      id:
-        item.fixture
-          ?.id ||
-        Number(
-          fixture
-        ),
-
-      date:
-        item.fixture
-          ?.date ||
-        null,
-
-      referee:
-        item.fixture
-          ?.referee ||
-        null,
-
-      venue: {
-        name:
-          item.fixture
-            ?.venue
-            ?.name ||
-        null,
-
-        city:
-          item.fixture
-            ?.venue
-            ?.city ||
-        null
-      },
-
-      status: {
-        long:
-          item.fixture
-            ?.status
-            ?.long ||
-        null,
-
-        short:
-          item.fixture
-            ?.status
-            ?.short ||
-        null,
-
-        elapsed:
-          item.fixture
-            ?.status
-            ?.elapsed ??
-        null,
-
-        extra:
-          item.fixture
-            ?.status
-            ?.extra ??
-        null
-      }
-    },
-
-    league: {
-      id:
-        item.league
-          ?.id ||
-        null,
-
-      name:
-        item.league
-          ?.name ||
-        null,
-
-      country:
-        item.league
-          ?.country ||
-        null,
-
-      logo:
-        item.league
-          ?.logo ||
-        null,
-
-      round:
-        item.league
-          ?.round ||
-        null
-    },
-
-    teams: {
-      home: {
-        id:
-          homeTeamId ||
-        null,
-
-        name:
-          item.teams
-            ?.home
-            ?.name ||
-        null,
-
-        logo:
-          item.teams
-            ?.home
-            ?.logo ||
-        null
-      },
-
-      away: {
-        id:
-          awayTeamId ||
-        null,
-
-        name:
-          item.teams
-            ?.away
-            ?.name ||
-        null,
-
-        logo:
-          item.teams
-            ?.away
-            ?.logo ||
-        null
-      }
-    },
-
-    goals: {
-      home:
-        item.goals
-          ?.home ??
-        null,
-
-      away:
-        item.goals
-          ?.away ??
-        null
-    },
-
-    score:
-      item.score ||
-      {},
-
-    statistics: {
-      available:
-        Boolean(
-          homeStats ||
-          awayStats
-        ),
-
-      home:
-        homeStats,
-
-      away:
-        awayStats
-    },
-
-    events: {
-      available:
-        events.length > 0,
-
-      count:
-        events.length,
-
-      items:
-        events
-    },
-
-    availability: {
-      fixture:
-        true,
-
-      statistics:
-        statisticsResult.status ===
-        "fulfilled" &&
-        statsResponse.length > 0,
-
-      events:
-        eventsResult.status ===
-        "fulfilled" &&
-        eventsResponse.length > 0
-    },
-
-    debug: {
-      statisticsError:
-        settledError(
-          statisticsResult
-        ),
-
-      eventsError:
-        settledError(
-          eventsResult
-        )
-    }
-  };
-
-
-  const result =
-    Response.json(
-      payload,
-      {
-        headers: {
-          ...cors,
-
-          "Cache-Control":
-            "public, max-age=600"
-        }
-      }
-    );
-
-
-  ctx.waitUntil(
-    cache.put(
-      cacheKey,
-      result.clone()
-    )
-  );
-
-
-  return result;
-}
-/* =========================
-   API DURUM KONTROLÜ
-   ========================= */
-
-async function apiStatus(
-  env,
-  cors
-) {
-
-  try {
-
-    const response =
-      await fetch(
-        "https://v3.football.api-sports.io/status",
-        {
-          headers: {
-            "x-apisports-key":
-              env.API_FOOTBALL_KEY
-          }
-        }
-      );
-
-
-    let data = null;
-
-
-    try {
-
-      data =
-        await response.json();
-
-    } catch {
-
-      return Response.json(
-        {
-          success: false,
-
-          httpStatus:
-            response.status,
-
-          error:
-            "API cevabı JSON olarak okunamadı."
-        },
-        {
-          status: 200,
-          headers: cors
-        }
-      );
-    }
-
-
-    return Response.json(
-      {
-        success:
-          response.ok &&
-          !(
-            data?.errors &&
-            Object.keys(data.errors).length > 0
-            ),
-
-        httpStatus:
-          response.status,
-
-        apiErrors:
-          data?.errors || {},
-
-        results:
-          data?.results ?? null,
-
-        response:
-          data?.response || null,
-
-        checkedAt:
-          new Date()
-            .toISOString()
-      },
-      {
-        status: 200,
-
-        headers: {
-          ...cors,
-
-          "Cache-Control":
-            "public, max-age=900"
-        }
-      }
-    );
-
-
-  } catch (error) {
-
-    return Response.json(
-      {
-        success: false,
-
-        error:
-          error.message ||
-          "API durum kontrolü başarısız.",
-
-        checkedAt:
-          new Date()
-            .toISOString()
-      },
-      {
-        status: 200,
-
-        headers: {
-          ...cors,
-
-          "Cache-Control":
-            "no-store"
-        }
-      }
-    );
-  }
-}
-/* =========================
-   FOOTBALL-DATA.ORG
-   ========================= */
-
-async function footballDataTest(
-  env,
-  cors
-) {
-  if (!env.FOOTBALL_DATA_KEY) {
-    return Response.json(
-      {
-        success: false,
-        error: "FOOTBALL_DATA_KEY bulunamadı."
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.football-data.org/v4/competitions",
-      {
-        headers: {
-          "X-Auth-Token":
-            env.FOOTBALL_DATA_KEY
-        }
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      return Response.json(
-        {
-          success: false,
-          status: response.status,
-          error:
-            data?.message ||
-            "Football-Data isteği başarısız."
-        },
-        {
-          status: response.status,
-          headers: cors
-        }
-      );
-    }
-
-    return Response.json(
-      {
-        success: true,
-        source: "football-data.org",
-        competitions:
-          (data.competitions || []).map(
-            competition => ({
-              id: competition.id,
-              name: competition.name,
-              code: competition.code,
-              area:
-                competition.area?.name ||
-                null
-            })
+      const homeStats =
+        statsFor(
+          completed(
+            homeData.response
           )
-      },
-      {
-        headers: {
-          ...cors,
-          "Cache-Control":
-            "public, max-age=3600"
-        }
-      }
-    );
-
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        error:
-          error.message ||
-          "Football-Data bağlantı hatası."
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-  }
-  }
-  async function smartLeagueStandings(
-  env,
-  ctx,
-  cors,
-  url
-) {
-  const league =
-    url.searchParams.get("league");
-
-  const provider =
-    getStandingsProvider(league);
-
-  if (!provider) {
-    return Response.json(
-      {
-        success: false,
-        error:
-          "Lig bulunamadı veya desteklenmiyor."
-      },
-      {
-        status: 400,
-        headers: cors
-      }
-    );
-  }
-
-  const targetUrl =
-    new URL(url.toString());
-
-  if (
-    provider.provider ===
-    "football-data"
-  ) {
-    targetUrl.searchParams.set(
-      "competition",
-      provider.competition
-    );
-
-    return footballDataStandings(
-      env,
-      ctx,
-      cors,
-      targetUrl
-    );
-  }
-    if (
-  provider.provider ===
-  "thesportsdb"
-) {
-  targetUrl.searchParams.set(
-    "league",
-    String(provider.league)
-  );
-
-  return sportsDbStandings(
-    ctx,
-    cors,
-    targetUrl
-  );
-}
-  if (
-    provider.provider ===
-    "api-football"
-  ) {
-    targetUrl.searchParams.set(
-      "league",
-      String(provider.league)
-    );
-
-    return apiFootballStandings(
-      env,
-      ctx,
-      cors,
-      targetUrl
-    );
-  }
-
-  return Response.json(
-    {
-      success: false,
-      error:
-        "Uygun veri kaynağı bulunamadı."
-    },
-    {
-      status: 503,
-      headers: cors
-    }
-  );
-}
-/* =========================
-   FOOTBALL-DATA STANDINGS
-   ========================= */
-
-async function footballDataStandings(
-  env,
-  ctx,
-  cors,
-  url
-) 
- {
-  if (!env.FOOTBALL_DATA_KEY) {
-    return Response.json(
-      {
-        success: false,
-        error: "FOOTBALL_DATA_KEY bulunamadı."
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-  }
-
-  const competition =
-    (
-      url.searchParams.get(
-        "competition"
-      ) || "PL"
-    ).toUpperCase();
-
-  const allowedCompetitions = [
-    "PL",
-    "PD",
-    "BL1",
-    "SA",
-    "FL1",
-    "DED",
-    "PPL",
-    "BSA"
-  ];
-
-  if (
-    !allowedCompetitions.includes(
-      competition
-    )
-  ) {
-    return Response.json(
-      {
-        success: false,
-        error:
-          "Bu lig Football-Data kaynağında desteklenmiyor."
-      },
-      {
-        status: 400,
-        headers: cors
-      }
-    );
-  }
-
-  const cache =
-    caches.default;
-
-  const cacheKey =
-    new Request(
-      `${url.origin}/api/standings-v1?competition=${competition}`
-    );
-
-  const cached =
-    await cache.match(
-      cacheKey
-    );
-
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    const response =
-      await fetch(
-        `https://api.football-data.org/v4/competitions/${competition}/standings`,
-        {
-          headers: {
-            "X-Auth-Token":
-              env.FOOTBALL_DATA_KEY
-          }
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      return Response.json(
-        {
-          success: false,
-          source:
-            "football-data.org",
-          status:
-            response.status,
-          error:
-            data?.message ||
-            "Puan durumu alınamadı."
-        },
-        {
-          status:
-            response.status,
-          headers: cors
-        }
-      );
-    }
-
-    const totalStanding =
-      (data.standings || [])
-        .find(
-          standing =>
-            standing.type ===
-            "TOTAL"
         );
 
-    const table =
-      (
-        totalStanding?.table ||
-        []
-      ).map(
-        row => ({
-          position:
-            row.position,
-          team: {
-            id:
-              row.team?.id ||
-              null,
-            name:
-              row.team?.name ||
-              "",
-            shortName:
-              row.team?.shortName ||
-              "",
-            crest:
-              row.team?.crest ||
-              null
-          },
-          played:
-            row.playedGames || 0,
-          won:
-            row.won || 0,
-          draw:
-            row.draw || 0,
-          lost:
-            row.lost || 0,
-          goalsFor:
-            row.goalsFor || 0,
-          goalsAgainst:
-            row.goalsAgainst || 0,
-          goalDifference:
-            row.goalDifference || 0,
-          points:
-            row.points || 0,
-          form:
-            row.form || null
-        })
-      );
+      const awayStats =
+        statsFor(
+          completed(
+            awayData.response
+          )
+        );
 
-    const result =
-      Response.json(
+      const sample =
+        homeStats.sample +
+        awayStats.sample;
+
+      const over15 =
+        blend(
+          homeStats,
+          awayStats,
+          "over15"
+        );
+
+      const over25 =
+        blend(
+          homeStats,
+          awayStats,
+          "over25"
+        );
+
+      const btts =
+        blend(
+          homeStats,
+          awayStats,
+          "btts"
+        );
+
+      const divisor =
+        (
+          homeStats.sample
+            ? 1
+            : 0
+        ) +
+        (
+          awayStats.sample
+            ? 1
+            : 0
+        ) || 1;
+
+      const averageTotalGoals =
+        Number(
+          (
+            (
+              homeStats.avgGoals +
+              awayStats.avgGoals
+            ) /
+            divisor
+          ).toFixed(2)
+        );
+
+      return json(
         {
           success: true,
-          source:
-            "football-data.org",
-          competition: {
-            id:
-              data.competition?.id ||
-              null,
-            name:
-              data.competition?.name ||
-              competition,
-            code:
-              data.competition?.code ||
-              competition,
-            emblem:
-              data.competition?.emblem ||
-              null
+
+          methodology:
+            "İki takımın son tamamlanmış maçlarındaki gol eğilimleri.",
+
+          sample,
+
+          scores: {
+            over15,
+            over25,
+            btts
           },
-          season: {
-            startDate:
-              data.season?.startDate ||
-              null,
-            endDate:
-              data.season?.endDate ||
-              null,
-            currentMatchday:
-              data.season?.currentMatchday ||
-              null
+
+          confidence: {
+            over15:
+              confidence(
+                over15,
+                sample
+              ),
+
+            over25:
+              confidence(
+                over25,
+                sample
+              ),
+
+            btts:
+              confidence(
+                btts,
+                sample
+              )
           },
-          table
+
+          recent: {
+            home:
+              homeStats,
+
+            away:
+              awayStats
+          },
+
+          averageTotalGoals
         },
-        {
-          headers: {
-            ...cors,
-
-            /*
-              Puan tablosunu 6 saat
-              saklıyoruz.
-            */
-            "Cache-Control":
-              "public, max-age=21600"
-          }
-        }
+        200,
+        cors,
+        3600
       );
-
-    ctx.waitUntil(
-      cache.put(
-        cacheKey,
-        result.clone()
-      )
-    );
-
-    return result;
-
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        source:
-          "football-data.org",
-        error:
-          error.message ||
-          "Puan durumu bağlantı hatası."
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-  }
+    }
+  );
 }
-   async function sportsDbStandings(
+
+// ==========================================
+// TAKIM ARAMA
+// ==========================================
+
+async function teamSearch(
+  env,
   ctx,
   cors,
   url
 ) {
-  const league =
-    url.searchParams.get("league");
+  const query =
+    param(url, "q") ||
+    param(url, "search") ||
+    param(url, "name");
 
-  const season =
-    url.searchParams.get("season") ||
-    "2026-2027";
-
-  if (!league) {
-    return Response.json(
+  if (query.length < 2) {
+    return json(
       {
         success: false,
-        source: "TheSportsDB",
-        error: "League gerekli."
+        error:
+          "En az 2 karakterlik takım adı gerekli."
       },
-      {
-        status: 400,
-        headers: cors
-      }
+      400,
+      cors
     );
   }
 
-  const cache =
-    caches.default;
+  return cached(
+    ctx,
+    `${url.origin}/_cache/team-search?q=${encodeURIComponent(query.toLowerCase())}`,
+    21600,
 
-  const cacheKey =
-    new Request(
-      `${url.origin}/api/sportsdb-standings-v1?league=${league}&season=${season}`
-    );
+    async () => {
+      const data =
+        await apiFetch(
+          "/teams",
+          {
+            search: query
+          },
+          env
+        );
 
-  const cached =
-    await cache.match(cacheKey);
-
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    const response =
-      await fetch(
-        `https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=${encodeURIComponent(league)}&s=${encodeURIComponent(season)}`
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        "TheSportsDB isteği başarısız."
-      );
-    }
-
-    const rawTable =
-      Array.isArray(data?.table)
-        ? data.table
-        : [];
-
-    if (!rawTable.length) {
-      throw new Error(
-        "Puan durumu verisi bulunamadı."
-      );
-    }
-
-    const table =
-      rawTable.map(row => ({
-        position:
-          Number(row.intRank) || null,
-
-        team: {
-          id:
-            row.idTeam || null,
-
-          name:
-            row.strTeam || "",
-
-          shortName:
-            row.strTeam || "",
-
-          crest:
-            row.strBadge || null
-        },
-
-        played:
-          Number(row.intPlayed) || 0,
-
-        won:
-          Number(row.intWin) || 0,
-
-        draw:
-          Number(row.intDraw) || 0,
-
-        lost:
-          Number(row.intLoss) || 0,
-
-        goalsFor:
-          Number(row.intGoalsFor) || 0,
-
-        goalsAgainst:
-          Number(row.intGoalsAgainst) || 0,
-
-        goalDifference:
-          Number(row.intGoalDifference) || 0,
-
-        points:
-          Number(row.intPoints) || 0,
-
-        form:
-          row.strForm || null
-      }));
-
-    const result =
-      Response.json(
-        {
-          success: true,
-          source: "TheSportsDB",
-
-          competition: {
+      const teams =
+        (data.response || [])
+          .map(item => ({
             id:
-              Number(league),
+              item.team?.id,
 
             name:
-              rawTable[0]?.strLeague ||
-              "Süper Lig",
+              item.team?.name,
 
-            code: null,
+            code:
+              item.team?.code,
 
-            emblem: null
-          },
+            country:
+              item.team?.country,
 
-          season: {
-            year: season
-          },
+            founded:
+              item.team?.founded,
 
-          table
+            national:
+              item.team?.national,
+
+            logo:
+              item.team?.logo,
+
+            venue:
+              item.venue ||
+              null
+          }));
+
+      return json(
+        {
+          success: true,
+          count:
+            teams.length,
+          teams
         },
-        {
-          headers: {
-            ...cors,
-            "Cache-Control":
-              "public, max-age=21600"
-          }
-        }
-      );
-
-    ctx.waitUntil(
-      cache.put(
-        cacheKey,
-        result.clone()
-      )
-    );
-
-    return result;
-
-  } catch (error) {
-    return Response.json(
-      {
-        success: false,
-        source: "TheSportsDB",
-        error:
-          error.message ||
-          "Puan durumu alınamadı."
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-  }
-}
-/* =========================
-   THESPORTSDB TEST
-   ========================= */
-
-async function sportsDbTest(
-  cors
-) {
-  try {
-    const response =
-      await fetch(
-        "https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=Arsenal"
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      return Response.json(
-        {
-          success: false,
-          source: "TheSportsDB",
-          status: response.status,
-          error:
-            "TheSportsDB isteği başarısız."
-        },
-        {
-          status: response.status,
-          headers: cors
-        }
+        200,
+        cors,
+        21600
       );
     }
+  );
+}
 
-    const teams =
-      (data.teams || []).map(
-        team => ({
-          id: team.idTeam || null,
-          name: team.strTeam || "",
-          shortName:
-            team.strTeamShort || null,
-          league:
-            team.strLeague || null,
-          stadium:
-            team.strStadium || null,
-          country:
-            team.strCountry || null,
-          badge:
-            team.strBadge || null,
-          formedYear:
-            team.intFormedYear || null
-        })
-      );
+// ==========================================
+// TAKIM BİLGİSİ
+// ==========================================
 
-    return Response.json(
-      {
-        success: true,
-        source: "TheSportsDB",
-        teams
-      },
-      {
-        headers: {
-          ...cors,
-          "Cache-Control":
-            "public, max-age=86400"
-        }
-      }
-    );
+async function teamInfo(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const id =
+    param(url, "id") ||
+    param(url, "team");
 
-  } catch (error) {
-    return Response.json(
+  if (!numeric(id)) {
+    return json(
       {
         success: false,
-        source: "TheSportsDB",
         error:
-          error.message ||
-          "TheSportsDB bağlantı hatası."
+          "Geçerli takım ID gerekli."
       },
-      {
-        status: 500,
-        headers: cors
-      }
+      400,
+      cors
     );
   }
-}
-/* =========================
-   THESPORTSDB TEAM PLAYERS
-   ========================= */
 
-async function sportsDbTeamPlayers(
+  return cached(
+    ctx,
+    `${url.origin}/_cache/team?id=${id}`,
+    21600,
+
+    async () => {
+      const data =
+        await apiFetch(
+          "/teams",
+          { id },
+          env
+        );
+
+      const item =
+        data.response?.[0];
+
+      if (!item) {
+        return json(
+          {
+            success: false,
+            error:
+              "Takım bulunamadı."
+          },
+          404,
+          cors
+        );
+      }
+
+      return json(
+        {
+          success: true,
+          team:
+            item.team,
+
+          venue:
+            item.venue ||
+            null
+        },
+        200,
+        cors,
+        21600
+      );
+    }
+  );
+}
+
+// ==========================================
+// TAKIM SON MAÇLARI / FORM
+// ==========================================
+
+async function teamForm(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const id =
+    param(url, "id") ||
+    param(url, "team");
+
+  const last =
+    Math.min(
+      Math.max(
+        parseInt(
+          param(
+            url,
+            "last"
+          ) || "10",
+          10
+        ) || 10,
+        1
+      ),
+      20
+    );
+
+  if (!numeric(id)) {
+    return json(
+      {
+        success: false,
+        error:
+          "Geçerli takım ID gerekli."
+      },
+      400,
+      cors
+    );
+  }
+
+  return cached(
+    ctx,
+    `${url.origin}/_cache/team-form?id=${id}&last=${last}`,
+    900,
+
+    async () => {
+      const data =
+        await apiFetch(
+          "/fixtures",
+          {
+            team: id,
+            last,
+            timezone: TZ
+          },
+          env
+        );
+
+      const matches =
+        (data.response || [])
+          .map(mapFixture);
+
+      return json(
+        {
+          success: true,
+          team:
+            Number(id),
+          count:
+            matches.length,
+          matches
+        },
+        200,
+        cors,
+        900
+      );
+    }
+  );
+}
+
+// ==========================================
+// KADRO
+// ==========================================
+
+async function squad(
+  env,
   ctx,
   cors,
   url
 ) {
   const team =
-    (
-      url.searchParams.get("team") ||
-      ""
-    ).trim();
+    param(url, "team") ||
+    param(url, "id");
 
-  if (!team) {
-    return Response.json(
+  if (!numeric(team)) {
+    return json(
       {
         success: false,
-        error: "Takım adı gerekli."
+        error:
+          "Geçerli takım ID gerekli."
       },
-      {
-        status: 400,
-        headers: cors
-      }
+      400,
+      cors
     );
   }
 
-  const cache =
-    caches.default;
+  return cached(
+    ctx,
+    `${url.origin}/_cache/squad?team=${team}`,
+    21600,
 
-  const cacheKey =
-    new Request(
-      `${url.origin}/api/team-players-v1?team=${encodeURIComponent(
-        team.toLowerCase()
-      )}`
-    );
+    async () => {
+      const data =
+        await apiFetch(
+          "/players/squads",
+          { team },
+          env
+        );
 
-  const cached =
-    await cache.match(cacheKey);
-
-  if (cached) {
-    return cached;
-  }
-
-  try {
-
-    /* Önce takım ID'sini bul */
-    const teamResponse =
-      await fetch(
-        `https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=${encodeURIComponent(
-          team
-        )}`
-      );
-
-    const teamData =
-      await teamResponse.json();
-
-    const foundTeam =
-      teamData?.teams?.[0];
-
-    if (!foundTeam?.idTeam) {
-      return Response.json(
-        {
-          success: false,
-          source: "TheSportsDB",
-          error: "Takım bulunamadı."
-        },
-        {
-          status: 404,
-          headers: cors
-        }
-      );
-    }
-
-    /* Takım oyuncularını getir */
-    const playersResponse =
-      await fetch(
-        `https://www.thesportsdb.com/api/v1/json/123/lookup_all_players.php?id=${foundTeam.idTeam}`
-      );
-
-    const playersData =
-      await playersResponse.json();
-
-    const players =
-      (
-        playersData?.player ||
-        playersData?.players ||
-        []
-      ).map(
-        player => ({
-          id:
-            player.idPlayer ||
-            null,
-
-          name:
-            player.strPlayer ||
-            "",
-
-          number:
-            player.strNumber ||
-            null,
-
-          position:
-            player.strPosition ||
-            null,
-
-          nationality:
-            player.strNationality ||
-            null,
-
-          birthDate:
-            player.dateBorn ||
-            null,
-
-          height:
-            player.strHeight ||
-            null,
-
-          weight:
-            player.strWeight ||
-            null,
-
-          photo:
-            player.strCutout ||
-            player.strThumb ||
-            null
-        })
-      );
-
-    const result =
-      Response.json(
+      return json(
         {
           success: true,
-
-          source:
-            "TheSportsDB",
-
-          team: {
-            id:
-              foundTeam.idTeam,
-
-            name:
-              foundTeam.strTeam,
-
-            shortName:
-              foundTeam.strTeamShort ||
-              null,
-
-            badge:
-              foundTeam.strBadge ||
-              null,
-
-            stadium:
-              foundTeam.strStadium ||
-              null,
-
-            league:
-              foundTeam.strLeague ||
-              null
-          },
-
-          playerCount:
-            players.length,
-
-          players
+          team:
+            Number(team),
+          squads:
+            data.response ||
+            []
         },
-        {
-          headers: {
-            ...cors,
-
-            /*
-              Kadro bilgisi sık değişmez.
-              12 saat cache.
-            */
-            "Cache-Control":
-              "public, max-age=43200"
-          }
-        }
-      );
-
-    ctx.waitUntil(
-      cache.put(
-        cacheKey,
-        result.clone()
-      )
-    );
-
-    return result;
-
-  } catch (error) {
-
-    return Response.json(
-      {
-        success: false,
-        source: "TheSportsDB",
-        error:
-          error.message ||
-          "Oyuncu bilgileri alınamadı."
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-  }
-}
-async function sportsDbLastEvents(
-  teamId,
-  last = 5
-) {
-  const response =
-    await fetch(
-      `https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=${encodeURIComponent(teamId)}`
-    );
-
-  if (!response.ok) {
-    throw new Error(
-      "TheSportsDB son maç verisi alınamadı."
-    );
-  }
-
-  const data =
-    await response.json();
-
-  const events =
-    Array.isArray(data?.results)
-      ? data.results
-      : [];
-
-  return events.slice(
-    0,
-    Math.min(last, 10)
-  );
-}
-async function sportsDbTeamSearch(
-  ctx,
-  cors,
-  url
-) {
-
-  const name =
-    String(
-      url.searchParams.get("name") || ""
-    ).trim();
-
-  if (!name) {
-    return Response.json(
-      {
-        success: false,
-        error: "Takım adı gerekli."
-      },
-      {
-        status: 400,
-        headers: cors
-      }
-    );
-  }
-
-  const cache =
-    caches.default;
-
-  const cacheUrl =
-    new URL(url.origin);
-
-  cacheUrl.pathname =
-    "/api/team-search-v1";
-
-  cacheUrl.searchParams.set(
-    "name",
-    name.toLowerCase()
-  );
-
-  const cacheRequest =
-    new Request(
-      cacheUrl.toString(),
-      {
-        method: "GET"
-      }
-    );
-
-  const cached =
-    await cache.match(
-      cacheRequest
-    );
-
-  if (cached) {
-    return cached;
-  }
-
-  try {
-
-    const apiUrl =
-      "https://www.thesportsdb.com/api/v1/json/123/searchteams.php?t=" +
-      encodeURIComponent(name);
-
-    const response =
-      await fetch(apiUrl);
-
-    if (!response.ok) {
-      throw new Error(
-        "Takım kaynağına ulaşılamadı."
+        200,
+        cors,
+        21600
       );
     }
-
-    const data =
-      await response.json();
-
-    const teams =
-      Array.isArray(data?.teams)
-        ? data.teams
-        : [];
-
-    const result =
-      teams.map(
-        team => ({
-          id:
-            team.idTeam || null,
-
-          name:
-            team.strTeam || "",
-
-          shortName:
-            team.strTeamShort || "",
-
-          alternateName:
-            team.strAlternate || "",
-
-          formedYear:
-            team.intFormedYear || null,
-
-          country:
-            team.strCountry || "",
-
-          league:
-            team.strLeague || "",
-
-          leagueId:
-            team.idLeague || null,
-
-          stadium:
-            team.strStadium || "",
-
-          stadiumLocation:
-            team.strStadiumLocation || "",
-
-          stadiumCapacity:
-            team.intStadiumCapacity || null,
-
-          badge:
-            team.strBadge || "",
-
-          logo:
-            team.strLogo || "",
-
-          jersey:
-            team.strEquipment || "",
-
-          website:
-            team.strWebsite || "",
-
-          description:
-            team.strDescriptionEN || ""
-        })
-      );
-
-    const body = {
-      success: true,
-      query: name,
-      count: result.length,
-      teams: result
-    };
-
-    const resultResponse =
-      Response.json(
-        body,
-        {
-          headers: {
-            ...cors,
-            "Cache-Control":
-              "public, max-age=86400"
-          }
-        }
-      );
-
-    ctx.waitUntil(
-      cache.put(
-        cacheRequest,
-        resultResponse.clone()
-      )
-    );
-
-    return resultResponse;
-
-  } catch (error) {
-
-    return Response.json(
-      {
-        success: false,
-        error:
-          error.message ||
-          "Takım aranamadı."
-      },
-      {
-        status: 500,
-        headers: cors
-      }
-    );
-
-  }
+  );
 }
-/* =========================
-   API-FOOTBALL STANDINGS
-   ========================= */
 
-async function apiFootballStandings(
+// ==========================================
+// PUAN DURUMU
+// ==========================================
+
+async function standings(
   env,
   ctx,
   cors,
   url
 ) {
-
   const league =
-    url.searchParams.get("league");
-    const leagueConfig = getLeagueConfig(league);
+    param(url, "league");
 
-const resolvedLeague =
-  leagueConfig?.apiFootballId || league;
   const season =
-    url.searchParams.get("season");
+    param(url, "season") ||
+    String(
+      new Date()
+        .getUTCFullYear()
+    );
 
   if (
-    !league ||
-    !season ||
-    !/^\d+$/.test(String(resolvedLeague)) ||
-    !/^\d{4}$/.test(season)
+    !numeric(league) ||
+    !numeric(season)
   ) {
-    return Response.json(
+    return json(
       {
         success: false,
         error:
           "Geçerli league ve season gerekli."
       },
-      {
-        status: 400,
-        headers: cors
-      }
+      400,
+      cors
     );
   }
 
-  const cache =
-    caches.default;
+  return cached(
+    ctx,
+    `${url.origin}/_cache/standings?league=${league}&season=${season}`,
+    1800,
 
-  const cacheKey =
-  new Request(
-    `${url.origin}/api/api-football-standings-v2?league=${resolvedLeague}&season=${season}`
-  );
+    async () => {
+      const data =
+        await apiFetch(
+          "/standings",
+          {
+            league,
+            season
+          },
+          env
+        );
 
-  const cached =
-    await cache.match(cacheKey);
-
-  if (cached) {
-    return cached;
-  }
-
-  try {
-
-    const data =
-      await apiFetch(
-        "/standings",
-        {
-          league: resolvedLeague,
-          season
-        },
-        env
-      );
-
-    const leagueData =
-      data.response?.[0]?.league;
-
-    const rawTable =
-      leagueData?.standings?.[0] || [];
-
-    if (!Array.isArray(rawTable)) {
-      throw new Error(
-        "Puan durumu verisi bulunamadı."
-      );
-    }
-
-    const table =
-      rawTable.map(row => ({
-        position:
-          row.rank ?? null,
-
-        team: {
-          id:
-            row.team?.id ?? null,
-
-          name:
-            row.team?.name || "",
-
-          shortName:
-            row.team?.name || "",
-
-          crest:
-            row.team?.logo || null
-        },
-
-        played:
-          row.all?.played ?? 0,
-
-        won:
-          row.all?.win ?? 0,
-
-        draw:
-          row.all?.draw ?? 0,
-
-        lost:
-          row.all?.lose ?? 0,
-
-        goalsFor:
-          row.all?.goals?.for ?? 0,
-
-        goalsAgainst:
-          row.all?.goals?.against ?? 0,
-
-        goalDifference:
-          row.goalsDiff ?? 0,
-
-        points:
-          row.points ?? 0,
-
-        form:
-          row.form || null
-      }));
-
-    const result =
-      Response.json(
+      return json(
         {
           success: true,
-          source: "API-Football",
-
-          competition: {
-            id:
-              leagueData?.id ||
-              Number(league),
-
-            name:
-              leagueData?.name ||
-              "",
-
-            code: null,
-
-            emblem:
-              leagueData?.logo ||
-              null
-          },
-
-          season: {
-            year:
-              Number(season)
-          },
-
-          table
+          league:
+            Number(league),
+          season:
+            Number(season),
+          standings:
+            data.response ||
+            []
         },
-        {
-          headers: {
-            ...cors,
-            "Cache-Control":
-              "public, max-age=21600"
-          }
-        }
+        200,
+        cors,
+        1800
       );
+    }
+  );
+}
 
-    ctx.waitUntil(
-      cache.put(
-        cacheKey,
-        result.clone()
-      )
-    );
+// ==========================================
+// LİGLER
+// ==========================================
 
-    return result;
+async function leagues(
+  env,
+  ctx,
+  cors,
+  url
+) {
+  const params = {};
 
-  } catch (error) {
+  for (
+    const key of [
+      "id",
+      "name",
+      "country",
+      "code",
+      "season",
+      "team",
+      "type",
+      "current"
+    ]
+  ) {
+    const value =
+      param(url, key);
 
-    return Response.json(
+    if (value) {
+      params[key] =
+        value;
+    }
+  }
+
+  return cached(
+    ctx,
+    `${url.origin}/_cache/leagues?${new URLSearchParams(params)}`,
+    21600,
+
+    async () => {
+      const data =
+        await apiFetch(
+          "/leagues",
+          params,
+          env
+        );
+
+      return json(
+        {
+          success: true,
+          count:
+            (
+              data.response ||
+              []
+            ).length,
+
+          leagues:
+            data.response ||
+            []
+        },
+        200,
+        cors,
+        21600
+      );
+    }
+  );
+}
+
+// ==========================================
+// THE SPORTS DB - TAKIM ARAMA
+// ==========================================
+
+async function sportsDbTeamSearch(
+  ctx,
+  cors,
+  url
+) {
+  const query =
+    param(url, "q") ||
+    param(url, "name");
+
+  if (query.length < 2) {
+    return json(
       {
         success: false,
-        source: "API-Football",
         error:
-  error.message ||
-  "Puan durumu alınamadı.",
-
-apiErrors:
-  error.apiErrors || {},
-
-rateLimit:
-  error.rateLimit || null
+          "En az 2 karakterlik takım adı gerekli."
       },
-      {
-        status:
-          error.status || 500,
-        headers: cors
+      400,
+      cors
+    );
+  }
+
+  return cached(
+    ctx,
+    `${url.origin}/_cache/sportsdb-search?q=${encodeURIComponent(query.toLowerCase())}`,
+    21600,
+
+    async () => {
+      const response =
+        await fetch(
+          `${SPORTSDB_BASE}/searchteams.php?t=${encodeURIComponent(query)}`
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          "TheSportsDB isteği başarısız."
+        );
       }
+
+      const data =
+        await response.json();
+
+      const teams =
+        (data.teams || [])
+          .map(team => ({
+            id:
+              team.idTeam,
+
+            name:
+              team.strTeam,
+
+            alternate:
+              team.strTeamAlternate ||
+              null,
+
+            league:
+              team.strLeague ||
+              null,
+
+            country:
+              team.strCountry ||
+              null,
+
+            badge:
+              team.strBadge ||
+              null,
+
+            stadium:
+              team.strStadium ||
+              null,
+
+            description:
+              team.strDescriptionEN ||
+              null
+          }));
+
+      return json(
+        {
+          success: true,
+          count:
+            teams.length,
+          teams
+        },
+        200,
+        cors,
+        21600
+      );
+    }
+  );
+}
+
+// ==========================================
+// THE SPORTS DB - SON MAÇLAR
+// ==========================================
+
+async function sportsDbLastEvents(
+  ctx,
+  cors,
+  url
+) {
+  const teamId =
+    param(url, "team") ||
+    param(url, "id");
+
+  const last =
+    Math.min(
+      Math.max(
+        parseInt(
+          param(
+            url,
+            "last"
+          ) || "5",
+          10
+        ) || 5,
+        1
+      ),
+      15
     );
 
+  if (!numeric(teamId)) {
+    return json(
+      {
+        success: false,
+        error:
+          "Geçerli TheSportsDB team ID gerekli."
+      },
+      400,
+      cors
+    );
   }
+
+  return cached(
+    ctx,
+    `${url.origin}/_cache/sportsdb-last?team=${teamId}&last=${last}`,
+    1800,
+
+    async () => {
+      const response =
+        await fetch(
+          `${SPORTSDB_BASE}/eventslast.php?id=${encodeURIComponent(teamId)}`
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          "TheSportsDB isteği başarısız."
+        );
+      }
+
+      const data =
+        await response.json();
+
+      const events =
+        (
+          data.results ||
+          data.events ||
+          []
+        )
+          .slice(
+            0,
+            last
+          )
+          .map(
+            event => ({
+              id:
+                event.idEvent,
+
+              date:
+                event.dateEvent,
+
+              time:
+                event.strTime ||
+                null,
+
+              league:
+                event.strLeague ||
+                null,
+
+              home: {
+                id:
+                  event.idHomeTeam ||
+                  null,
+
+                name:
+                  event.strHomeTeam ||
+                  null,
+
+                score:
+                  event.intHomeScore ??
+                  null
+              },
+
+              away: {
+                id:
+                  event.idAwayTeam ||
+                  null,
+
+                name:
+                  event.strAwayTeam ||
+                  null,
+
+                score:
+                  event.intAwayScore ??
+                  null
+              },
+
+              status:
+                event.strStatus ||
+                null,
+
+              season:
+                event.strSeason ||
+                null,
+
+              round:
+                event.intRound ||
+                null
+            })
+          );
+
+      return json(
+        {
+          success: true,
+          team:
+            teamId,
+          count:
+            events.length,
+          events
+        },
+        200,
+        cors,
+        1800
+      );
+    }
+  );
 }
