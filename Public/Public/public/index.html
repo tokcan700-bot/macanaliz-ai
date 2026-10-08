@@ -5558,10 +5558,9 @@ try {
               <small>1</small>
               <div>
                 <b>
-                  ${esc(
-                    p.percent?.home ||
-                    "-"
-                  )}
+                  ${predictionUsable
+  ? esc(p.percent?.home || "-")
+  : "Veri yok"}
                 </b>
               </div>
             </div>
@@ -5570,9 +5569,9 @@ try {
               <small>X</small>
               <div>
                 <b>
-                  ${esc(
-                    p.percent?.draw ||
-                    "-"
+                  ${predictionUsable
+  ? esc(p.percent?.draw || "-")
+  : "Veri yok"}
                   )}
                 </b>
               </div>
@@ -5582,9 +5581,9 @@ try {
               <small>2</small>
               <div>
                 <b>
-                  ${esc(
-                    p.percent?.away ||
-                    "-"
+                  ${predictionUsable
+  ? esc(p.percent?.away || "-")
+  : "Veri yok"}
                   )}
                 </b>
               </div>
