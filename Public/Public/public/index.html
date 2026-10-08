@@ -5434,30 +5434,41 @@ try {
         awayPercent
       );
 
-    if(maxResult > 0){
+   if(
+  maxResult > 0 &&
+  !(
+    homePercent === drawPercent &&
+    drawPercent === awayPercent
+  )
+){
 
-      if(
-        maxResult ===
-        homePercent
-      ){
-        resultPick =
-          match.home?.name ||
-          "Ev Sahibi";
-      }
-      else if(
-        maxResult ===
-        awayPercent
-      ){
-        resultPick =
-          match.away?.name ||
-          "Deplasman";
-      }
-      else{
-        resultPick =
-          "Beraberlik";
-      }
+  if(
+    maxResult ===
+    homePercent
+  ){
+    resultPick =
+      match.home?.name ||
+      "Ev Sahibi";
+  }
+  else if(
+    maxResult ===
+    awayPercent
+  ){
+    resultPick =
+      match.away?.name ||
+      "Deplasman";
+  }
+  else{
+    resultPick =
+      "Beraberlik";
+  }
 
-    }
+}else{
+
+  resultPick =
+    "Net seçim yok";
+
+}
 
     const over15 =
       Number(
