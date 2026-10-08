@@ -5259,6 +5259,547 @@ try {
 
 }
 }
+  async function loadMatchCenterAi(match){
+
+  const content =
+    document.getElementById(
+      "mcAiContent"
+    );
+
+  if(!content){
+    return;
+  }
+
+  const fixtureId =
+    Number(
+      match?.fixture?.id ||
+      match?.fixture ||
+      0
+    );
+
+  const homeId =
+    Number(
+      match?.home?.id ||
+      0
+    );
+
+  const awayId =
+    Number(
+      match?.away?.id ||
+      0
+    );
+
+  if(
+    !fixtureId ||
+    !homeId ||
+    !awayId
+  ){
+    content.innerHTML = `
+      <div class="mc-empty">
+        Analiz için maç bilgileri
+        henüz hazır değil.
+      </div>
+    `;
+    return;
+  }
+
+  content.innerHTML = `
+    <div class="mc-loading">
+      MaçAnaliz AI verileri
+      hazırlanıyor...
+    </div>
+  `;
+
+  try{
+
+    const [
+      predictionResult,
+      modelResult
+    ] = await Promise.allSettled([
+
+      fetch(
+        `/api/prediction?fixture=${fixtureId}`,
+        { cache:"no-store" }
+      ).then(
+        async response => {
+          const data =
+            await response.json();
+
+          if(
+            !response.ok ||
+            !data.success
+          ){
+            throw new Error(
+              data.error ||
+              "Tahmin verisi alınamadı."
+            );
+          }
+
+          return data;
+        }
+      ),
+
+      fetch(
+        `/api/model?home=${homeId}&away=${awayId}`,
+        { cache:"no-store" }
+      ).then(
+        async response => {
+          const data =
+            await response.json();
+
+          if(
+            !response.ok ||
+            !data.success
+          ){
+            throw new Error(
+              data.error ||
+              "Model verisi alınamadı."
+            );
+          }
+
+          return data;
+        }
+      )
+
+    ]);
+
+    const prediction =
+      predictionResult.status ===
+      "fulfilled"
+        ? predictionResult.value
+        : null;
+
+    const model =
+      modelResult.status ===
+      "fulfilled"
+        ? modelResult.value
+        : null;
+
+    if(
+      !prediction &&
+      !model
+    ){
+      throw new Error(
+        "Bu maç için analiz verisi bulunamadı."
+      );
+    }
+
+    const p =
+      prediction?.prediction ||
+      {};
+
+    const scores =
+      model?.scores ||
+      {};
+
+    const confidence =
+      model?.confidence ||
+      {};
+
+    const percentNumber =
+      value => {
+        const number =
+          Number(
+            String(
+              value ?? ""
+            ).replace("%","")
+          );
+
+        return Number.isFinite(number)
+          ? number
+          : 0;
+      };
+
+    const homePercent =
+      percentNumber(
+        p.percent?.home
+      );
+
+    const drawPercent =
+      percentNumber(
+        p.percent?.draw
+      );
+
+    const awayPercent =
+      percentNumber(
+        p.percent?.away
+      );
+
+    let resultPick = "-";
+
+    const maxResult =
+      Math.max(
+        homePercent,
+        drawPercent,
+        awayPercent
+      );
+
+    if(maxResult > 0){
+
+      if(
+        maxResult ===
+        homePercent
+      ){
+        resultPick =
+          match.home?.name ||
+          "Ev Sahibi";
+      }
+      else if(
+        maxResult ===
+        awayPercent
+      ){
+        resultPick =
+          match.away?.name ||
+          "Deplasman";
+      }
+      else{
+        resultPick =
+          "Beraberlik";
+      }
+
+    }
+
+    const over15 =
+      Number(
+        scores.over15 || 0
+      );
+
+    const over25 =
+      Number(
+        scores.over25 || 0
+      );
+
+    const btts =
+      Number(
+        scores.btts || 0
+      );
+
+    const saferPick =
+      over15 >= 65
+        ? "1.5 ÜST"
+        : (
+            btts >= 65
+              ? "KG VAR"
+              : (
+                  maxResult >= 55
+                    ? resultPick
+                    : "Net seçim yok"
+                )
+          );
+
+    const mediumPick =
+      over25 >= 58
+        ? "2.5 ÜST"
+        : (
+            btts >= 58
+              ? "KG VAR"
+              : resultPick
+          );
+
+    const riskPick =
+      p.underOver ||
+      p.advice ||
+      resultPick;
+
+    const avgGoals =
+      model?.averageTotalGoals;
+
+    content.innerHTML = `
+
+      <div
+        style="
+          display:grid;
+          gap:12px;
+        "
+      >
+
+        <div
+          style="
+            padding:14px;
+            border:1px solid rgba(255,255,255,.08);
+            border-radius:14px;
+          "
+        >
+
+          <strong>
+            Maç Sonucu Olasılığı
+          </strong>
+
+          <div
+            style="
+              display:grid;
+              grid-template-columns:repeat(3,1fr);
+              gap:8px;
+              margin-top:12px;
+              text-align:center;
+            "
+          >
+
+            <div>
+              <small>1</small>
+              <div>
+                <b>
+                  ${esc(
+                    p.percent?.home ||
+                    "-"
+                  )}
+                </b>
+              </div>
+            </div>
+
+            <div>
+              <small>X</small>
+              <div>
+                <b>
+                  ${esc(
+                    p.percent?.draw ||
+                    "-"
+                  )}
+                </b>
+              </div>
+            </div>
+
+            <div>
+              <small>2</small>
+              <div>
+                <b>
+                  ${esc(
+                    p.percent?.away ||
+                    "-"
+                  )}
+                </b>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            padding:14px;
+            border:1px solid rgba(255,255,255,.08);
+            border-radius:14px;
+          "
+        >
+
+          <strong>
+            Gol Analizi
+          </strong>
+
+          <div style="margin-top:10px">
+            1.5 Üst:
+            <b>
+              ${over15 || "-"}%
+            </b>
+          </div>
+
+          <div style="margin-top:6px">
+            2.5 Üst:
+            <b>
+              ${over25 || "-"}%
+            </b>
+          </div>
+
+          <div style="margin-top:6px">
+            KG Var:
+            <b>
+              ${btts || "-"}%
+            </b>
+          </div>
+
+          <div style="margin-top:6px">
+            Ortalama Gol:
+            <b>
+              ${
+                avgGoals ??
+                "-"
+              }
+            </b>
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            padding:14px;
+            border:1px solid rgba(255,255,255,.08);
+            border-radius:14px;
+          "
+        >
+
+          <strong>
+            Model Güveni
+          </strong>
+
+          <div style="margin-top:10px">
+            1.5 Üst:
+            <b>
+              ${esc(
+                confidence.over15 ||
+                "-"
+              )}
+            </b>
+          </div>
+
+          <div style="margin-top:6px">
+            2.5 Üst:
+            <b>
+              ${esc(
+                confidence.over25 ||
+                "-"
+              )}
+            </b>
+          </div>
+
+          <div style="margin-top:6px">
+            KG Var:
+            <b>
+              ${esc(
+                confidence.btts ||
+                "-"
+              )}
+            </b>
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            padding:14px;
+            border:1px solid rgba(34,197,94,.25);
+            border-radius:14px;
+          "
+        >
+
+          <strong>
+            MaçAnaliz AI Görüşü
+          </strong>
+
+          <div style="margin-top:10px">
+
+            Kazanan yönü:
+            <b>
+              ${esc(resultPick)}
+            </b>
+
+          </div>
+
+          <div style="margin-top:6px">
+
+            API önerisi:
+            <b>
+              ${esc(
+                p.advice ||
+                p.winnerComment ||
+                "-"
+              )}
+            </b>
+
+          </div>
+
+          <div style="margin-top:6px">
+
+            Beklenen gol:
+            <b>
+              ${esc(
+                p.goals?.home ||
+                "-"
+              )}
+              -
+              ${esc(
+                p.goals?.away ||
+                "-"
+              )}
+            </b>
+
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            display:grid;
+            gap:8px;
+          "
+        >
+
+          <div
+            style="
+              padding:12px;
+              border-radius:12px;
+              background:rgba(34,197,94,.10);
+            "
+          >
+            🟢 Daha Güvenli:
+            <b>
+              ${esc(saferPick)}
+            </b>
+          </div>
+
+          <div
+            style="
+              padding:12px;
+              border-radius:12px;
+              background:rgba(245,158,11,.10);
+            "
+          >
+            🟡 Orta Risk:
+            <b>
+              ${esc(mediumPick)}
+            </b>
+          </div>
+
+          <div
+            style="
+              padding:12px;
+              border-radius:12px;
+              background:rgba(239,68,68,.10);
+            "
+          >
+            🔴 Yüksek Risk:
+            <b>
+              ${esc(riskPick)}
+            </b>
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            opacity:.65;
+            font-size:12px;
+            line-height:1.5;
+          "
+        >
+          Analiz; API tahminleri ve iki takımın
+          son tamamlanan maçlarındaki istatistiksel
+          eğilimler kullanılarak oluşturulur.
+          Sonuç garantisi değildir.
+        </div>
+
+      </div>
+    `;
+
+  }catch(error){
+
+    content.innerHTML = `
+      <div class="mc-empty">
+        ${esc(
+          error.message ||
+          "Analiz hazırlanamadı."
+        )}
+      </div>
+    `;
+
+  }
+
+}
 function renderLiveDetail(data){
 
   const home =
