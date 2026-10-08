@@ -5424,6 +5424,13 @@ try {
       percentNumber(
         p.percent?.away
       );
+      const predictionUsable =
+  Boolean(prediction) &&
+  p.advice !== "No predictions available" &&
+  !(
+    homePercent === drawPercent &&
+    drawPercent === awayPercent
+  );
 
     let resultPick = "-";
 
@@ -5435,6 +5442,7 @@ try {
       );
 
    if(
+  predictionUsable &&
   maxResult > 0 &&
   !(
     homePercent === drawPercent &&
