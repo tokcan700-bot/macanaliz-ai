@@ -10817,6 +10817,36 @@ if(
     match.away
   );
 }
+   if(
+  button.dataset.mcTab ===
+    "ai"
+){
+
+  const content =
+    document.getElementById(
+      "mcAiContent"
+    );
+
+  const match =
+    window.matchCenterCurrentMatch;
+
+  if(!match){
+
+    if(content){
+      content.innerHTML = `
+        <div class="mc-loading">
+          Maç bilgileri hazırlanıyor...
+        </div>
+      `;
+    }
+
+    return;
+  }
+
+  loadMatchCenterAi(
+    match
+  );
+}
     }
   );
 
