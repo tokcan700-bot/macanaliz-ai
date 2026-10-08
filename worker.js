@@ -68,9 +68,9 @@ export default {
         return fixtureDetail(env, ctx, cors, url);
       }
 
-      if (url.pathname === "/api/live-detail") {
-        return liveDetail(env, ctx, cors, url);
-      }
+     if (url.pathname === "/api/live-detail") {
+  return await liveDetail(env, ctx, cors, url);
+}
 
       // =========================
       // TAHMİN
