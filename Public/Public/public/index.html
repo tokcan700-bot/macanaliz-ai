@@ -5287,6 +5287,21 @@ function renderLiveDetail(data){
   home,
   away
 };
+   const activeStandingsTab =
+  document.querySelector(
+    '.mc-tab[data-mc-tab="standings"].active'
+  );
+
+if(activeStandingsTab){
+
+  window.matchCenterStandingsKey = "";
+
+  loadMatchCenterStandings(
+    league,
+    home,
+    away
+  );
+}
   const overviewContent =
   document.getElementById(
     "mcOverviewContent"
@@ -10237,18 +10252,34 @@ if(
     "standings"
 ){
 
+  const content =
+    document.getElementById(
+      "mcStandingsContent"
+    );
+
   const match =
     window.matchCenterCurrentMatch;
 
-  if(match){
+  if(!match){
 
-    loadMatchCenterStandings(
-      match.league,
-      match.home,
-      match.away
-    );
+    if(content){
+      content.innerHTML = `
+        <div class="mc-loading">
+          Maç bilgileri hazırlanıyor...
+        </div>
+      `;
+    }
 
+    return;
   }
+
+  window.matchCenterStandingsKey = "";
+
+  loadMatchCenterStandings(
+    match.league,
+    match.home,
+    match.away
+  );
 }
     }
   );
