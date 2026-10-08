@@ -5609,21 +5609,21 @@ try {
           <div style="margin-top:10px">
             1.5 Üst:
             <b>
-              ${over15 || "-"}%
+              ${over15 ? `${over15}%` : "Veri yok"}
             </b>
           </div>
 
           <div style="margin-top:6px">
             2.5 Üst:
             <b>
-              ${over25 || "-"}%
+              ${over25 ? `${over25}%` : "Veri yok"}
             </b>
           </div>
 
           <div style="margin-top:6px">
             KG Var:
             <b>
-              ${btts || "-"}%
+              ${btts ? `${btts}%` : "Veri yok"}
             </b>
           </div>
 
