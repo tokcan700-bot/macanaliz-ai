@@ -76,13 +76,13 @@ export default {
       // TAHMİN
       // =========================
 
-      if (url.pathname === "/api/prediction") {
-        return prediction(env, ctx, cors, url);
-      }
+   if (url.pathname === "/api/prediction") {
+  return await prediction(env, ctx, cors, url);
+}
 
       if (url.pathname === "/api/model") {
-        return model(env, ctx, cors, url);
-      }
+  return await model(env, ctx, cors, url);
+}
 
       // =========================
       // TAKIM
