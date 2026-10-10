@@ -309,41 +309,83 @@ async function apiFetch(
 // CACHE
 // ==========================================
 
-async function cached(
-  ctx,
-  key,
-  seconds,
-  callback
-) {
-  const cache =
-    caches.default;
 
-  const request =
-    new Request(key);
+async function cached(ctx, key, seconds, callback) {
+  const cache = caches.default;
+  const request = new Request(key);
 
-  const hit =
-    await cache.match(request);
-
+  const hit = await cache.match(request);
   if (hit) {
     return hit;
   }
 
-  const response =
-    await callback();
+  const response = await callback();
 
-  if (
-    response.ok &&
-    seconds > 0
-  ) {
-    ctx.waitUntil(
-      cache.put(
-        request,
-        response.clone()
-      )
-    );
+  if (!response.ok || seconds <= 0) {
+    return response;
   }
 
-  return response;
+  const headers = new Headers(response.headers);
+
+  headers.set(
+    "Cache-Control",
+    `public, max-age=${seconds}`
+  );
+
+  const cacheResponse = new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+
+  ctx.waitUntil(
+    cache.put(request, cacheResponse.clone())
+  );
+
+  return cacheResponse;
+}
+
+
+async function cachedTeamFixtures(teamId, env, ctx) {
+  const team = Number(teamId);
+
+  if (!Number.isSafeInteger(team) || team <= 0) {
+    throw new Error("Geçersiz takım ID.");
+  }
+
+  const cache = caches.default;
+  const key = new Request(
+    `https://macanaliz-cache.internal/team-fixtures/${team}`
+  );
+
+  const hit = await cache.match(key);
+
+  if (hit) {
+    return await hit.json();
+  }
+
+  const data = await apiFetch(
+    "/fixtures",
+    {
+      team,
+      last: 8,
+      timezone: TZ
+    },
+    env
+  );
+
+  const response = new Response(JSON.stringify(data), {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=3600"
+    }
+  });
+
+  ctx.waitUntil(
+    cache.put(key, response)
+  );
+
+  return data;
 }
 
 // ==========================================
@@ -1380,31 +1422,21 @@ async function model(
     3600,
 
     async () => {
-      const [
-        homeData,
-        awayData
-      ] =
-        await Promise.all([
-          apiFetch(
-            "/fixtures",
-            {
-              team: home,
-              last: 8,
-              timezone: TZ
-            },
-            env
-          ),
+      
+const [homeData, awayData] =
+  await Promise.all([
+    cachedTeamFixtures(
+      home,
+      env,
+      ctx
+    ),
+    cachedTeamFixtures(
+      away,
+      env,
+      ctx
+    )
+  ]);
 
-          apiFetch(
-            "/fixtures",
-            {
-              team: away,
-              last: 8,
-              timezone: TZ
-            },
-            env
-          )
-        ]);
 
       const homeStats =
         statsFor(
