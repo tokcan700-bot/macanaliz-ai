@@ -6562,6 +6562,21 @@ async function fetchLiveDetail(
 
 
   }catch(error){
+    
+    if (Number(activeLiveFixture) !== Number(fixture)) {
+      return;
+    }
+
+    const aiContent = document.getElementById("mcAiContent");
+
+    if (aiContent) {
+      aiContent.innerHTML = `
+        <div class="mc-empty">
+          Maç bilgileri yüklenemedi:
+          ${esc(error.message || "Bilinmeyen hata")}
+        </div>
+      `;
+    }
 
     root.innerHTML = `
       <div class="error">
