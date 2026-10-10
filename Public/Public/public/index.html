@@ -1671,6 +1671,44 @@ button:disabled{opacity:.55}
   font-size:10px;
   font-weight:700;
 }
+   
+/* MACANALIZ 2.0 - TAM EKRAN MAC MERKEZI */
+
+#matchModal {
+  padding: 0 !important;
+  z-index: 9999;
+}
+
+#matchModal.show {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+#matchModal .modal-sheet {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+#matchCenter {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  #matchModal .modal-sheet {
+    height: 100dvh !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 </style>
 </head>
 
