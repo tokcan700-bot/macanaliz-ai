@@ -431,6 +431,17 @@ async function cachedTeamFixtures(teamId, env, ctx) {
     return await hit.json();
   }
 
+  const kv = env.MACANALIZ_CACHE;
+  const kvKey = `team-fixtures-v1:${team}`;
+
+  if (kv) {
+    const saved = await kv.get(kvKey, "json");
+
+    if (saved) {
+      return saved;
+    }
+  }
+
   
   const data = await sharedApiRequest(
     `team-fixtures-${team}`,
@@ -456,6 +467,16 @@ async function cachedTeamFixtures(teamId, env, ctx) {
   ctx.waitUntil(
     cache.put(key, response)
   );
+
+  if (kv) {
+    ctx.waitUntil(
+      kv.put(
+        kvKey,
+        JSON.stringify(data),
+        { expirationTtl: 3600 }
+      )
+    );
+  }
 
   return data;
 }
