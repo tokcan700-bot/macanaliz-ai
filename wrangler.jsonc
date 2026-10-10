@@ -9,5 +9,12 @@
     "run_worker_first": [
       "/api/*"
     ]
-  }
+  
+  },
+  "kv_namespaces": [
+    {
+      "binding": "MACANALIZ_CACHE",
+      "id": "7c1e5ba24ec5438c9c6400f57d31d4f0"
+    }
+  ]
 }
