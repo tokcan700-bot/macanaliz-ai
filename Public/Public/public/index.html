@@ -5362,6 +5362,12 @@ try {
       )
 
     ]);
+    
+    if (
+      Number(activeLiveFixture) !== fixtureId
+    ) {
+      return;
+    }
 
     const prediction =
       predictionResult.status ===
@@ -5805,6 +5811,12 @@ try {
     `;
 
   }catch(error){
+   
+    if (
+      Number(activeLiveFixture) !== fixtureId
+    ) {
+      return;
+    }
 
     content.innerHTML = `
       <div class="mc-empty">
@@ -6520,6 +6532,19 @@ function openLiveDetail(fixture){
       Maç detayları yükleniyor...
     </div>
   `;
+     
+  window.matchCenterCurrentMatch = null;
+
+  const aiContent =
+    document.getElementById("mcAiContent");
+
+  if (aiContent) {
+    aiContent.innerHTML = `
+      <div class="mc-loading">
+        Yeni maçın analizi hazırlanıyor...
+      </div>
+    `;
+  }
 
   /* MAÇ MERKEZİNİ HER AÇILIŞTA SIFIRLA */
 
