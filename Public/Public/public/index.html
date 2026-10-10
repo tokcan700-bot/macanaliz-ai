@@ -4429,6 +4429,13 @@ async function openPredictionDetail(
   }catch(error){
 
     root.innerHTML = `
+
+    if (
+      Number(activeLiveFixture) !== Number(fixture)
+    ) {
+      return;
+    }
+
       <div class="error">
 
         <b>
@@ -5301,7 +5308,12 @@ try {
 
 }
 }
+   
+let matchCenterAiRequestId = 0;
+
   async function loadMatchCenterAi(match){
+
+  const requestId = ++matchCenterAiRequestId;
 
   const content =
     document.getElementById(
@@ -5405,11 +5417,14 @@ try {
 
     ]);
     
-    if (
-      Number(activeLiveFixture) !== fixtureId
-    ) {
-      return;
-    }
+    
+if (
+  requestId !== matchCenterAiRequestId ||
+  Number(activeLiveFixture) !== fixtureId
+) {
+  return;
+}
+
 
     const prediction =
       predictionResult.status ===
@@ -5854,11 +5869,13 @@ try {
 
   }catch(error){
    
-    if (
-      Number(activeLiveFixture) !== fixtureId
-    ) {
-      return;
-    }
+    
+if (
+  requestId !== matchCenterAiRequestId ||
+  Number(activeLiveFixture) !== fixtureId
+) {
+  return;
+}
 
     content.innerHTML = `
       <div class="mc-empty">
@@ -6521,9 +6538,17 @@ async function fetchLiveDetail(
       );
     }
 
+   
+    if (
+      Number(activeLiveFixture) !== Number(fixture)
+    ) {
+      return;
+    }
+
     renderLiveDetail(
       data
     );
+
 
   }catch(error){
 
@@ -6556,6 +6581,9 @@ async function fetchLiveDetail(
 
 
 function openLiveDetail(fixture, addHistory = true){
+   
+  // Önceki maçın bekleyen AI analizlerini geçersiz kıl
+  matchCenterAiRequestId++;
 
   activeLiveFixture = fixture;
       
@@ -6683,6 +6711,10 @@ function closeLiveDetail() {
 
 
 function hideMatchDetail() {
+   
+  // Bekleyen eski AI analizlerini geçersiz kıl
+  matchCenterAiRequestId++;
+
   document.getElementById("matchModal")
     .classList.remove("show");
 
