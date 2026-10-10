@@ -250,6 +250,25 @@ function checkApiFootballLimit() {
   }
 }
 
+const pendingApiRequests = new Map();
+
+function sharedApiRequest(key, task) {
+  if (pendingApiRequests.has(key)) {
+    return pendingApiRequests.get(key);
+  }
+
+  const promise = Promise.resolve().then(task);
+
+  pendingApiRequests.set(key, promise);
+
+  promise.then(
+    () => pendingApiRequests.delete(key),
+    () => pendingApiRequests.delete(key)
+  );
+
+  return promise;
+}
+
 async function apiFetch(
   path,
   params,
@@ -412,15 +431,20 @@ async function cachedTeamFixtures(teamId, env, ctx) {
     return await hit.json();
   }
 
-  const data = await apiFetch(
-    "/fixtures",
-    {
-      team,
-      last: 8,
-      timezone: TZ
-    },
-    env
+  
+  const data = await sharedApiRequest(
+    `team-fixtures-${team}`,
+    () => apiFetch(
+      "/fixtures",
+      {
+        team,
+        last: 8,
+        timezone: TZ
+      },
+      env
+    )
   );
+
 
   const response = new Response(JSON.stringify(data), {
     headers: {
