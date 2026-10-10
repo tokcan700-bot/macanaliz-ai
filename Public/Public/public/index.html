@@ -6551,9 +6551,23 @@ async function fetchLiveDetail(
 }
 
 
-function openLiveDetail(fixture){
+function openLiveDetail(fixture, addHistory = true){
 
   activeLiveFixture = fixture;
+      
+  
+  if (addHistory) {
+    const matchUrl = new URL(window.location.href);
+    matchUrl.searchParams.set("match", fixture);
+
+    window.history.pushState(
+      { fixture: Number(fixture) },
+      "",
+      matchUrl.pathname + matchUrl.search
+    );
+  }
+
+
 
   const modal =
     document.getElementById("matchModal");
@@ -6636,25 +6650,61 @@ function refreshLiveDetail(){
 }
 
 
-function closeLiveDetail(){
 
-  document
-    .getElementById(
-      "matchModal"
-    )
-    .classList
-    .remove(
-      "show"
+
+function closeLiveDetail() {
+  const url = new URL(window.location.href);
+
+  if (url.searchParams.has("match")) {
+    const previousUrl = new URL(document.referrer || window.location.origin);
+
+    if (
+      window.history.state?.fixture &&
+      previousUrl.origin === window.location.origin
+    ) {
+      window.history.back();
+      return;
+    }
+
+    url.searchParams.delete("match");
+    window.history.replaceState(
+      {},
+      "",
+      url.pathname + url.search + url.hash
     );
+  }
 
-  document.body
-    .style
-    .overflow =
-      "";
-
-  activeLiveFixture =
-    null;
+  hideMatchDetail();
 }
+
+
+function hideMatchDetail() {
+  document.getElementById("matchModal")
+    .classList.remove("show");
+
+  document.body.style.overflow = "";
+  activeLiveFixture = null;
+  window.matchCenterCurrentMatch = null;
+}
+
+window.addEventListener("popstate", () => {
+  const url = new URL(window.location.href);
+  const matchId = Number(url.searchParams.get("match"));
+
+  if (matchId) {
+    if (Number(activeLiveFixture) !== matchId) {
+      openLiveDetailFromHistory(matchId);
+    }
+  } else {
+    hideMatchDetail();
+  }
+});
+
+function openLiveDetailFromHistory(fixture) {
+  openLiveDetail(fixture, false);
+}
+
+
 
 
 document
@@ -10937,5 +10987,17 @@ if(
 
 })();
 </script>
+   
+<script>
+window.addEventListener("load", function () {
+  const params = new URLSearchParams(window.location.search);
+  const fixture = Number(params.get("match"));
+
+  if (Number.isSafeInteger(fixture) && fixture > 0) {
+    openLiveDetail(fixture, false);
+  }
+});
+</script>
+
 </body>
 </html>
