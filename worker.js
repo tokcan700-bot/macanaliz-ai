@@ -229,11 +229,34 @@ function apiErrors(data) {
 // API FOOTBALL
 // ==========================================
 
+let apiFootballBlockedUntil = 0;
+
+function checkApiFootballLimit() {
+  const remaining =
+    apiFootballBlockedUntil - Date.now();
+
+  if (remaining > 0) {
+    const error = new Error(
+      "API-Football dakikalık limiti doldu. " +
+      "Yaklaşık " +
+      Math.ceil(remaining / 1000) +
+      " saniye sonra tekrar deneyin."
+    );
+
+    error.status = 429;
+    error.retryAfter = Math.ceil(remaining / 1000);
+
+    throw error;
+  }
+}
+
 async function apiFetch(
   path,
   params,
   env
 ) {
+   checkApiFootballLimit();
+
   if (!env.API_FOOTBALL_KEY) {
     const error =
       new Error(
@@ -283,6 +306,31 @@ async function apiFetch(
   }
 
   const errors = apiErrors(data);
+  
+  const errorText = JSON.stringify(
+    data.errors || {}
+  ).toLowerCase();
+
+  const isRateLimited =
+    response.status === 429 ||
+    errorText.includes("rateLimit".toLowerCase()) ||
+    errorText.includes("too many requests") ||
+    errorText.includes("limit of requests per minute");
+
+  if (isRateLimited) {
+    apiFootballBlockedUntil = Date.now() + 60000;
+
+    const error = new Error(
+      "API-Football dakikalık istek sınırı doldu. " +
+      "60 saniye sonra tekrar deneyin."
+    );
+
+    error.status = 429;
+    error.retryAfter = 60;
+    error.apiErrors = data.errors || {};
+
+    throw error;
+  }
 
   if (
     !response.ok ||
