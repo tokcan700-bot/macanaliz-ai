@@ -5912,6 +5912,17 @@ function renderLiveDetail(data){
   home,
   away
 };
+   
+const activeAiTab = document.querySelector(
+  '#matchCenter .mc-tab[data-mc-tab="ai"].active'
+);
+
+if (activeAiTab) {
+  loadMatchCenterAi(
+    window.matchCenterCurrentMatch
+  );
+}
+
    const activeStandingsTab =
   document.querySelector(
     '.mc-tab[data-mc-tab="standings"].active'
