@@ -7359,15 +7359,21 @@ root.innerHTML =
 
   let refreshingStatuses =
     false;
+   
+let lastMatchRefresh = Date.now();
 
 
   async function refreshMatchStatuses(){
 
-    if(
-      refreshingStatuses
-    ){
-      return;
-    }
+    
+if (
+  refreshingStatuses ||
+  Date.now() - lastMatchRefresh < 300000
+) {
+  return;
+}
+
+
 
 
     refreshingStatuses =
@@ -7448,7 +7454,7 @@ root.innerHTML =
       }
 
     },
-    60000
+    300000
   );
 
 
@@ -7457,18 +7463,23 @@ root.innerHTML =
     döndüğünde hemen güncelle.
   */
 
-  document.addEventListener(
-    "visibilitychange",
-    () => {
+  
+let lastVisibilityRefresh = Date.now();
 
-      if(
-        !document.hidden
-      ){
-        refreshMatchStatuses();
-      }
-
+document.addEventListener(
+  "visibilitychange",
+  () => {
+    if (
+      !document.hidden &&
+      activePage === "home" &&
+      Date.now() - lastMatchRefresh >= 300000
+    ) {
+      lastVisibilityRefresh = Date.now();
+      
     }
-  );
+  }
+);
+
 
 
   /*
