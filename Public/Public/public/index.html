@@ -7378,6 +7378,8 @@ if (
 
     refreshingStatuses =
       true;
+      
+lastMatchRefresh = Date.now();
 
 
     try{
@@ -7464,21 +7466,19 @@ if (
   */
 
   
-let lastVisibilityRefresh = Date.now();
-
+   
 document.addEventListener(
   "visibilitychange",
   () => {
     if (
       !document.hidden &&
-      activePage === "home" &&
-      Date.now() - lastMatchRefresh >= 300000
+      activePage === "home"
     ) {
-      lastVisibilityRefresh = Date.now();
-      
+      refreshMatchStatuses();
     }
   }
 );
+
 
 
 
